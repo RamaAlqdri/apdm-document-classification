@@ -516,7 +516,7 @@ D. README.md final + commit terakhir.
 - [~] Tahap 4 — Split + fitur teks (kode siap; siapkan ruang ~7GB untuk cc.en.300.bin)
 - [~] Tahap 5 — Baseline TEXT dan IMAGE (kode siap, latih di mesin compute)
 - [~] Tahap 6 — FUSION + Oracle (kode siap, latih di mesin compute)
-- [ ] Tahap 7 — Ablasi
+- [~] Tahap 7 — Ablasi (kode siap; ablasi 4 dilewati, butuh training baru)
 - [ ] Tahap 8 — Sintesis akhir
 
 ## Catatan praktis
