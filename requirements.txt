@@ -1,0 +1,14 @@
+# Jangan lupa: python -m spacy download en_core_web_sm  (model tidak ikut pip)
+torch
+torchvision
+numpy
+pandas
+scikit-learn
+matplotlib
+seaborn
+spacy
+fasttext-wheel   # bukan `fasttext`: paket itu sering gagal build dari source
+kagglehub
+pillow
+tqdm
+jupyter

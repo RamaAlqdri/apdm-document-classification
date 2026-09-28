@@ -1,0 +1,78 @@
+"""Single source of truth for paths, hyperparameters and seeding."""
+
+import os
+import random
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+
+CONFIG = {
+    # --- paths ---
+    "root": ROOT,
+    "data_raw": ROOT / "data" / "raw",
+    "data_interim": ROOT / "data" / "interim",
+    "data_processed": ROOT / "data" / "processed",
+    "models": ROOT / "models",
+    "figures": ROOT / "reports" / "figures",
+    "paper_pdf": ROOT / "references" / "1907.06370v1.pdf",
+    # --- dataset ---
+    "classes": [
+        "ADVE", "Email", "Form", "Letter", "Memo",
+        "News", "Note", "Report", "Resume", "Scientific",
+    ],
+    "n_samples_expected": 3482,
+    # --- split (deviasi: paper pakai k-fold, kita 3 random split) ---
+    "n_train": 800,
+    "val_fraction": 0.1,          # dipotong dari n_train, deviasi dari paper
+    "seeds": [42, 43, 44],
+    # --- text branch (paper sec. 3.2 & 4.2) ---
+    "max_words": 500,
+    "embedding_dim": 300,
+    "fasttext_model": "cc.en.300.bin",
+    "cnn1d": {"n_layers": 4, "kernel_size": 12, "channels": 512, "pool_stride": 2},
+    "mlp": {"width": 2048, "out_dim": 128},
+    # --- image branch (paper sec. 3.1 & 4.2) ---
+    "image_size": 384,            # aspect ratio sengaja di-warp, tanpa padding
+    "imagenet_mean": [0.485, 0.456, 0.406],   # asumsi, tidak disebut paper
+    "imagenet_std": [0.229, 0.224, 0.225],    # asumsi, tidak disebut paper
+    # --- fusion (paper sec. 3.3) ---
+    "fusion_dim": 128,
+    "image_feature_dim": 1280,
+    "fusion_strategy": "concat",  # "concat" | "sum"
+    # --- optimisation (paper sec. 4.2, batch 40 for every model) ---
+    "optimizer": "sgd",
+    "lr": 0.01,
+    "momentum": 0.9,
+    "batch_size": 40,
+    "epochs": {"text": 100, "image": 200, "fusion": 200},
+}
+
+
+def set_seed(seed: int = 42) -> int:
+    """Seed python, numpy and torch. Returns the seed for logging."""
+    random.seed(seed)
+    os.environ["PYTHONHASHSEED"] = str(seed)
+    try:
+        import numpy as np
+
+        np.random.seed(seed)
+    except ImportError:
+        pass
+    try:
+        import torch
+
+        torch.manual_seed(seed)
+        torch.cuda.manual_seed_all(seed)
+    except ImportError:
+        pass
+    return seed
+
+
+if __name__ == "__main__":
+    # the reproducibility claim is the only non-trivial thing here, so check it
+    set_seed(42)
+    a = [random.random() for _ in range(5)]
+    set_seed(42)
+    assert a == [random.random() for _ in range(5)], "set_seed is not reproducible"
+    assert len(CONFIG["classes"]) == 10
+    print("config self-check ok")

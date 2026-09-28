@@ -509,8 +509,8 @@ D. README.md final + commit terakhir.
 
 ## Checklist eksekusi
 
-- [ ] Langkah 0 — CLAUDE.md dibuat dan diperiksa manual
-- [ ] Tahap 1 — Scaffolding + vault + git init
+- [x] Langkah 0 — CLAUDE.md dibuat dan diperiksa manual
+- [x] Tahap 1 — Scaffolding + vault + git init
 - [ ] Tahap 2 — Sintesis jurnal (isi path PDF dulu)
 - [ ] Tahap 3 — Audit & pairing data
 - [ ] Tahap 4 — Split + fitur teks (siapkan ruang ~7GB untuk cc.en.300.bin)

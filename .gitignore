@@ -1,0 +1,10 @@
+data/
+models/
+*.ipynb_checkpoints
+.ipynb_checkpoints/
+.obsidian/workspace*
+venv/
+.venv/
+__pycache__/
+*.py[cod]
+.DS_Store
