@@ -25,6 +25,10 @@ Kode ditulis di satu mesin, dijalankan di mesin lain. Mesin penulisan tidak
 memegang dataset dan tidak menjalankan model, jadi notebook di repo ini **belum
 pernah dieksekusi** — sel kodenya diperiksa sintaksnya saja.
 
+**Mau menjalankannya? Ikuti [RUNBOOK.md](RUNBOOK.md)** — prosedur lengkap dari
+clone sampai seluruh catatan eksperimen terisi angka, termasuk masalah khas
+Windows dan cara memotong budget training dengan benar.
+
 Artinya: catatan eksperimen di `vault/30-eksperimen/` berstatus
 `belum-dijalankan` sampai dijalankan di mesin compute, dan angkanya hanya diisi
 dari keluaran eksekusi nyata.

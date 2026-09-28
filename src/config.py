@@ -2,9 +2,15 @@
 
 import os
 import random
+import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+
+# DataLoader workers. Windows spawns rather than forks, and inside a Jupyter kernel
+# that regularly hangs or crashes, so default to single-process there. Override by
+# setting CONFIG["num_workers"] in the notebook if you know your setup is fine.
+_DEFAULT_WORKERS = 0 if sys.platform == "win32" else 4
 
 CONFIG = {
     # --- paths ---
@@ -53,6 +59,7 @@ CONFIG = {
     "epochs": {"text": 100, "image": 200, "fusion": 200},
     # Early stopping is OUR deviation: the paper trains a fixed number of epochs.
     "patience": 15,
+    "num_workers": _DEFAULT_WORKERS,
 }
 
 

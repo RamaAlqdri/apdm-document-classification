@@ -56,7 +56,15 @@ def download_images(link_into_raw: bool = True) -> Path:
         CONFIG["data_raw"].mkdir(parents=True, exist_ok=True)
         link = CONFIG["data_raw"] / "tobacco3482-jpg"
         if not link.exists():
-            link.symlink_to(path, target_is_directory=True)
+            try:
+                link.symlink_to(path, target_is_directory=True)
+            except OSError as exc:
+                # Windows refuses symlinks without Developer Mode or admin rights.
+                # The link is cosmetic — everything downstream uses the returned
+                # path — so this must not abort the download.
+                print(f"symlink {link} dilewati ({exc}); memakai cache langsung: {path}")
+                (CONFIG["data_raw"] / "LOKASI_CITRA.txt").write_text(
+                    str(path), encoding="utf-8")
     return path
 
 
