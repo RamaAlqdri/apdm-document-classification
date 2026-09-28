@@ -67,4 +67,29 @@ di mana **keduanya** salah — dan sampel seperti itu tidak terhitung di oracle.
 
 Satu jebakan implementasi: oracle harus dihitung dari prediksi kedua baseline pada
 **split test yang sama persis**. Kalau TEXT dan IMAGE dilatih dengan split berbeda,
-angka oracle-nya tidak berarti apa-apa.
+angka oracle-nya tidak berarti apa-apa. `src/train.py:oracle` karena itu meng-assert
+panjang ketiga array sama, dan notebook Tahap 6 meng-assert `y_true` kedua baseline
+identik per seed sebelum menghitung apa pun.
+
+## Satu detail yang paper diamkan
+
+Overall accuracy oracle tidak ambigu, tapi **F1 per kelas** membutuhkan prediksi
+konkret per sampel — dan ketika kedua baseline salah, tidak ada "yang benar" untuk
+dipilih. Paper melaporkan F1 per kelas oracle (0,91 macro) tanpa menyebut bagaimana
+kasus itu diperlakukan.
+
+Keputusan kita: pakai prediksi IMAGE, baseline terkuat. OA sama sekali tidak
+terpengaruh oleh pilihan ini; hanya F1 per kelas bergeser sedikit. Dicatat sebagai
+ambiguitas #15 di [[1907.06370-spesifikasi-implementasi]].
+
+## Pemecahan yang lebih informatif daripada angka oracle itu sendiri
+
+`src/train.py:oracle` juga mengembalikan empat proporsi yang paper tidak laporkan:
+keduanya benar, hanya TEXT benar, hanya IMAGE benar, keduanya salah.
+
+Yang paling berguna adalah **hanya TEXT benar** — ukuran paling langsung bahwa
+modalitas teks membawa sesuatu yang tidak ada di citra. Kalau angka itu mendekati
+nol, seluruh premis proyek runtuh, dan keberatan di [[taksonomi-multimodal]] soal
+teks yang diturunkan dari citra jadi menentukan. **Keduanya salah** adalah
+komplemennya: bagian yang tidak bisa diselamatkan skema fusion mana pun yang bekerja
+dengan memilih.

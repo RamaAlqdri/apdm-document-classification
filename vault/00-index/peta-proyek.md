@@ -44,7 +44,9 @@ Angka paper pada Tobacco3482: 73,8% / 84,5% / 87,8% / 92,1%.
 - [~] **05** — Baseline unimodal TEXT dan IMAGE — kode siap
       ([[02-baseline-mlp-sif]], [[03-baseline-cnn1d]], [[04-baseline-mobilenetv2]]
       masih `belum-dijalankan`)
-- [ ] **06** — FUSION (concat vs penjumlahan adaptif) + Oracle
+- [~] **06** — FUSION (concat vs penjumlahan adaptif) + Oracle — kode siap
+      ([[05-fusion-concat]], [[06-fusion-sum]], [[tabel-utama]] masih
+      `belum-dijalankan`)
 - [ ] **07** — Ablasi: degradasi citra, missing modality, degradasi teks
 - [ ] **08** — Sintesis akhir + limitasi
 

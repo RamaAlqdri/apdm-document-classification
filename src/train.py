@@ -192,6 +192,36 @@ def estimate_duration(model: nn.Module, loaders: dict[str, DataLoader],
     }
 
 
+def oracle(y_true: np.ndarray, pred_a: np.ndarray, pred_b: np.ndarray) -> dict:
+    """Perfect fusion of two unimodal baselines: right when EITHER of them is right.
+
+    This is the paper's oracle, and it must be built from the per-sample predictions
+    of the two STANDALONE baselines on the same test split — not from the branches
+    inside the fusion model. Getting that wrong makes the number incomparable with
+    the paper's 92.1% and breaks the whole complementarity argument.
+
+    For a per-class F1 the oracle needs a concrete prediction per sample, so when
+    both baselines are wrong we fall back to `pred_b` (pass the stronger baseline
+    there). The paper does not say how it breaks that tie; overall accuracy is
+    unaffected either way, only per-class F1 shifts slightly.
+    """
+    if not (len(y_true) == len(pred_a) == len(pred_b)):
+        raise ValueError("panjang y_true dan kedua prediksi harus sama")
+    a_ok, b_ok = pred_a == y_true, pred_b == y_true
+    either = a_ok | b_ok
+    y_pred = np.where(either, y_true, pred_b)
+    return {
+        "oa": float(either.mean()),
+        "macro_f1": float(f1_score(y_true, y_pred, average="macro")),
+        "y_true": y_true,
+        "y_pred": y_pred,
+        "keduanya_benar": float((a_ok & b_ok).mean()),
+        "keduanya_salah": float((~a_ok & ~b_ok).mean()),
+        "hanya_a_benar": float((a_ok & ~b_ok).mean()),
+        "hanya_b_benar": float((~a_ok & b_ok).mean()),
+    }
+
+
 def report(result: dict, class_names: list[str] | None = None) -> str:
     """Per-class table, for pasting into the experiment note."""
     class_names = CONFIG["classes"] if class_names is None else class_names
@@ -286,6 +316,26 @@ def _self_check() -> None:
         assert est["detik_per_epoch"] > 0, ("probe tidak terukur sama sekali", est)
         # the extrapolation must actually be per_epoch * target, not a stale constant
         assert abs(est["perkiraan_detik"] - est["detik_per_epoch"] * 200) < 0.5, est
+
+    # oracle, on a hand-built case where every outcome is known
+    yt = np.array([0, 1, 2, 3, 4, 5])
+    pa = np.array([0, 9, 2, 9, 4, 9])   # right on 0, 2, 4
+    pb = np.array([9, 1, 2, 9, 9, 9])   # right on 1, 2
+    orc = oracle(yt, pa, pb)
+    assert abs(orc["oa"] - 4 / 6) < 1e-9, orc["oa"]          # 0,1,2,4 recoverable
+    assert abs(orc["keduanya_benar"] - 1 / 6) < 1e-9, orc    # only sample 2
+    assert abs(orc["keduanya_salah"] - 2 / 6) < 1e-9, orc    # samples 3 and 5
+    assert abs(orc["hanya_a_benar"] - 2 / 6) < 1e-9, orc     # samples 0 and 4
+    assert abs(orc["hanya_b_benar"] - 1 / 6) < 1e-9, orc     # sample 1
+    assert orc["y_pred"].tolist() == [0, 1, 2, 9, 4, 9], orc["y_pred"]
+    # the oracle can never be below either baseline it is built from
+    assert orc["oa"] >= max((pa == yt).mean(), (pb == yt).mean())
+    try:
+        oracle(yt, pa[:3], pb)
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("oracle menerima panjang prediksi yang tidak sama")
 
     print("train self-check ok")
     print(f"  device terpilih di mesin ini: {pick_device()}")

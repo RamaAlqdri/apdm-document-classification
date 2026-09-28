@@ -69,3 +69,21 @@ dan kalau hasil kita juga negatif jangan laporkan sebagai "berhasil mereplikasi
 temuan paper" — laporkan sebagai satu titik data untuk mekanisme yang kita pilih.
 Kalau hasil kita justru positif, itu temuan yang lebih menarik lagi, tandai
 `#temuan/negatif` terhadap paper.
+
+## Mekanisme yang akhirnya kita pilih
+
+Diputuskan di Tahap 6: satu skalar terlatih per cabang, dilewatkan softmax sehingga
+kedua bobot berjumlah 1, diinisialisasi seimbang 0,5/0,5. Itu bacaan yang paling
+cocok dengan frasa "adaptive averaging" — sebuah rata-rata yang bobotnya diadaptasi
+lewat pelatihan.
+
+Dua alternatif yang **tidak** kita uji dan berperilaku berbeda: rata-rata tanpa bobot
+terlatih, dan gate per-dimensi (satu bobot per indeks vektor alih-alih satu per
+cabang). Detail dan cara membaca hasilnya di [[06-fusion-sum]].
+
+Satu keuntungan tak terduga dari mekanisme ini: **bobot terlatihnya sendiri adalah
+diagnostik.** Kalau bobot cabang teks mendekati nol, model belajar mengabaikan teks
+sepenuhnya — itu bukan cuma hasil buruk, itu penjelasan mengapa buruk, dan sekaligus
+bukti langsung untuk hipotesis paper bahwa kedua ruang fitur tidak bisa disejajarkan
+tanpa merusak daya diskriminatifnya. Strategi konkatenasi tidak memberi sinyal
+seperti ini.
