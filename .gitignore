@@ -1,5 +1,7 @@
-data/
-models/
+# leading slash matters: a bare `models/` also swallows src/models/, which holds
+# the architecture code, not checkpoints
+/data/
+/models/
 *.ipynb_checkpoints
 .ipynb_checkpoints/
 .obsidian/workspace*

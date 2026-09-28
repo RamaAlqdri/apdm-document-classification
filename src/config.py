@@ -16,8 +16,11 @@ CONFIG = {
     "figures": ROOT / "reports" / "figures",
     "paper_pdf": ROOT / "references" / "1907.06370v1.pdf",
     # --- dataset ---
+    # Canonical class names, matching the "kelas" column of manifest.csv. The image
+    # archive uses the short code ADVE for Advertisement; data.CLASS_ALIASES maps it.
+    # Label index = position in this list, so the order must never change.
     "classes": [
-        "ADVE", "Email", "Form", "Letter", "Memo",
+        "Advertisement", "Email", "Form", "Letter", "Memo",
         "News", "Note", "Report", "Resume", "Scientific",
     ],
     "n_samples_expected": 3482,
@@ -30,7 +33,10 @@ CONFIG = {
     "embedding_dim": 300,
     "fasttext_model": "cc.en.300.bin",
     "cnn1d": {"n_layers": 4, "kernel_size": 12, "channels": 512, "pool_stride": 2},
-    "mlp": {"width": 2048, "out_dim": 128},
+    # n_hidden is OUR assumption: the paper fixes the width at 2048 but never says
+    # how many layers there are. See the spec note's ambiguity table.
+    "mlp": {"width": 2048, "n_hidden": 2, "out_dim": 128},
+    "dropout": 0.5,  # assumption, paper does not state the rate
     # --- image branch (paper sec. 3.1 & 4.2) ---
     "image_size": 384,            # aspect ratio sengaja di-warp, tanpa padding
     "imagenet_mean": [0.485, 0.456, 0.406],   # asumsi, tidak disebut paper
@@ -45,6 +51,8 @@ CONFIG = {
     "momentum": 0.9,
     "batch_size": 40,
     "epochs": {"text": 100, "image": 200, "fusion": 200},
+    # Early stopping is OUR deviation: the paper trains a fixed number of epochs.
+    "patience": 15,
 }
 
 

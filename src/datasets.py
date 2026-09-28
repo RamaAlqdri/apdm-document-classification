@@ -1,0 +1,188 @@
+"""Torch datasets over the precomputed features and the raw images.
+
+Kept out of src/data.py on purpose: that module's audit self-check must keep
+running on a machine without torch installed.
+"""
+
+from __future__ import annotations
+
+from pathlib import Path
+from typing import Sequence
+
+import numpy as np
+import torch
+from torch.utils.data import DataLoader, Dataset
+
+from .config import CONFIG
+
+
+def label_indices(labels: Sequence[str]) -> np.ndarray:
+    """Class name -> integer, by position in CONFIG['classes'].
+
+    Fails loudly on an unknown name rather than inventing a new index, because a
+    silently added class would shift every label after it.
+    """
+    lookup = {c: i for i, c in enumerate(CONFIG["classes"])}
+    unknown = sorted(set(labels) - set(lookup))
+    if unknown:
+        raise ValueError(f"kelas tidak dikenal: {unknown}. Perbaiki CONFIG['classes'] "
+                         f"atau CLASS_ALIASES, jangan tambah indeks baru diam-diam.")
+    return np.array([lookup[l] for l in labels], dtype=np.int64)
+
+
+class SequenceDataset(Dataset):
+    """500x300 word-vector sequences, served as (300, 500) for Conv1d.
+
+    The .npy stays memory-mapped: the file is ~1GB and only a batch is needed at a
+    time. float16 on disk, float32 in the batch.
+    """
+
+    def __init__(self, path: Path, y: np.ndarray, indices: Sequence[int]):
+        self.arr = np.load(path, mmap_mode="r")
+        self.y = y
+        self.indices = list(indices)
+
+    def __len__(self) -> int:
+        return len(self.indices)
+
+    def __getitem__(self, i: int):
+        row = self.indices[i]
+        # np.array, not asarray: asarray on a memmap of matching dtype hands back a
+        # read-only view, and torch.from_numpy then warns about non-writable tensors
+        seq = np.array(self.arr[row], dtype=np.float32)   # (500, 300)
+        return torch.from_numpy(seq.T).contiguous(), int(self.y[row])  # (300, 500)
+
+
+class VectorDataset(Dataset):
+    """One precomputed vector per document — the SIF representation for the MLP."""
+
+    def __init__(self, path: Path, y: np.ndarray, indices: Sequence[int]):
+        self.arr = np.load(path, mmap_mode="r")
+        self.y = y
+        self.indices = list(indices)
+
+    def __len__(self) -> int:
+        return len(self.indices)
+
+    def __getitem__(self, i: int):
+        row = self.indices[i]
+        vec = np.array(self.arr[row], dtype=np.float32)
+        return torch.from_numpy(vec), int(self.y[row])
+
+
+class ImageDataset(Dataset):
+    """JPG documents, loaded and transformed on the fly."""
+
+    def __init__(self, paths: Sequence[str], y: np.ndarray, indices: Sequence[int],
+                 transform):
+        self.paths = list(paths)
+        self.y = y
+        self.indices = list(indices)
+        self.transform = transform
+
+    def __len__(self) -> int:
+        return len(self.indices)
+
+    def __getitem__(self, i: int):
+        from PIL import Image
+
+        row = self.indices[i]
+        with Image.open(self.paths[row]) as im:
+            return self.transform(im.convert("L")), int(self.y[row])
+
+
+class PairDataset(Dataset):
+    """Image and text for the same document, for the fusion model in Tahap 6."""
+
+    def __init__(self, image_ds: Dataset, text_ds: Dataset):
+        if len(image_ds) != len(text_ds):
+            raise ValueError("kedua dataset harus punya jumlah dan urutan indeks sama")
+        self.image_ds, self.text_ds = image_ds, text_ds
+
+    def __len__(self) -> int:
+        return len(self.image_ds)
+
+    def __getitem__(self, i: int):
+        img, y_img = self.image_ds[i]
+        txt, y_txt = self.text_ds[i]
+        assert y_img == y_txt, f"label tidak cocok di posisi {i}: {y_img} != {y_txt}"
+        return (img, txt), y_img
+
+
+def make_loaders(build_dataset, split: dict, batch_size: int | None = None,
+                 num_workers: int = 0) -> dict[str, DataLoader]:
+    """One DataLoader per split part. `build_dataset(indices)` returns a Dataset."""
+    batch_size = CONFIG["batch_size"] if batch_size is None else batch_size
+    return {
+        part: DataLoader(
+            build_dataset(split[part]),
+            batch_size=batch_size,
+            shuffle=(part == "train"),
+            num_workers=num_workers,
+            drop_last=(part == "train"),  # BatchNorm1d needs >1 sample per batch
+        )
+        for part in ("train", "val", "test")
+    }
+
+
+def _self_check() -> None:
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp = Path(tmp)
+        n = 20
+        labels = [CONFIG["classes"][i % 10] for i in range(n)]
+        y = label_indices(labels)
+        assert y.tolist() == [i % 10 for i in range(n)], y[:12]
+
+        # a sequence whose first axis is time, so the transpose is observable
+        seq = np.zeros((n, 5, 3), dtype=np.float16)
+        seq[:, 0, :] = 1.0          # first time step only
+        np.save(tmp / "seq.npy", seq)
+        ds = SequenceDataset(tmp / "seq.npy", y, range(n))
+        x, lab = ds[3]
+        assert x.shape == (3, 5), x.shape                 # (dim, length)
+        assert x.dtype == torch.float32, x.dtype
+        assert torch.all(x[:, 0] == 1) and torch.all(x[:, 1:] == 0), \
+            "transpose salah: sumbu waktu dan dimensi tertukar"
+        assert lab == 3
+
+        np.save(tmp / "sif.npy", np.arange(n * 4, dtype=np.float32).reshape(n, 4))
+        v, lab = VectorDataset(tmp / "sif.npy", y, range(n))[2]
+        assert v.tolist() == [8.0, 9.0, 10.0, 11.0], v.tolist()
+        assert lab == 2
+
+        # loaders: train shuffles and drops the tail, eval does neither
+        split = {"train": list(range(12)), "val": list(range(12, 16)),
+                 "test": list(range(16, 20))}
+        loaders = make_loaders(
+            lambda idx: VectorDataset(tmp / "sif.npy", y, idx), split, batch_size=5
+        )
+        assert len(loaders["train"].dataset) == 12
+        assert loaders["train"].drop_last and not loaders["test"].drop_last
+        assert sum(len(b[1]) for b in loaders["train"]) == 10, "drop_last tidak jalan"
+        assert sum(len(b[1]) for b in loaders["test"]) == 4
+
+        # pairing refuses mismatched label order
+        a = VectorDataset(tmp / "sif.npy", y, range(4))
+        b = VectorDataset(tmp / "sif.npy", y, list(range(4))[::-1])
+        try:
+            PairDataset(a, b)[0]
+        except AssertionError:
+            pass
+        else:
+            raise AssertionError("PairDataset tidak mendeteksi label tertukar")
+
+        # unknown class must fail loudly
+        try:
+            label_indices(["ADVE"])
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("label_indices menerima kelas tak dikenal")
+
+    print("datasets self-check ok")
+
+
+if __name__ == "__main__":
+    _self_check()
