@@ -67,3 +67,14 @@ klaim yang bisa kita verifikasi sendiri di korpus kita di Tahap 4.
 Yang lebih penting: FastText tetap memberi vektor untuk string sampah hasil
 halusinasi OCR. Kemiripan ejaan tidak membedakan `fiilter` dari `Oztrlseezloz`.
 Jadi subword mengurangi masalah, tidak menghapusnya.
+
+**Reproduksi kita hanya sebagian.** Tabel di atas punya tiga kolom; kita menghitung
+FastText saja. Menambahkan GloVe dan ELMo berarti mengunduh dua model besar lagi
+hanya untuk satu tabel pembanding, dan itu di luar anggaran proyek. Konsekuensinya
+kita bisa menunjukkan bahwa cosine FastText untuk salah eja di korpus kita tinggi,
+tapi **tidak** bisa menunjukkan bahwa ia lebih tinggi daripada alternatifnya. Klaim
+komparatif paper tetap tidak terverifikasi oleh kita. Dicatat di
+[[01-ekstraksi-fitur-teks]].
+
+Satu klaim kecil paper yang bisa kita uji murah: bahwa Tesseract tidak menghasilkan
+karakter yang OOV bagi FastText. Notebook Tahap 4 memeriksanya di korpus kita.

@@ -62,3 +62,9 @@ tabel Ambiguitas di [[1907.06370-spesifikasi-implementasi]].
 Satu jebakan implementasi: PCA harus dipasang **hanya pada data train**, lalu
 diterapkan ke test. Menghitung PCA atas seluruh korpus termasuk test adalah
 kebocoran informasi, walau halus dan mudah terlewat.
+
+Konsekuensi praktisnya di [[01-ekstraksi-fitur-teks]]: karena arah komponen utama
+bergantung pada baris train, ada **satu file SIF per seed**, bukan satu untuk
+ketiga seed. Bobot `p(w)` sendiri kita hitung dari train seed 42 dan pakai untuk
+semuanya — penyederhanaan yang dampaknya kecil karena `p(w)` didominasi stopword,
+tapi tetap penyederhanaan dan dicatat begitu.

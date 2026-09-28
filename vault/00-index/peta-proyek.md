@@ -39,7 +39,8 @@ Angka paper pada Tobacco3482: 73,8% / 84,5% / 87,8% / 92,1%.
       [[1907.06370-spesifikasi-implementasi]], 10 catatan konsep, 8 catatan pustaka
 - [~] **03** — Audit data, pairing citra↔teks, EDA — kode siap
       ([[00-audit-data]] masih `belum-dijalankan`, eksekusi di mesin compute)
-- [ ] **04** — Split + representasi teks (FastText, SIF, sekuens 500×300)
+- [~] **04** — Split + representasi teks — kode siap
+      ([[01-ekstraksi-fitur-teks]] masih `belum-dijalankan`)
 - [ ] **05** — Baseline unimodal TEXT dan IMAGE
 - [ ] **06** — FUSION (concat vs penjumlahan adaptif) + Oracle
 - [ ] **07** — Ablasi: degradasi citra, missing modality, degradasi teks

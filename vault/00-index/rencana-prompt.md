@@ -513,7 +513,7 @@ D. README.md final + commit terakhir.
 - [x] Tahap 1 — Scaffolding + vault + git init
 - [x] Tahap 2 — Sintesis jurnal (isi path PDF dulu)
 - [~] Tahap 3 — Audit & pairing data (kode siap, eksekusi di mesin compute)
-- [ ] Tahap 4 — Split + fitur teks (siapkan ruang ~7GB untuk cc.en.300.bin)
+- [~] Tahap 4 — Split + fitur teks (kode siap; siapkan ruang ~7GB untuk cc.en.300.bin)
 - [ ] Tahap 5 — Baseline TEXT dan IMAGE
 - [ ] Tahap 6 — FUSION + Oracle
 - [ ] Tahap 7 — Ablasi
