@@ -19,17 +19,37 @@ RVL-CDIP dan QS-OCR-Large tidak dipakai. Teks di-OCR dari TIF asli sedangkan
 citra kita dari JPG re-encode — sumber kedua modalitas tidak identik, ini
 limitasi yang dicatat, bukan bug.
 
+## Cara kerja: dua mesin
+
+Kode ditulis di satu mesin, dijalankan di mesin lain. Mesin penulisan tidak
+memegang dataset dan tidak menjalankan model, jadi notebook di repo ini **belum
+pernah dieksekusi** — sel kodenya diperiksa sintaksnya saja.
+
+Artinya: catatan eksperimen di `vault/30-eksperimen/` berstatus
+`belum-dijalankan` sampai dijalankan di mesin compute, dan angkanya hanya diisi
+dari keluaran eksekusi nyata.
+
 ## Setup
 
+Gunakan Python 3.12 — pada 3.14 wheel `torch`, `spacy`, dan `fasttext` belum
+tersedia.
+
 ```bash
-python3 -m venv venv && source venv/bin/activate
+python3.12 -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
 python -m spacy download en_core_web_sm   # wajib, model spaCy tidak ikut pip
 ```
 
 Kredensial Kaggle (`~/.kaggle/kaggle.json` atau env `KAGGLE_USERNAME`/`KAGGLE_KEY`)
-harus disiapkan sebelum Tahap 3. Model FastText `cc.en.300.bin` (~7GB di disk,
-~15GB saat dimuat) diperlukan di Tahap 4.
+harus disiapkan sebelum Tahap 3. Citra dari Kaggle berukuran **3,29 GB**; teks
+QS-OCR-small hanya 2,5 MB. Model FastText `cc.en.300.bin` (~7 GB di disk, ~15 GB
+saat dimuat) diperlukan di Tahap 4.
+
+Pemeriksaan mandiri tanpa dataset:
+
+```bash
+python -m src.config && python -m src.data
+```
 
 Cek konfigurasi:
 

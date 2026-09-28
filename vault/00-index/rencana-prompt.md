@@ -29,7 +29,7 @@ Fakta yang dipakai dalam prompt di bawah:
 
 | Fakta | Nilai |
 |---|---|
-| Lokasi file dataset teks | Tab **Releases**, tag `v1.0`, 4 aset arsip. Bukan di root repo. |
+| Lokasi file dataset teks | Tab **Releases**, tag `v1.0`, **2** aset arsip (`QS-OCR-small.tar.gz` 2,5 MB dan `QS-OCR-Large.tar.gz` 251,9 MB). Bukan di root repo. Terverifikasi lewat GitHub API 2026-09-28; rencana awal menyebut 4 aset dan itu salah. |
 | QS-OCR-Small | 3.482 file teks, 10 kelas, dari Tobacco3482 |
 | QS-OCR-Large | 400.000 file teks, dari RVL-CDIP (tidak dipakai di proyek ini) |
 | Kelas QS-OCR-Small | Advertisement (ADVE), Email, Form, Letter, Memo, News, Note, Report, Resume, Scientific |
@@ -512,7 +512,7 @@ D. README.md final + commit terakhir.
 - [x] Langkah 0 — CLAUDE.md dibuat dan diperiksa manual
 - [x] Tahap 1 — Scaffolding + vault + git init
 - [x] Tahap 2 — Sintesis jurnal (isi path PDF dulu)
-- [ ] Tahap 3 — Audit & pairing data
+- [~] Tahap 3 — Audit & pairing data (kode siap, eksekusi di mesin compute)
 - [ ] Tahap 4 — Split + fitur teks (siapkan ruang ~7GB untuk cc.en.300.bin)
 - [ ] Tahap 5 — Baseline TEXT dan IMAGE
 - [ ] Tahap 6 — FUSION + Oracle

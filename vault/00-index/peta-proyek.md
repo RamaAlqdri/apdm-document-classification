@@ -37,7 +37,8 @@ Angka paper pada Tobacco3482: 73,8% / 84,5% / 87,8% / 92,1%.
 - [x] **01** — Scaffolding + vault + template + MOC
 - [x] **02** — Sintesis jurnal → [[1907.06370-ringkasan]],
       [[1907.06370-spesifikasi-implementasi]], 10 catatan konsep, 8 catatan pustaka
-- [ ] **03** — Audit data, pairing citra↔teks, EDA
+- [~] **03** — Audit data, pairing citra↔teks, EDA — kode siap
+      ([[00-audit-data]] masih `belum-dijalankan`, eksekusi di mesin compute)
 - [ ] **04** — Split + representasi teks (FastText, SIF, sekuens 500×300)
 - [ ] **05** — Baseline unimodal TEXT dan IMAGE
 - [ ] **06** — FUSION (concat vs penjumlahan adaptif) + Oracle
@@ -51,6 +52,16 @@ Angka paper pada Tobacco3482: 73,8% / 84,5% / 87,8% / 92,1%.
 - [[peta-eksperimen]] — tabel agregat seluruh run
 - [[papan-progress]] — status per tahap
 - [[rencana-prompt]] — prompt bertahap + basis rujukan tiap klaim
+
+## Cara kerja: dua mesin
+
+Mesin penulisan kode **tidak memegang dataset dan tidak menjalankan model**. Semua
+akuisisi data, training, dan evaluasi dikerjakan di mesin compute terpisah.
+
+Konsekuensinya untuk seluruh vault: notebook dan modul `src/` ditulis lengkap dan
+diperiksa sintaksnya di sini, tapi catatan eksperimennya berstatus
+`belum-dijalankan` sampai dieksekusi di sana. Angka hanya masuk vault setelah
+benar-benar dihitung — aturan 3 `CLAUDE.md` berlaku tanpa pengecualian.
 
 ## Deviasi dari paper yang sudah pasti
 
