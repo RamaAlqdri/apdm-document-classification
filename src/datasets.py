@@ -110,15 +110,24 @@ class PairDataset(Dataset):
 
 
 def make_loaders(build_dataset, split: dict, batch_size: int | None = None,
-                 num_workers: int = 0) -> dict[str, DataLoader]:
-    """One DataLoader per split part. `build_dataset(indices)` returns a Dataset."""
+                 num_workers: int | None = None) -> dict[str, DataLoader]:
+    """One DataLoader per split part. `build_dataset(indices)` returns a Dataset.
+
+    The TRAIN loader yields micro-batches of `CONFIG["micro_batch_size"]` when that
+    is set, and train_model accumulates gradients back up to `batch_size`. Eval
+    loaders use the micro size too — they only need to fit in memory, and batching
+    does not change their result.
+    """
     batch_size = CONFIG["batch_size"] if batch_size is None else batch_size
+    num_workers = CONFIG["num_workers"] if num_workers is None else num_workers
+    micro = CONFIG.get("micro_batch_size") or batch_size
     return {
         part: DataLoader(
             build_dataset(split[part]),
-            batch_size=batch_size,
+            batch_size=micro,
             shuffle=(part == "train"),
             num_workers=num_workers,
+            pin_memory=torch.cuda.is_available(),
             drop_last=(part == "train"),  # BatchNorm1d needs >1 sample per batch
         )
         for part in ("train", "val", "test")

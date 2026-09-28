@@ -106,7 +106,14 @@ terpakai — lihat catatan risiko di [[05-fusion-concat]].
    modalitas tidak identik.
 5. Mekanisme penjumlahan adaptif adalah pilihan kita; paper tidak menyebutkannya.
 6. Head fusion dan inisialisasi cabang adalah asumsi kita.
-7. Pemotongan budget epoch, kalau terjadi: diisi setelah eksekusi.
+7. **BatchNorm melihat micro-batch, bukan batch 40.** Di GPU dengan VRAM terbatas,
+   batch 40 dipecah jadi micro-batch dan gradiennya diakumulasi. Update optimizer
+   tetap dihitung dari 40 sampel seperti paper, tapi statistik BatchNorm berasal dari
+   ukuran micro-batch. Akumulasi gradien tidak bisa memperbaiki ini.
+   Micro-batch yang benar-benar dipakai: diisi setelah eksekusi.
+8. **Mixed precision (AMP) aktif di GPU CUDA**, tidak dipakai paper. Berpengaruh pada
+   presisi numerik meski secara praktis dapat diabaikan untuk klasifikasi.
+9. Pemotongan budget epoch, kalau terjadi: diisi setelah eksekusi.
 
 Daftar lengkap 14 ambiguitas paper ada di
 [[1907.06370-spesifikasi-implementasi]].

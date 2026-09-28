@@ -60,6 +60,11 @@ CONFIG = {
     # Early stopping is OUR deviation: the paper trains a fixed number of epochs.
     "patience": 15,
     "num_workers": _DEFAULT_WORKERS,
+    # Micro-batch for gradient accumulation. None = use batch_size directly.
+    # Set this on a small GPU: MobileNetV2 at 384x384 with batch 40 needs well over
+    # 4GB of VRAM. The optimiser still steps on 40 samples, so the paper's batch
+    # size is preserved; only BatchNorm sees the smaller group.
+    "micro_batch_size": None,
 }
 
 

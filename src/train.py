@@ -67,7 +67,7 @@ def train_model(model: nn.Module, loaders: dict[str, DataLoader], *,
                 epochs: int, lr: float | None = None, momentum: float | None = None,
                 device=None, log_csv: Path | None = None,
                 ckpt_path: Path | None = None, patience: int | None = None,
-                verbose: bool = True) -> dict:
+                amp: bool | None = None, verbose: bool = True) -> dict:
     """Train, keeping the best-on-val weights. Returns history plus timings.
 
     The returned model has the best-on-val weights loaded, not the last epoch's.
@@ -80,6 +80,21 @@ def train_model(model: nn.Module, loaders: dict[str, DataLoader], *,
     model.to(device)
     optimiser = torch.optim.SGD(model.parameters(), lr=lr, momentum=momentum)
     criterion = nn.CrossEntropyLoss()
+
+    # Gradient accumulation keeps the paper's batch size of 40 on a GPU that cannot
+    # hold it. The train loader yields micro-batches; the optimiser steps once per
+    # `accum` of them, so the update is computed from 40 samples either way.
+    #
+    # It is NOT fully equivalent: BatchNorm still normalises over the micro-batch,
+    # so its running statistics come from `micro` samples rather than 40. That is a
+    # real difference and belongs in the deviations list whenever accum > 1.
+    micro = CONFIG.get("micro_batch_size") or CONFIG["batch_size"]
+    accum = max(1, CONFIG["batch_size"] // micro)
+
+    # AMP halves activation memory and is ~2x faster on Ampere. CUDA only: on mps and
+    # cpu it either does nothing useful or is slower.
+    use_amp = amp if amp is not None else (device.type == "cuda")
+    scaler = torch.amp.GradScaler(device.type, enabled=use_amp)
 
     handle = writer = None
     if log_csv:
@@ -100,14 +115,26 @@ def train_model(model: nn.Module, loaders: dict[str, DataLoader], *,
             t0 = time.perf_counter()
             model.train()
             total, seen = 0.0, 0
-            for x, y in loaders["train"]:
+            optimiser.zero_grad(set_to_none=True)
+            pending = 0
+            for step, (x, y) in enumerate(loaders["train"], start=1):
                 x, y = _to_device(x, device), y.to(device)
-                optimiser.zero_grad()
-                loss = criterion(model(x), y)
-                loss.backward()
-                optimiser.step()
+                with torch.amp.autocast(device.type, enabled=use_amp):
+                    loss = criterion(model(x), y)
+                # scale down so accumulated gradients average rather than sum
+                scaler.scale(loss / accum).backward()
+                pending += 1
+                if pending == accum:
+                    scaler.step(optimiser)
+                    scaler.update()
+                    optimiser.zero_grad(set_to_none=True)
+                    pending = 0
                 total += loss.item() * len(y)
                 seen += len(y)
+            if pending:            # flush a partial group at the end of the epoch
+                scaler.step(optimiser)
+                scaler.update()
+                optimiser.zero_grad(set_to_none=True)
             train_loss = total / max(seen, 1)
 
             model.eval()
@@ -166,6 +193,9 @@ def train_model(model: nn.Module, loaders: dict[str, DataLoader], *,
         # rounded to 0.0 would extrapolate to "0 minutes for 200 epochs"
         "durasi_detik": round(time.perf_counter() - t_start, 3),
         "device": str(device),
+        "micro_batch": micro,
+        "accum_steps": accum,
+        "amp": use_amp,
     }
 
 
@@ -316,6 +346,43 @@ def _self_check() -> None:
         assert est["detik_per_epoch"] > 0, ("probe tidak terukur sama sekali", est)
         # the extrapolation must actually be per_epoch * target, not a stale constant
         assert abs(est["perkiraan_detik"] - est["detik_per_epoch"] * 200) < 0.5, est
+
+    # Gradient accumulation must produce the SAME update as one big batch. Checked on
+    # a BatchNorm-free model, because BN genuinely differs between the two: it
+    # normalises over whatever group it is handed. That difference is the documented
+    # caveat, so the test isolates the part that is supposed to be equivalent.
+    torch.manual_seed(7)
+    lin = nn.Linear(dim, n_classes)
+    big = TensorDataset(x[:16], y[:16])
+    loss_fn = nn.CrossEntropyLoss()
+
+    lin.zero_grad()
+    loss_fn(lin(x[:16]), y[:16]).backward()
+    full_grad = lin.weight.grad.clone()
+
+    lin.zero_grad()
+    for i in range(0, 16, 4):                      # four micro-batches of four
+        (loss_fn(lin(x[i:i + 4]), y[i:i + 4]) / 4).backward()
+    accum_grad = lin.weight.grad.clone()
+    assert torch.allclose(full_grad, accum_grad, atol=1e-5), \
+        ("akumulasi gradien tidak setara batch penuh",
+         (full_grad - accum_grad).abs().max().item())
+    del big
+
+    # and the accumulating loop still learns end to end
+    from .config import CONFIG as _CFG
+    _saved = _CFG.get("micro_batch_size")
+    _CFG["micro_batch_size"] = 4
+    try:
+        acc_model = nn.Sequential(nn.Linear(dim, 16), nn.ReLU(), nn.Linear(16, n_classes))
+        res3 = train_model(acc_model, loaders, epochs=12, lr=0.1, device=device,
+                           patience=0, amp=False, verbose=False)
+        assert res3["accum_steps"] == 10, res3["accum_steps"]   # 40 // 4
+        assert res3["history"][-1]["train_loss"] < res3["history"][0]["train_loss"], \
+            "loop dengan akumulasi gradien tidak belajar"
+        assert res3["amp"] is False
+    finally:
+        _CFG["micro_batch_size"] = _saved
 
     # oracle, on a hand-built case where every outcome is known
     yt = np.array([0, 1, 2, 3, 4, 5])

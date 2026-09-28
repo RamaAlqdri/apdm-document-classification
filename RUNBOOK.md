@@ -19,6 +19,44 @@ Semua catatan di `vault/30-eksperimen/` dan `vault/50-hasil/` saat ini berstatus
 | Python | **3.12** | 3.13/3.14 belum punya wheel `torch`/`spacy`/`fasttext` |
 | Akun Kaggle | — | butuh API token untuk mengunduh dataset citra |
 
+### Profil yang sudah diperhitungkan: ASUS TUF, i7 gen 11, 24 GB RAM, RTX 3050 4 GB
+
+| Aspek | Status |
+|---|---|
+| RAM 24 GB | **Aman.** FastText butuh ± 15 GB, masih lapang |
+| Disk | perlu ± 15 GB kosong |
+| VRAM 4 GB | **Ini kendalanya** — lihat di bawah |
+| CUDA | RTX 3050 = Ampere, punya tensor core, jadi AMP aktif otomatis |
+
+**Batch 40 pada MobileNetV2 384×384 tidak muat di 4 GB VRAM.** Parameternya kecil
+(9 MB), yang memakan adalah peta aktivasi yang harus disimpan untuk backward —
+kasarnya 60-80 MB per sampel, jadi batch 40 ≈ 2,5-3 GB sebelum menghitung workspace
+dan fragmentasi. Di kartu 4 GB yang efektifnya ± 3,6 GB, itu akan OOM.
+
+Solusinya sudah terpasang: **akumulasi gradien**. Notebook 04 dan 05 punya sel
+
+```python
+CONFIG["micro_batch_size"] = 8
+```
+
+tepat sebelum sel `EPOCHS`. DataLoader menyajikan micro-batch 8, `train_model`
+mengakumulasi 5 di antaranya, dan optimizer tetap melangkah dari 40 sampel persis
+seperti paper. Kalau masih OOM, turunkan ke 4.
+
+**Yang tidak setara, dan wajib dicatat sebagai deviasi:** BatchNorm menormalisasi
+per micro-batch, jadi statistiknya berasal dari 8 sampel, bukan 40. Akumulasi
+gradien tidak bisa memperbaiki itu. Self-check `src/train.py` memverifikasi bagian
+yang memang setara — gradien hasil akumulasi identik dengan gradien batch penuh pada
+model tanpa BatchNorm.
+
+**AMP (mixed precision) menyala otomatis di CUDA**, memangkas memori aktivasi
+sekitar separuh dan mempercepat 2-3× di Ampere. Matikan dengan
+`train_model(..., amp=False)` kalau mencurigai masalah numerik.
+
+Perkiraan durasi di 3050 (kasar, **ukur sendiri dengan sel estimasi**): IMAGE
+200 epoch ± 1-1,5 jam per seed; FUSION lebih berat, ± 2 jam per seed per strategi.
+Total untuk 3 seed penuh ± 12-18 jam. Lihat urutan pemotongan di bagian 5.
+
 ### Kalau RAM hanya 16 GB
 
 Notebook 02 akan kena swap saat memuat `cc.en.300.bin`. Biarkan — ia hanya berjalan
@@ -194,6 +232,12 @@ normalisasi diam-diam persis hal yang audit ini dimaksudkan untuk menangkap.
 
 **Notebook 02 kehabisan RAM.** Lihat bagian 0. Tutup aplikasi lain; jangan pakai
 `reduce_model`.
+
+**`torch.OutOfMemoryError` di notebook 04/05.** Turunkan
+`CONFIG["micro_batch_size"]` ke 4, lalu restart kernel — VRAM tidak dilepas
+sepenuhnya setelah OOM. Kalau masih gagal, pastikan tidak ada proses lain memakai
+GPU (`nvidia-smi`), dan tutup notebook sebelumnya: kernel Jupyter yang masih hidup
+tetap memegang VRAM-nya.
 
 **Notebook 06 gagal memuat checkpoint.** Nama filenya mengikuti seed dan strategi:
 `IMAGE_seed42.pt`, `CNN1D_seed42.pt`, `FUSION-concat_seed42.pt`. Kalau Anda mengubah
