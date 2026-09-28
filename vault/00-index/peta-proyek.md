@@ -35,7 +35,8 @@ Angka paper pada Tobacco3482: 73,8% / 84,5% / 87,8% / 92,1%.
 
 - [ ] **00** — Brief proyek (`CLAUDE.md`) → lihat [[rencana-prompt]]
 - [x] **01** — Scaffolding + vault + template + MOC
-- [ ] **02** — Sintesis jurnal → `10-jurnal/`, `20-metode/`, `90-referensi/`
+- [x] **02** — Sintesis jurnal → [[1907.06370-ringkasan]],
+      [[1907.06370-spesifikasi-implementasi]], 10 catatan konsep, 8 catatan pustaka
 - [ ] **03** — Audit data, pairing citra↔teks, EDA
 - [ ] **04** — Split + representasi teks (FastText, SIF, sekuens 500×300)
 - [ ] **05** — Baseline unimodal TEXT dan IMAGE
@@ -63,3 +64,6 @@ Dicatat sejak awal supaya tidak tersalahartikan sebagai gap replikasi:
    asli. Sumber kedua modalitas tidak identik.
 4. Budget epoch kemungkinan dipotong dari 200 karena keterbatasan compute —
    dicatat per eksperimen kalau terjadi.
+
+Daftar lengkap 11 ambiguitas paper beserta asumsi yang kita ambil ada di
+[[1907.06370-spesifikasi-implementasi]].

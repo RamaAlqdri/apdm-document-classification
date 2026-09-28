@@ -3,19 +3,21 @@ judul: Peta Metode
 tipe: referensi
 tahap: "00"
 tanggal: 2026-09-28
-status: wip
+status: selesai
 tags:
   - tipe/referensi
   - tahap/00
 terkait:
   - "[[peta-proyek]]"
   - "[[peta-eksperimen]]"
+  - "[[1907.06370-spesifikasi-implementasi]]"
 ---
 
 # Peta Metode
 
-Peta konsep untuk `20-metode/`. Catatan yang belum ada ditulis di Tahap 2 —
-wikilink merah di bawah ini adalah daftar kerjanya.
+Peta konsep untuk `20-metode/`. Seluruh catatan di bawah sudah ditulis di Tahap 2.
+Spesifikasi teknis lengkapnya ada di [[1907.06370-spesifikasi-implementasi]],
+ringkasan dan catatan kritis di [[1907.06370-ringkasan]].
 
 ## Cabang teks
 
@@ -45,3 +47,23 @@ Citra → OCR → token → embedding kata → embedding dokumen atau sekuens �
 [[ocr-tesseract]] → [[noise-ocr-dan-oov]] → [[fasttext-subword]] →
 [[cnn-1d-teks]] → [[mobilenetv2]] → [[strategi-fusion-concat-vs-sum]] →
 [[oracle-sebagai-batas-atas]] → [[taksonomi-multimodal]]
+
+## Catatan referensi
+
+Delapan catatan pustaka di `90-referensi/`, semuanya ditulis dari cara paper kita
+mengutipnya dan bukan dari membaca sumber aslinya:
+
+[[harley-2015-rvl-cdip]] · [[kumar-2014-tobacco3482]] ·
+[[sandler-2018-mobilenetv2]] · [[bojanowski-2017-fasttext]] · [[arora-2017-sif]] ·
+[[kim-2014-cnn-sentence]] · [[eitel-2015-multimodal-rgbd]] ·
+[[kay-2007-tesseract]]
+
+## Tiga hal yang harus kita uji sendiri, bukan diwarisi dari paper
+
+1. **Kegagalan fusion penjumlahan** dilaporkan tanpa angka dan tanpa spesifikasi
+   mekanisme. Lihat [[strategi-fusion-concat-vs-sum]].
+2. **Klaim "fusion hampir tidak pernah kalah per kelas"** dibantah tabel paper
+   sendiri di dua kelas (Resume, Advertisement).
+3. **Ketahanan terhadap degradasi** disebut sebagai limitasi tapi tidak diuji.
+   Itu isi Tahap 7, dengan keterbatasan desain yang dicatat di
+   [[taksonomi-multimodal]].
