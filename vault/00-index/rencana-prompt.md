@@ -44,6 +44,8 @@ Fakta yang dipakai dalam prompt di bawah:
 
 **Bug di README repo:** bagian "How to reproduce" menginstruksikan `./tobacco3842.sh`, tetapi file yang benar-benar ada di repo bernama `tobacco3482.sh`. Angka 8 dan 4 tertukar. Kalau mengikuti README mentah-mentah akan kena *file not found*.
 
+**Kontradiksi paper vs parameter:** paper §3.2 menulis Tesseract "will try to detect the text orientation", padahal `--psm 3` justru mode full-page **tanpa** OSD — deteksi orientasi/script hanya aktif di `--psm 0`/`--psm 1`. Parameter di tabel di atas yang benar; kalimat paper tidak akurat. Tandai ini eksplisit di `ocr-tesseract.md` supaya catatan Tahap 2 tidak diam-diam bertentangan dengan tabel ini.
+
 ### Yang terverifikasi dari Kaggle
 
 `kaggle.com/datasets/patrickaudriaz/tobacco3482jpg`, judul "Tobacco3482", versi JPG dari dataset asli. Dataset asli berformat TIF dan dihosting di server UMIACS yang sering sulit diakses, sehingga versi Kaggle ini lazim dipakai sebagai pengganti.
@@ -53,6 +55,20 @@ Fakta yang dipakai dalam prompt di bawah:
 ### Yang berbasis paper saja
 
 Seluruh spesifikasi model: arsitektur, dimensi layer, optimizer, learning rate, jumlah epoch, batch size, panjang padding, strategi fusion, protokol split. Tidak ada kode resmi dari penulis untuk mengecek silang. Karena itu Tahap 2 mewajibkan pemisahan section "Ambiguitas & asumsi".
+
+Hyperparameter yang disebut eksplisit di paper §4.2. Dipakai langsung di Tahap 5 dan 6, jangan ditebak ulang:
+
+| Model | Optimizer | LR | Momentum | Batch | Epoch |
+|---|---|---|---|---|---|
+| TEXT (CNN1D) | SGD + momentum | 0,01 | 0,9 | 40 | 100 |
+| IMAGE (MobileNetV2) | SGD + momentum | 0,01 | 0,9 | 40 | 200 |
+| FUSION | SGD + momentum | 0,01 | 0,9 | 40 | 200 |
+
+Catatan baca PDF: batch TEXT terbaca "406" karena marker footnote 6 menempel di angkanya. Nilainya 40.
+
+Yang **tidak** disebut paper dan wajib masuk "Ambiguitas & asumsi": normalisasi citra (mean/std ImageNet?), truncation dokumen >500 kata (paper hanya menyebut padding untuk yang <500 kata), mekanisme "adaptive averaging" pada fusion penjumlahan, rasio dropout, dan ada/tidaknya early stopping.
+
+Deviasi yang sudah pasti sejak awal: paper memakai TensorFlow 1.12 + Keras, kita PyTorch. Bobot pretrained MobileNetV2 torchvision tidak identik dengan versi Keras.
 
 ### Yang berbasis rekomendasi umum
 
@@ -93,6 +109,7 @@ proyek/
 ├── README.md
 ├── requirements.txt
 ├── data/{raw,interim,processed}/     # digitignore
+├── references/                       # PDF paper (sudah ada)
 ├── notebooks/                        # 01_..., 02_..., dst
 ├── src/                              # modul reusable, di-import notebook
 ├── models/                           # checkpoint, digitignore
@@ -174,8 +191,11 @@ TAHAP 1: Scaffolding.
 Buat seluruh struktur folder sesuai CLAUDE.md, plus:
 - .gitignore (data/, models/, *.ipynb_checkpoints, .obsidian/workspace*, venv)
 - requirements.txt (PyTorch, torchvision, numpy, pandas, scikit-learn,
-  matplotlib, seaborn, spacy, fasttext, pillow, tqdm, jupyter). Jangan install
-  dulu, cukup tulis filenya.
+  matplotlib, seaborn, spacy, fasttext-wheel, kagglehub, pillow, tqdm,
+  jupyter). Jangan install dulu, cukup tulis filenya. Pakai `fasttext-wheel`,
+  bukan `fasttext` — yang terakhir sering gagal build dari source di Python
+  versi baru. Catat di README bahwa setelah install wajib jalan
+  `python -m spacy download en_core_web_sm`, karena model spaCy tidak ikut pip.
 - README.md singkat: tujuan, cara setup, peta folder.
 - src/ dengan __init__.py, config.py (CONFIG dict + set_seed()), utils.py.
 
@@ -190,7 +210,8 @@ berisi query Dataview yang valid (pakai blok ```dataview```).
 Buat vault/00-index/peta-proyek.md sebagai pintu masuk vault: ringkas tujuan,
 daftar 9 tahap (00-08) sebagai checklist, dan link ke MOC lain.
 
-Terakhir: git init + commit awal. Lalu berhenti dan laporkan.
+Git sudah diinisialisasi dan sudah punya commit awal di folder ini, jadi cukup
+commit hasil scaffolding — jangan git init ulang. Lalu berhenti dan laporkan.
 ```
 
 ---
@@ -200,7 +221,7 @@ Terakhir: git init + commit awal. Lalu berhenti dan laporkan.
 ```text
 TAHAP 2: Sintesis jurnal.
 
-PDF papernya ada di [ISI PATH LOKAL ANDA]. Baca penuh, lalu:
+PDF papernya ada di references/1907.06370v1.pdf. Baca penuh, lalu:
 
 A. vault/10-jurnal/1907.06370-ringkasan.md — ringkasan terstruktur: masalah,
    kontribusi, metode, dataset, hasil utama, limitasi yang diakui penulis.
@@ -247,6 +268,9 @@ TAHAP 3: Data.
 
 Sumber:
 - Citra: Kaggle patrickaudriaz/tobacco3482jpg → ekstrak ke data/raw/
+  Download Kaggle butuh kredensial: `~/.kaggle/kaggle.json` atau env
+  KAGGLE_USERNAME/KAGGLE_KEY. Kalau belum ada, BERHENTI dan minta saya
+  menyiapkannya. Jangan cari jalan pintas lewat scraping.
 - Teks: QS-OCR-Small, dari tab RELEASES repo QuickSign/ocrized-text-dataset
   tag v1.0 (bukan dari root repo, bukan hasil git clone) → ekstrak ke data/raw/
 
@@ -292,20 +316,31 @@ Update log + commit. Berhenti.
 ```text
 TAHAP 4: Split dan representasi teks.
 
-A. src/splits.py: implementasi protokol paper — 800 dokumen train, sisanya
-   test, terstratifikasi per kelas, 3 seed berbeda (42/43/44), disimpan sebagai
+A. src/splits.py: 800 dokumen train, sisanya test, terstratifikasi per kelas,
+   3 seed berbeda (42/43/44), disimpan sebagai
    data/processed/split_seed{N}.json agar identik di semua eksperimen.
    Sisihkan juga validation kecil dari train untuk early stopping.
-   Catatan: dataset tidak menyediakan split resmi, jadi split ini buatan kita
-   sendiri mengikuti deskripsi paper. Dokumentasikan.
+
+   PENTING — ini DEVIASI, bukan protokol paper. Paper memakai k-fold
+   cross-validation dengan 800 dokumen train, kita memakai 3 random split
+   terstratifikasi. Paper juga melatih dengan jumlah epoch tetap tanpa early
+   stopping (hyperparameter di-tune di subset terpisah), sedangkan kita
+   memotong 800 train untuk validation. Tulis kedua deviasi ini eksplisit, dan
+   jangan sebut split ini "protokol paper" di catatan mana pun.
 
 B. src/text_features.py:
    - Tokenisasi + pembuangan punctuation pakai spaCy en_core_web_sm.
    - Embedding FastText. WAJIB memakai model .bin (cc.en.300.bin), BUKAN .vec.
      Hanya .bin yang bisa menginferensi vektor untuk kata out-of-vocabulary
-     lewat subword, dan itulah inti argumen paper soal noise OCR. File ~7GB.
-     Sediakan opsi reduce_model ke dimensi lebih kecil kalau RAM tidak cukup,
-     dan catat konsekuensinya sebagai deviasi dari paper.
+     lewat subword, dan itulah inti argumen paper soal noise OCR. Ukurannya
+     ~7GB di disk dan ~15GB saat dimuat.
+
+     JANGAN mengandalkan reduce_model sebagai solusi RAM: fungsi itu harus
+     memuat model 300 dimensi penuh lebih dulu, jadi puncak pemakaian RAM-nya
+     sama saja. Strategi yang benar: fitur teks cuma dihitung SEKALI ke disk,
+     jadi jalankan satu pass ekstraksi (biarkan lambat kalau kena swap), tulis
+     hasilnya, lalu lepas model dari memori. Model FastText tidak boleh ikut
+     dimuat saat training.
    - Dua representasi: (1) sekuens 500x300 zero-padded/truncated untuk CNN1D;
      (2) SIF weighted average + PCA removal untuk baseline MLP.
    - Precompute ke disk sebagai .npy memmap (pertimbangkan float16), jangan
@@ -334,17 +369,28 @@ A. src/models/text_models.py: MLP (lebar 2048, ReLU+Dropout+BN, output 128,
 
 B. src/models/image_model.py: MobileNetV2 pretrained ImageNet, input 384x384,
    grayscale diduplikasi 3 kanal, resize tanpa padding (aspect ratio sengaja
-   di-warp, sesuai paper).
+   di-warp, sesuai paper). SELURUH jaringan di-fine-tune, backbone JANGAN
+   dibekukan — paper melakukan fine-tuning penuh. Backbone beku bikin akurasi
+   jatuh jauh dan selisihnya akan tersalahartikan sebagai gap replikasi.
 
-C. src/train.py: loop training generik, SGD+momentum sesuai paper, logging
-   per-epoch ke CSV, checkpoint best-on-val, seed terkontrol.
+C. src/train.py: loop training generik, logging per-epoch ke CSV, checkpoint
+   best-on-val, seed terkontrol. Hyperparameter dari paper §4.2, jangan
+   ditebak: SGD momentum 0,9, lr 0,01, batch 40 untuk semua model; TEXT 100
+   epoch, IMAGE 200 epoch, FUSION 200 epoch.
 
 D. notebooks/03_baseline_teks.ipynb — latih MLP dan CNN1D, bandingkan.
    Ini replikasi Tabel 1a paper.
    notebooks/04_baseline_citra.ipynb — latih MobileNetV2. Replikasi Tabel 1b.
 
-Sebelum training penuh, estimasi durasinya dan laporkan ke saya. Kalau >15
-menit per run, tawarkan mode cepat (epoch dikurangi) untuk smoke test dulu.
+Soal durasi: MobileNetV2 384x384 selama 200 epoch hampir pasti jauh di atas 15
+menit per run di mesin ini, dan Tahap 6-7 mengalikannya dengan jumlah seed dan
+kondisi ablasi. Aturan ">15 menit tanya dulu" akan kepicu di hampir semua run
+dan berhenti berfungsi sebagai pengaman.
+
+Prosedurnya: (1) smoke test 2 epoch untuk memastikan pipeline jalan sekaligus
+mengukur detik/epoch nyata, (2) laporkan ekstrapolasinya ke saya, (3) baru
+sepakati budget epoch sebenarnya. Kalau kita potong dari 200 epoch, catat
+sebagai deviasi eksplisit beserta alasannya. Jangan dipotong diam-diam.
 
 Setelah run nyata selesai: buat catatan eksperimen terpisah untuk TIAP run di
 vault/30-eksperimen/ dengan inline field Dataview terisi angka sungguhan
@@ -366,14 +412,28 @@ src/models/fusion.py: cabang citra (GAP → vektor 1280 → FC → 128), cabang 
 (CNN1D → 128), digabung, lalu MLP → softmax. Dilatih end-to-end.
 
 Implementasikan DUA strategi fusion yang bisa di-switch: concat dan penjumlahan
-adaptif. Paper melaporkan penjumlahan gagal — kita uji sendiri, jangan
-diasumsikan benar tanpa bukti dari run kita.
+adaptif ("adaptive averaging"). Paper melaporkan penjumlahan gagal jauh di bawah
+baseline citra — kita uji sendiri, jangan diasumsikan benar tanpa bukti dari run
+kita.
+
+Paper TIDAK menjelaskan apa yang membuat penjumlahan itu "adaptif" (skalar
+terlatih? gate per-dimensi? rata-rata biasa?). Pilih satu, tulis pilihannya
+sebagai asumsi eksplisit, dan sebutkan bahwa hasil negatif di strategi ini bisa
+jadi artefak pilihan kita, bukan replikasi temuan paper.
+
+Hyperparameter: SGD momentum 0,9, lr 0,01, batch 40, 200 epoch (paper §4.2).
 
 notebooks/05_fusion.ipynb: latih keduanya, 3 seed, laporkan rata-rata ± std.
 
-Tambahkan perhitungan ORACLE: untuk tiap sampel test, benar bila cabang teks
-ATAU cabang citra benar. Ini batas atas teoretis fusion dan WAJIB dilaporkan,
-karena inilah bukti kuantitatif bahwa kedua modalitas saling melengkapi.
+Tambahkan perhitungan ORACLE. Definisi yang benar menurut paper: ambil prediksi
+per-sampel dari DUA MODEL BASELINE UNIMODAL yang sudah dilatih di Tahap 5 (TEXT
+standalone dan IMAGE standalone) pada test split yang sama; satu sampel dihitung
+benar bila salah satu dari keduanya benar. BUKAN dari cabang internal model
+fusion. Kalau ini salah tafsir, angka oracle-nya tidak sebanding dengan 92,1%
+paper dan seluruh argumen komplementaritas rusak.
+
+Ini batas atas teoretis fusion dan WAJIB dilaporkan, karena inilah bukti
+kuantitatif bahwa kedua modalitas saling melengkapi.
 
 Hasil akhir harus bisa mengisi tabel setara Tabel 3 paper: OA dan F1 per kelas
 untuk TEXT / IMAGE / FUSION / Oracle.
@@ -392,7 +452,12 @@ Bagian ini bukan bagian dari paper. Inilah yang membedakan proyek dari sekadar r
 ```text
 TAHAP 7: Ablasi.
 
-Kerjakan berurutan, laporkan tiap sub-eksperimen sebelum lanjut:
+Kerjakan berurutan, laporkan tiap sub-eksperimen sebelum lanjut.
+
+Catatan compute: ablasi 1-3 adalah perturbasi pada INFERENSI, jadi pakai
+checkpoint TEXT/IMAGE/FUSION yang sudah dilatih di Tahap 5-6 dan jangan melatih
+ulang apa pun. Hanya ablasi 4 yang butuh training baru. Pakai satu seed (42) di
+seluruh tahap ini dan catat sebagai keterbatasan.
 
 1. Degradasi modalitas citra: rotasi, blur, noise, kompresi JPEG agresif secara
    bertahap. Ukur apakah cabang teks mengompensasi. Plot kurva akurasi vs
@@ -457,7 +522,9 @@ D. README.md final + commit terakhir.
 ## Catatan praktis
 
 1. Kirim Langkah 0 sendirian dan baca `CLAUDE.md` yang dihasilkan sebelum lanjut. Semua tahap berikutnya bergantung padanya.
-2. Ganti `[ISI PATH LOKAL ANDA]` di Tahap 2 dengan path PDF paper di mesin Anda.
-3. Model FastText `.bin` berukuran sekitar 7GB. Kalau RAM di bawah 16GB, minta agen langsung memakai `reduce_model` ke 100 dimensi sejak awal dan mencatatnya sebagai deviasi eksplisit.
+2. Path PDF sudah terisi di Tahap 2: `references/1907.06370v1.pdf`.
+3. Model FastText `.bin` sekitar 7GB di disk dan ~15GB saat dimuat. `reduce_model` TIDAK menolong soal RAM karena harus memuat model penuh lebih dulu. Yang menolong: ekstraksi fitur dijalankan sekali ke disk lalu model dilepas. Lihat Tahap 4B.
 4. Jangan berharap angka persis 87,8%. Selisih 2-4% wajar. Yang penting pola relatifnya konsisten: TEXT < IMAGE < FUSION < Oracle.
 5. File ini sendiri bisa ditaruh di `vault/00-index/rencana-prompt.md` supaya ikut terindeks di graf Obsidian.
+6. Siapkan kredensial Kaggle (`~/.kaggle/kaggle.json`) sebelum Tahap 3, kalau tidak agen akan mentok di langkah download.
+7. Setelah install dependency, jalankan `python -m spacy download en_core_web_sm`. Model spaCy tidak ikut lewat pip.
