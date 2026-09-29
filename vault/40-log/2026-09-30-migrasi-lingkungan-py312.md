@@ -116,6 +116,24 @@ sebanding dengan angka yang akan dihasilkan di lingkungan baru.**
 Keenam self-check `src/` lolos di kedua interpreter: `config`, `data`, `datasets`,
 `splits`, `text_features`, `ablation`.
 
+## Bug 4 — `scratch_npy` menelan exception dari body-nya
+
+Ditemukan saat mencoba menjalankan Tahap 7. Sel typo gagal dengan `NameError`
+(`tf_bersih` belum ada karena sel 10 tidak dijalankan setelah restart kernel).
+Karena `ds_txt` sudah memegang map saat itu, pembersihan `scratch_npy` ikut gagal,
+dan `PermissionError`-nya **menggantikan** `NameError` sebagai error yang terlihat.
+Traceback jadi menunjuk ke `scratch_npy`, bukan ke baris yang benar-benar salah.
+
+Cacat desain di perbaikan sebelumnya, bukan di notebook. Sekarang: kalau body sudah
+gagal, kegagalan unlink hanya jadi peringatan dan exception asli diteruskan utuh;
+kalau body sukses, tetap `raise` seperti semula. Sisa file terkunci di awal run
+memberi instruksi yang benar (restart kernel) alih-alih `WinError 32` mentah. Di
+notebook, `ds_txt` dipindah ke dalam `try` supaya kegagalan apa pun sesudahnya tetap
+melepas map — sebelumnya hanya `T.evaluate` yang terlindungi.
+
+Pelajarannya: context manager pembersih tidak boleh pernah mengalahkan exception
+dari body-nya, karena justru error body itulah yang informatif.
+
 ## Yang belum dikerjakan
 
 - Tahap 7 (injeksi typo) **belum dijalankan ulang**. Angkanya masih kosong; lihat
