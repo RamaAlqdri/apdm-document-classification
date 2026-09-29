@@ -25,20 +25,22 @@ Kode ditulis di satu mesin, dijalankan di mesin lain. Mesin penulisan tidak
 memegang dataset dan tidak menjalankan model, jadi notebook di repo ini **belum
 pernah dieksekusi** — sel kodenya diperiksa sintaksnya saja.
 
-**Mau menjalankannya?** Satu perintah, tanpa menyunting sel apa pun:
+**Mau menjalankannya?** Buka satu notebook dan tekan Run All:
 
-```bash
-python run_all.py
-```
+    notebooks/00_setup_dan_jalankan.ipynb
 
-Ia memeriksa prasyarat, menjalankan sepuluh self-check modul, memilih micro-batch
-dari kapasitas VRAM, menyalakan mixed precision kalau ada CUDA, mengunduh model
-spaCy dan FastText sendiri, lalu menjalankan keenam notebook berurutan.
+Notebook itu memasang dependency, memeriksa GPU dan memasang ulang PyTorch versi
+CUDA kalau perlu, menerima token Kaggle langsung di dalam notebook, menjalankan
+sepuluh self-check modul, lalu mengeksekusi notebook 01-06 berurutan. Model spaCy dan
+FastText diunduh sendiri. Micro-batch dipilih dari kapasitas VRAM, mixed precision
+dari jenis device, jumlah worker dari sistem operasi.
 
-Uji pipeline dulu dengan `python run_all.py --cepat` (epoch dan seed dikurangi,
-deviasinya dicatat otomatis), atau cek kesiapan saja dengan
-`python run_all.py --periksa`. Rincian dan penanganan masalah ada di
-[RUNBOOK.md](RUNBOOK.md).
+Tidak ada perintah terminal dan tidak ada sel yang perlu disunting. Satu-satunya
+pilihan: `CEPAT = True` di sel terakhir (± 1 jam, untuk menguji pipeline) atau
+`False` (setelan paper penuh, 12-18 jam di RTX 3050).
+
+Lebih suka terminal? `python run_all.py` melakukan hal yang sama. Rincian dan
+penanganan masalah ada di [RUNBOOK.md](RUNBOOK.md).
 
 Artinya: catatan eksperimen di `vault/30-eksperimen/` berstatus
 `belum-dijalankan` sampai dijalankan di mesin compute, dan angkanya hanya diisi

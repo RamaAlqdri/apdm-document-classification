@@ -10,3 +10,7 @@ venv/
 __pycache__/
 *.py[cod]
 .DS_Store
+# kredensial: kalau kaggle.json sempat mendarat di folder proyek, jangan pernah
+# ikut ter-commit. Notebook 00 juga menghapusnya setelah dipindahkan.
+kaggle.json
+**/kaggle.json

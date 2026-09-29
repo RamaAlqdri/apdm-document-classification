@@ -9,7 +9,21 @@ Semua catatan di `vault/30-eksperimen/` dan `vault/50-hasil/` saat ini berstatus
 
 ---
 
-## Jalur singkat: empat perintah
+## Jalur singkat: buka satu notebook
+
+1. Clone atau unduh repo ini
+2. Buka `notebooks/00_setup_dan_jalankan.ipynb` (Anaconda, VS Code, atau `jupyter lab`)
+3. **Run All**
+
+Itu saja. Notebook itu memasang dependency lewat `%pip`, memeriksa GPU dan memasang
+ulang PyTorch versi CUDA kalau yang terpasang versi CPU, menerima token Kaggle
+langsung di dalam notebook (lewat `getpass`, jadi tidak tersimpan di output),
+menjalankan sepuluh self-check, lalu mengeksekusi notebook 01-06 berurutan.
+
+Satu-satunya pilihan yang perlu Anda buat ada di sel terakhir: `CEPAT = True`
+(± 1 jam, untuk menguji pipeline) atau `False` (setelan paper penuh).
+
+### Jalur terminal, kalau lebih suka
 
 ```bash
 git clone https://github.com/RamaAlqdri/apdm-document-classification.git
