@@ -34,11 +34,53 @@ Embed = Callable[[str], np.ndarray]
 # model loaders (only these two touch the big dependencies)
 # --------------------------------------------------------------------------- #
 
+FASTTEXT_URL = "https://dl.fbaipublicfiles.com/fasttext/vectors-crawl/cc.en.300.bin.gz"
+
+
+def download_fasttext(path: Path | None = None) -> Path:
+    """Fetch and gunzip cc.en.300.bin if it is not already there. ~7GB, one time.
+
+    Downloaded straight to the final location so a second run is a no-op, and the
+    .gz is deleted afterwards rather than leaving 4GB of dead weight behind.
+    """
+    import gzip
+    import shutil
+    import urllib.request
+
+    path = Path(path or CONFIG["models"] / CONFIG["fasttext_model"])
+    if path.exists():
+        return path
+    path.parent.mkdir(parents=True, exist_ok=True)
+    gz = path.with_suffix(path.suffix + ".gz")
+
+    if not gz.exists():
+        print(f"mengunduh {FASTTEXT_URL} (~4,2GB terkompresi, sekali saja)...")
+        tmp = gz.with_suffix(".part")          # so an interrupted download is not
+        urllib.request.urlretrieve(FASTTEXT_URL, tmp)   # mistaken for a complete one
+        tmp.rename(gz)
+
+    print(f"mengekstrak ke {path} (~7GB)...")
+    with gzip.open(gz, "rb") as src, path.open("wb") as dst:
+        shutil.copyfileobj(src, dst, length=16 * 1024 * 1024)
+    gz.unlink()
+    return path
+
+
 def spacy_tokenizer(model: str = "en_core_web_sm") -> Tokenize:
-    """spaCy tokenisation with punctuation and whitespace dropped, as the paper does."""
+    """spaCy tokenisation with punctuation and whitespace dropped, as the paper does.
+
+    Downloads the model on first use: one less manual step to forget.
+    """
     import spacy
 
-    nlp = spacy.load(model, disable=["parser", "ner", "tagger", "lemmatizer"])
+    try:
+        nlp = spacy.load(model, disable=["parser", "ner", "tagger", "lemmatizer"])
+    except OSError:
+        print(f"model spaCy {model} belum ada, mengunduh...")
+        from spacy.cli import download as spacy_download
+
+        spacy_download(model)
+        nlp = spacy.load(model, disable=["parser", "ner", "tagger", "lemmatizer"])
     nlp.max_length = 2_000_000  # some OCR outputs are long
 
     def tokenize(text: str) -> list[str]:
@@ -59,6 +101,8 @@ def fasttext_embedder(path: Path | None = None) -> Embed:
     path = Path(path or CONFIG["models"] / CONFIG["fasttext_model"])
     if path.suffix != ".bin":
         raise ValueError(f"butuh model .bin, dapat {path.name} — .vec tidak bisa OOV")
+    if not path.exists():
+        download_fasttext(path)
     model = fasttext.load_model(str(path))
 
     @lru_cache(maxsize=200_000)

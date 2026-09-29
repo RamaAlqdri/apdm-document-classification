@@ -9,6 +9,56 @@ Semua catatan di `vault/30-eksperimen/` dan `vault/50-hasil/` saat ini berstatus
 
 ---
 
+## Jalur singkat: empat perintah
+
+```bash
+git clone https://github.com/RamaAlqdri/apdm-document-classification.git
+cd apdm-document-classification
+python3.12 -m venv venv && source venv/bin/activate && pip install -r requirements.txt
+python run_all.py
+```
+
+Windows: ganti baris ketiga dengan
+`py -3.12 -m venv venv; .\venv\Scripts\Activate.ps1; pip install -r requirements.txt`
+
+`run_all.py` mengerjakan sisanya: memeriksa prasyarat, menjalankan sepuluh
+self-check modul, memilih micro-batch dari VRAM, menyalakan AMP kalau CUDA ada,
+mengatur jumlah worker sesuai sistem operasi, mengunduh model spaCy dan FastText saat
+pertama dibutuhkan, lalu menjalankan keenam notebook berurutan dengan output
+tersimpan di dalamnya.
+
+**Tidak ada sel yang perlu Anda sunting.**
+
+Sebelum melepas run panjang:
+
+```bash
+python run_all.py --periksa   # cek prasyarat + self-check, tidak menjalankan apa pun
+python run_all.py --cepat     # 15/20/20 epoch, 1 seed — uji pipeline ± 1 jam
+```
+
+Kalau ada notebook yang gagal, perbaiki lalu lanjutkan dari titik itu:
+
+```bash
+python run_all.py --dari 04
+```
+
+Dua hal yang tetap butuh Anda:
+
+1. **Token Kaggle** (sekali saja) — kaggle.com → Settings → API → Create New Token,
+   simpan sebagai `~/.kaggle/kaggle.json`. `run_all.py --periksa` akan
+   memberitahu kalau belum ada.
+2. **torch dengan CUDA.** `requirements.txt` memasang torch versi default yang belum
+   tentu bawa CUDA. `run_all.py` mendeteksi dan memperingatkan; perintah pasang
+   ulangnya ada di bagian 2.
+
+Setelah selesai, satu langkah manual terakhir: salin angka dari sel ringkasan tiap
+notebook ke catatan di `vault/`, lalu ubah `status: belum-dijalankan` menjadi
+`selesai`. `run_all.py` juga mencetak daftar deviasi runtime untuk ikut disalin.
+
+Sisa dokumen ini adalah rinciannya, untuk saat ada yang tidak berjalan semestinya.
+
+---
+
 ## 0. Yang perlu disiapkan
 
 | Kebutuhan | Ukuran | Catatan |
@@ -33,15 +83,17 @@ Semua catatan di `vault/30-eksperimen/` dan `vault/50-hasil/` saat ini berstatus
 kasarnya 60-80 MB per sampel, jadi batch 40 ≈ 2,5-3 GB sebelum menghitung workspace
 dan fragmentasi. Di kartu 4 GB yang efektifnya ± 3,6 GB, itu akan OOM.
 
-Solusinya sudah terpasang: **akumulasi gradien**. Notebook 04 dan 05 punya sel
+Solusinya sudah terpasang dan **otomatis**: `src/config.py` membaca kapasitas VRAM
+lalu memilih micro-batch sendiri — 8 untuk kartu di bawah 5 GB, 16 untuk 6-8 GB,
+batch penuh untuk 10 GB ke atas. DataLoader menyajikan micro-batch itu, `train_model`
+mengakumulasi gradiennya, dan optimizer tetap melangkah dari 40 sampel persis seperti
+paper. Notebook 04 dan 05 mencetak nilai yang terpilih.
+
+Kalau ternyata masih OOM, itu satu-satunya tempat Anda perlu turun tangan:
 
 ```python
-CONFIG["micro_batch_size"] = 8
+CONFIG["micro_batch_size"] = 4   # di sel pertama notebook, sebelum training
 ```
-
-tepat sebelum sel `EPOCHS`. DataLoader menyajikan micro-batch 8, `train_model`
-mengakumulasi 5 di antaranya, dan optimizer tetap melangkah dari 40 sampel persis
-seperti paper. Kalau masih OOM, turunkan ke 4.
 
 **Yang tidak setara, dan wajib dicatat sebagai deviasi:** BatchNorm menormalisasi
 per micro-batch, jadi statistiknya berasal dari 8 sampel, bukan 40. Akumulasi
@@ -90,8 +142,10 @@ python3.12 -m venv venv
 source venv/bin/activate
 pip install --upgrade pip
 pip install -r requirements.txt
-python -m spacy download en_core_web_sm
 ```
+
+Model spaCy diunduh otomatis saat pertama dibutuhkan, jadi
+`python -m spacy download en_core_web_sm` tidak perlu dijalankan manual.
 
 ### Windows (PowerShell)
 
@@ -100,7 +154,6 @@ py -3.12 -m venv venv
 .\venv\Scripts\Activate.ps1
 pip install --upgrade pip
 pip install -r requirements.txt
-python -m spacy download en_core_web_sm
 ```
 
 ### PyTorch dengan CUDA

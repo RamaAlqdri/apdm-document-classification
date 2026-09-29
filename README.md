@@ -25,9 +25,20 @@ Kode ditulis di satu mesin, dijalankan di mesin lain. Mesin penulisan tidak
 memegang dataset dan tidak menjalankan model, jadi notebook di repo ini **belum
 pernah dieksekusi** — sel kodenya diperiksa sintaksnya saja.
 
-**Mau menjalankannya? Ikuti [RUNBOOK.md](RUNBOOK.md)** — prosedur lengkap dari
-clone sampai seluruh catatan eksperimen terisi angka, termasuk masalah khas
-Windows dan cara memotong budget training dengan benar.
+**Mau menjalankannya?** Satu perintah, tanpa menyunting sel apa pun:
+
+```bash
+python run_all.py
+```
+
+Ia memeriksa prasyarat, menjalankan sepuluh self-check modul, memilih micro-batch
+dari kapasitas VRAM, menyalakan mixed precision kalau ada CUDA, mengunduh model
+spaCy dan FastText sendiri, lalu menjalankan keenam notebook berurutan.
+
+Uji pipeline dulu dengan `python run_all.py --cepat` (epoch dan seed dikurangi,
+deviasinya dicatat otomatis), atau cek kesiapan saja dengan
+`python run_all.py --periksa`. Rincian dan penanganan masalah ada di
+[RUNBOOK.md](RUNBOOK.md).
 
 Artinya: catatan eksperimen di `vault/30-eksperimen/` berstatus
 `belum-dijalankan` sampai dijalankan di mesin compute, dan angkanya hanya diisi

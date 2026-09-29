@@ -12,6 +12,32 @@ ROOT = Path(__file__).resolve().parent.parent
 # setting CONFIG["num_workers"] in the notebook if you know your setup is fine.
 _DEFAULT_WORKERS = 0 if sys.platform == "win32" else 4
 
+# Quick mode: set APDM_CEPAT=1 to trade fidelity for wall clock. Every notebook
+# reports it, and the deviation lands in the experiment notes automatically.
+QUICK = os.environ.get("APDM_CEPAT") == "1"
+
+
+def _auto_micro_batch() -> int | None:
+    """Pick a micro-batch that fits the GPU, so nobody has to tune it by hand.
+
+    None means "use batch_size directly". Activation memory for MobileNetV2 at
+    384x384 runs to roughly 60-80 MB per sample in fp32, so batch 40 needs ~3GB
+    before workspace — more than a 4GB card can give.
+    """
+    try:
+        import torch
+
+        if not torch.cuda.is_available():
+            return None                      # cpu and mps are limited by RAM, not VRAM
+        gb = torch.cuda.get_device_properties(0).total_memory / 1e9
+    except Exception:
+        return None
+    if gb < 5:        # 4GB class, e.g. RTX 3050 laptop
+        return 8
+    if gb < 9:        # 6-8GB class
+        return 16
+    return None       # 10GB+ holds the full batch
+
 CONFIG = {
     # --- paths ---
     "root": ROOT,
@@ -33,7 +59,7 @@ CONFIG = {
     # --- split (deviasi: paper pakai k-fold, kita 3 random split) ---
     "n_train": 800,
     "val_fraction": 0.1,          # dipotong dari n_train, deviasi dari paper
-    "seeds": [42, 43, 44],
+    "seeds": [42] if QUICK else [42, 43, 44],
     # --- text branch (paper sec. 3.2 & 4.2) ---
     "max_words": 500,
     "embedding_dim": 300,
@@ -56,16 +82,41 @@ CONFIG = {
     "lr": 0.01,
     "momentum": 0.9,
     "batch_size": 40,
-    "epochs": {"text": 100, "image": 200, "fusion": 200},
+    "epochs": ({"text": 15, "image": 20, "fusion": 20} if QUICK
+               else {"text": 100, "image": 200, "fusion": 200}),
     # Early stopping is OUR deviation: the paper trains a fixed number of epochs.
     "patience": 15,
     "num_workers": _DEFAULT_WORKERS,
-    # Micro-batch for gradient accumulation. None = use batch_size directly.
-    # Set this on a small GPU: MobileNetV2 at 384x384 with batch 40 needs well over
-    # 4GB of VRAM. The optimiser still steps on 40 samples, so the paper's batch
-    # size is preserved; only BatchNorm sees the smaller group.
-    "micro_batch_size": None,
+    # Micro-batch for gradient accumulation, detected from the GPU. The optimiser
+    # still steps on `batch_size` samples, so the paper's batch size is preserved;
+    # only BatchNorm sees the smaller group.
+    "micro_batch_size": _auto_micro_batch(),
+    "quick": QUICK,
 }
+
+
+def deviasi_runtime() -> list[str]:
+    """Deviations the machine forced on us, for the experiment notes to record."""
+    out = []
+    if CONFIG["quick"]:
+        out.append(
+            f"mode cepat (APDM_CEPAT=1): epoch {CONFIG['epochs']} dan "
+            f"seed {CONFIG['seeds']}, bukan 100/200/200 dan 3 seed seperti paper"
+        )
+    if CONFIG["micro_batch_size"]:
+        out.append(
+            f"batch {CONFIG['batch_size']} dipecah jadi micro-batch "
+            f"{CONFIG['micro_batch_size']} dengan akumulasi gradien; update optimizer "
+            f"tetap dari {CONFIG['batch_size']} sampel, tapi BatchNorm menormalisasi "
+            f"per micro-batch"
+        )
+    try:
+        import torch
+        if torch.cuda.is_available():
+            out.append("mixed precision (AMP) aktif, tidak dipakai paper")
+    except Exception:
+        pass
+    return out
 
 
 def set_seed(seed: int = 42) -> int:
