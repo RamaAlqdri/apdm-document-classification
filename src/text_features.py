@@ -289,10 +289,17 @@ def _self_check() -> None:
         p = build_sequences(toks, embed, Path(tmp) / "seq.npy",
                             max_words=10, dim=8, dtype=np.float32)
         arr = np.load(p, mmap_mode="r")
-        assert arr.shape == (3, 10, 8), arr.shape
-        assert np.any(arr[0, :6] != 0) and np.all(arr[0, 6:] == 0), "padding salah"
-        assert np.all(arr[1, 9] != 0), "truncation memotong terlalu awal"
-        assert np.all(arr[2] == 0), "dokumen kosong seharusnya nol seluruhnya"
+        try:
+            assert arr.shape == (3, 10, 8), arr.shape
+            assert np.any(arr[0, :6] != 0) and np.all(arr[0, 6:] == 0), "padding salah"
+            assert np.all(arr[1, 9] != 0), "truncation memotong terlalu awal"
+            assert np.all(arr[2] == 0), "dokumen kosong seharusnya nol seluruhnya"
+        finally:
+            # Windows cannot remove the tempdir while the mapping is open. Done by
+            # hand rather than via datasets.close_datasets: this module must stay
+            # importable on a machine without torch.
+            arr._mmap.close()
+            del arr
 
     # SIF weighting: "the" is frequent, so it must be pushed down hard
     probs = word_probabilities(toks)
@@ -317,10 +324,13 @@ def _self_check() -> None:
     assert ("fiilter", "filter", 1) in pairs, pairs
     assert all(p[0] != "zzzz" for p in pairs), "kata acak tak boleh dipasangkan"
 
+    # cosine() guards against the zero vector with +1e-12 in the denominator, which
+    # this corpus needs for empty documents. That epsilon makes an exactly 1.0
+    # result unreachable, so these compare within tolerance rather than with ==.
     v = np.array([1.0, 0.0, 0.0], dtype=np.float32)
-    assert cosine(v, v * 3) == 1.0, "cosine tidak invarian terhadap skala"
+    assert abs(cosine(v, v * 3) - 1.0) < 1e-9, "cosine tidak invarian terhadap skala"
     assert abs(cosine(v, np.array([0.0, 1.0, 0.0], dtype=np.float32))) < 1e-6
-    assert cosine(v, -v) == -1.0
+    assert abs(cosine(v, -v) + 1.0) < 1e-9
 
     rates = oov_rate(corpus, min_ref_freq=50)
     assert rates[0] == 0.0 and rates[1] == 1.0, rates

@@ -6,8 +6,9 @@ running on a machine without torch installed.
 
 from __future__ import annotations
 
+from contextlib import contextmanager
 from pathlib import Path
-from typing import Sequence
+from typing import Iterator, Sequence
 
 import numpy as np
 import torch
@@ -30,7 +31,35 @@ def label_indices(labels: Sequence[str]) -> np.ndarray:
     return np.array([lookup[l] for l in labels], dtype=np.int64)
 
 
-class SequenceDataset(Dataset):
+class _MemmapBacked:
+    """Shared open/close for a dataset served from a memory-mapped .npy.
+
+    Windows refuses to delete or overwrite a file while a mapping on it is open.
+    CPython would drop the mapping when the dataset is garbage-collected, but a
+    notebook keeps the DataLoader — and through it the dataset — alive well past
+    the loop body, so the release has to be explicit. Without it, deleting a
+    throwaway .npy fails with WinError 32.
+    """
+
+    def _open(self, path: Path) -> None:
+        self.path = Path(path)
+        self.arr = np.load(self.path, mmap_mode="r")
+
+    def close(self) -> None:
+        """Release the mapping. Indexing the dataset afterwards raises ValueError."""
+        arr, self.arr = getattr(self, "arr", None), None
+        mmap = getattr(arr, "_mmap", None)
+        if mmap is not None:
+            mmap.close()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc) -> None:
+        self.close()
+
+
+class SequenceDataset(_MemmapBacked, Dataset):
     """500x300 word-vector sequences, served as (300, 500) for Conv1d.
 
     The .npy stays memory-mapped: the file is ~1GB and only a batch is needed at a
@@ -38,7 +67,7 @@ class SequenceDataset(Dataset):
     """
 
     def __init__(self, path: Path, y: np.ndarray, indices: Sequence[int]):
-        self.arr = np.load(path, mmap_mode="r")
+        self._open(path)
         self.y = y
         self.indices = list(indices)
 
@@ -53,11 +82,11 @@ class SequenceDataset(Dataset):
         return torch.from_numpy(seq.T).contiguous(), int(self.y[row])  # (300, 500)
 
 
-class VectorDataset(Dataset):
+class VectorDataset(_MemmapBacked, Dataset):
     """One precomputed vector per document — the SIF representation for the MLP."""
 
     def __init__(self, path: Path, y: np.ndarray, indices: Sequence[int]):
-        self.arr = np.load(path, mmap_mode="r")
+        self._open(path)
         self.y = y
         self.indices = list(indices)
 
@@ -134,6 +163,48 @@ def make_loaders(build_dataset, split: dict, batch_size: int | None = None,
     }
 
 
+def close_datasets(*datasets) -> None:
+    """Close every memory-mapped dataset reachable from those given.
+
+    PairDataset and DataLoader.dataset are accepted directly: the walk follows the
+    wrapped datasets so the caller does not have to remember which of a pair holds
+    the .npy.
+    """
+    for ds in datasets:
+        if ds is None:
+            continue
+        close = getattr(ds, "close", None)
+        if callable(close):
+            close()
+        for attr in ("dataset", "image_ds", "text_ds"):
+            child = getattr(ds, attr, None)
+            if child is not None and child is not ds:
+                close_datasets(child)
+
+
+@contextmanager
+def scratch_npy(path: Path) -> Iterator[Path]:
+    """Yield `path` for a throwaway .npy and delete it on the way out.
+
+    Deletion also runs when the body raises, so an ablation level that fails
+    halfway does not leave a multi-hundred-MB file behind. A file still mapped at
+    exit fails with an error naming the cause, instead of a bare WinError 32.
+    """
+    path = Path(path)
+    path.unlink(missing_ok=True)          # leftover from an interrupted run
+    try:
+        yield path
+    finally:
+        try:
+            path.unlink(missing_ok=True)
+        except PermissionError as exc:    # Windows only; POSIX unlinks regardless
+            raise PermissionError(
+                f"{path.name} masih dipetakan ke memori: panggil "
+                f"close_datasets(...) atas setiap dataset di atas file ini "
+                f"sebelum keluar dari scratch_npy()"
+            ) from exc
+
+
 def _self_check() -> None:
     import tempfile
 
@@ -169,7 +240,12 @@ def _self_check() -> None:
         )
         assert len(loaders["train"].dataset) == 12
         assert loaders["train"].drop_last and not loaders["test"].drop_last
-        assert sum(len(b[1]) for b in loaders["train"]) == 10, "drop_last tidak jalan"
+        # the effective batch is CONFIG["micro_batch_size"] when that is set, and it
+        # is derived from the GPU, so the expected count is computed rather than
+        # hardcoded — a literal here fails on any machine with a different micro size
+        micro = loaders["train"].batch_size
+        assert sum(len(b[1]) for b in loaders["train"]) == (12 // micro) * micro, \
+            "drop_last tidak jalan"
         assert sum(len(b[1]) for b in loaders["test"]) == 4
 
         # pairing refuses mismatched label order
@@ -182,6 +258,32 @@ def _self_check() -> None:
         else:
             raise AssertionError("PairDataset tidak mendeteksi label tertukar")
 
+        # a live memory map must not block deletion once closed: this is the
+        # exact shape of the typo-injection loop in Tahap 7
+        with scratch_npy(tmp / "throwaway.npy") as scratch:
+            np.save(scratch, np.zeros((4, 3), dtype=np.float32))
+            loader = DataLoader(
+                PairDataset(VectorDataset(scratch, y, range(4)),
+                            VectorDataset(scratch, y, range(4))),
+                batch_size=2,
+            )
+            assert sum(len(b[1]) for b in loader) == 4
+            close_datasets(loader.dataset)
+        assert not (tmp / "throwaway.npy").exists(), "scratch_npy tidak menghapus file"
+
+        # and the guard must fire when the caller forgets to close
+        try:
+            with scratch_npy(tmp / "locked.npy") as scratch:
+                np.save(scratch, np.zeros((4, 3), dtype=np.float32))
+                held = VectorDataset(scratch, y, range(4))
+                held[0]                       # force the mapping to be touched
+        except PermissionError as exc:
+            assert "close_datasets" in str(exc), exc
+            held.close()
+            (tmp / "locked.npy").unlink(missing_ok=True)
+        # POSIX unlinks a mapped file without complaint, so no failure is expected
+        # there; on Windows the branch above is the one that runs.
+
         # unknown class must fail loudly
         try:
             label_indices(["ADVE"])
@@ -189,6 +291,9 @@ def _self_check() -> None:
             pass
         else:
             raise AssertionError("label_indices menerima kelas tak dikenal")
+
+        # the tempdir cannot be removed on Windows while these are still mapped
+        close_datasets(ds, a, b, *(l.dataset for l in loaders.values()))
 
     print("datasets self-check ok")
 

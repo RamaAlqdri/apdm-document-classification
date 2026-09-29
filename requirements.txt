@@ -1,7 +1,17 @@
 # Jangan lupa: python -m spacy download en_core_web_sm  (model tidak ikut pip)
-torch
-torchvision
-numpy
+
+# torch HARUS datang dari index cu121, bukan PyPI: wheel PyPI untuk Windows adalah
+# build CPU-only, jadi `pip install torch` di sini menghasilkan lingkungan yang
+# jalan tapi tanpa GPU — gagal senyap, bukan error. Suffix +cu121 hanya ada di
+# index di bawah, sehingga pin ini sekaligus memaksa sumber yang benar.
+--extra-index-url https://download.pytorch.org/whl/cu121
+torch==2.5.1+cu121
+torchvision==0.20.1+cu121
+
+# numpy dipin di bawah 2.0: parity hasil lama diverifikasi pada 1.26.4, dan numpy 2
+# mengubah aturan promosi dtype.
+numpy==1.26.4
+
 pandas
 scikit-learn
 matplotlib

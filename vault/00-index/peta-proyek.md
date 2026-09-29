@@ -70,6 +70,22 @@ diperiksa sintaksnya di sini, tapi catatan eksperimennya berstatus
 `belum-dijalankan` sampai dieksekusi di sana. Angka hanya masuk vault setelah
 benar-benar dihitung — aturan 3 `CLAUDE.md` berlaku tanpa pengecualian.
 
+## Lingkungan eksekusi
+
+Mesin compute memakai **Python 3.12.10** lewat `.venv` proyek, kernel Jupyter
+`apdam-py312`. Dua batasan yang tidak terlihat dari kode:
+
+- **Plafonnya 3.12, bukan versi terbaru.** `fasttext-wheel` 0.9.2 hanya punya wheel
+  Windows sampai cp312; di 3.13 `fasttext` harus dibangun dari source dan butuh MSVC.
+- **torch wajib dari index cu121.** Wheel PyPI untuk Windows adalah build CPU-only,
+  jadi `pip install torch` menghasilkan lingkungan yang jalan tapi tanpa GPU — gagal
+  senyap. `requirements.txt` memaksa sumbernya lewat `--extra-index-url` dan pin
+  `torch==2.5.1+cu121`.
+
+Migrasi dari 3.10 ke 3.12 diverifikasi setara: split dan metrik checkpoint identik
+di kedua lingkungan. Rinciannya di
+[[2026-09-30-migrasi-lingkungan-py312]].
+
 ## Deviasi dari paper yang sudah pasti
 
 Dicatat sejak awal supaya tidak tersalahartikan sebagai gap replikasi:
