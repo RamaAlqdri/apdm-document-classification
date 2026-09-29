@@ -182,27 +182,50 @@ def close_datasets(*datasets) -> None:
                 close_datasets(child)
 
 
+def _drop_leftover(path: Path) -> None:
+    """Delete a leftover from an interrupted run, naming the fix if it is locked."""
+    try:
+        path.unlink(missing_ok=True)
+    except PermissionError as exc:        # Windows only; POSIX unlinks regardless
+        raise PermissionError(
+            f"{path.name} dari run sebelumnya masih dipetakan oleh proses lain "
+            f"(biasanya kernel Jupyter yang belum di-restart). Restart kernel, "
+            f"lalu jalankan sel ini lagi."
+        ) from exc
+
+
 @contextmanager
 def scratch_npy(path: Path) -> Iterator[Path]:
     """Yield `path` for a throwaway .npy and delete it on the way out.
 
     Deletion also runs when the body raises, so an ablation level that fails
-    halfway does not leave a multi-hundred-MB file behind. A file still mapped at
-    exit fails with an error naming the cause, instead of a bare WinError 32.
+    halfway does not leave a multi-hundred-MB file behind.
+
+    A file still mapped at exit is reported, but never at the cost of the body's
+    own exception. When the body failed, that error is the one worth reading — an
+    undefined name, a missing checkpoint — and raising a cleanup complaint over it
+    points the traceback at this function instead of at the real line.
     """
     path = Path(path)
-    path.unlink(missing_ok=True)          # leftover from an interrupted run
+    _drop_leftover(path)
+    body_failed = False
     try:
         yield path
+    except BaseException:
+        body_failed = True
+        raise
     finally:
         try:
             path.unlink(missing_ok=True)
-        except PermissionError as exc:    # Windows only; POSIX unlinks regardless
-            raise PermissionError(
-                f"{path.name} masih dipetakan ke memori: panggil "
-                f"close_datasets(...) atas setiap dataset di atas file ini "
-                f"sebelum keluar dari scratch_npy()"
-            ) from exc
+        except PermissionError as exc:
+            pesan = (f"{path.name} masih dipetakan ke memori: panggil "
+                     f"close_datasets(...) atas setiap dataset di atas file ini "
+                     f"sebelum keluar dari scratch_npy()")
+            if body_failed:
+                print(f"peringatan: {pesan} (file dibiarkan; error sebenarnya "
+                      f"ada di traceback di bawah)")
+            else:
+                raise PermissionError(pesan) from exc
 
 
 def _self_check() -> None:
@@ -283,6 +306,23 @@ def _self_check() -> None:
             (tmp / "locked.npy").unlink(missing_ok=True)
         # POSIX unlinks a mapped file without complaint, so no failure is expected
         # there; on Windows the branch above is the one that runs.
+
+        # a cleanup failure must never replace the body's own exception: that is
+        # what turned an undefined name in the Tahap 7 loop into a misleading
+        # complaint about memory maps
+        try:
+            with scratch_npy(tmp / "masked.npy") as scratch:
+                np.save(scratch, np.zeros((4, 3), dtype=np.float32))
+                leaked = VectorDataset(scratch, y, range(4))
+                leaked[0]
+                raise RuntimeError("kesalahan asli")
+        except RuntimeError as exc:
+            assert str(exc) == "kesalahan asli", f"error asli tertukar: {exc}"
+        except PermissionError as exc:
+            raise AssertionError(f"scratch_npy menelan error asli: {exc}") from exc
+        finally:
+            leaked.close()
+            (tmp / "masked.npy").unlink(missing_ok=True)
 
         # unknown class must fail loudly
         try:
