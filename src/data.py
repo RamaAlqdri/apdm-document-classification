@@ -68,6 +68,28 @@ def download_images(link_into_raw: bool = True) -> Path:
     return path
 
 
+def _extract_safely(tar: tarfile.TarFile, dest: Path) -> None:
+    """Extract `tar` into `dest`, refusing members that escape it.
+
+    The `filter=` argument only exists on Python >=3.11.4/3.12; on older
+    interpreters it raises TypeError, so the same protection is applied by hand.
+    """
+    try:
+        tar.extractall(dest, filter="data")
+        return
+    except TypeError:
+        pass
+
+    dest = dest.resolve()
+    for member in tar.getmembers():
+        target = (dest / member.name).resolve()
+        if dest != target and dest not in target.parents:
+            raise RuntimeError(f"anggota arsip keluar dari {dest}: {member.name}")
+        if not (member.isfile() or member.isdir()):
+            raise RuntimeError(f"tipe anggota arsip tidak diizinkan: {member.name}")
+    tar.extractall(dest)
+
+
 def download_text() -> Path:
     """Fetch and extract QS-OCR-small (2.5MB) into data/raw/. Returns its folder."""
     raw = CONFIG["data_raw"]
@@ -79,7 +101,7 @@ def download_text() -> Path:
         urllib.request.urlretrieve(QS_OCR_URL, archive)
     if not out.exists():
         with tarfile.open(archive) as tar:
-            tar.extractall(out, filter="data")  # filter= is required on py>=3.12
+            _extract_safely(tar, out)
     return out
 
 
