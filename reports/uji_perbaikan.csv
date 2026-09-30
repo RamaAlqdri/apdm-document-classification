@@ -1,0 +1,5 @@
+model,oa,tanpa_teks,efek_teks,tanpa_citra,persen_potensi_dipanen
+concat run pertama,0.8218,0.8203,-0.0015,0.0731,1.9
+concat-noES,0.8304,0.8233,-0.0071,0.1946,9.1
+sum,0.8043,0.7946,-0.0097,0.0761,12.4
+FUSION diperbaiki,0.811,0.1223,-0.6887,0.6469,879.6
