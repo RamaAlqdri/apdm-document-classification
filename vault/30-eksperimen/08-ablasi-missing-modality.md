@@ -3,7 +3,7 @@ judul: Ablasi 2 — missing modality saat inferensi
 tipe: eksperimen
 tahap: "07"
 tanggal: 2026-09-28
-status: belum-dijalankan
+status: selesai
 tags:
   - tipe/eksperimen
   - tahap/07
@@ -22,11 +22,14 @@ model:: FUSION-concat (checkpoint Tahap 6)
 dataset:: Tobacco3482, test split seed 42 (2682 dokumen)
 split:: seed 42 saja
 seed:: 42
-oa:: 
-macro_f1:: 
-durasi:: 
+oa:: 0.8218 (utuh) / 0.8203 (tanpa teks) / 0.0731 (tanpa citra)
+macro_f1:: 0.8047 / 0.8004 / 0.0419
+durasi:: menit-an, tanpa training
 
-> **STATUS: BELUM DIJALANKAN.** Field angka kosong.
+> **DIJALANKAN 2026-09-30**, memakai `FUSION-concat_seed42.pt` apa adanya.
+>
+> **Ini eksperimen paling menentukan di seluruh proyek.** Hasilnya membalik
+> interpretasi Tahap 6.
 
 ## Pertanyaan
 
@@ -67,32 +70,62 @@ Diisi setelah eksekusi.
 
 | Kondisi | OA | Macro F1 | Turun dari utuh |
 |---|---|---|---|
-| Keduanya utuh | | | — |
-| Teks dinolkan (hanya citra) | | | |
-| Citra dinolkan (hanya teks) | | | |
+| Keduanya utuh | 0,8218 | 0,8047 | — |
+| **Teks dinolkan** (hanya citra) | **0,8203** | 0,8004 | **−0,0015** |
+| **Citra dinolkan** (hanya teks) | **0,0731** | 0,0419 | **−0,7487** |
 
-Pembanding yang relevan, dari Tahap 5:
+Pembanding dari Tahap 5, seed 42:
 
 | Pembanding | OA |
 |---|---|
-| IMAGE standalone | |
-| TEXT standalone | |
+| IMAGE standalone | 0,8315 |
+| TEXT standalone | 0,7345 |
+| Tebakan acak (1/10 kelas) | 0,1000 |
+| Selalu menebak kelas mayoritas (Memo) | 0,1782 |
+
+Dua angka yang menentukan:
+
+**Menolkan teks menurunkan akurasi 0,15 persen poin.** Bukan 15 poin, bukan 1,5 —
+**0,15**. Menghapus sepenuhnya satu dari dua modalitas nyaris tidak berpengaruh.
+
+**Menolkan citra menjatuhkan akurasi ke 0,0731**, yaitu di bawah tebakan acak dan jauh
+di bawah menebak kelas mayoritas. Model tidak "turun ke level TEXT standalone" (0,7345)
+seperti yang diharapkan kalau kedua modalitas dipakai; ia runtuh total.
 
 ## Cara membacanya
 
-**Kalau "teks dinolkan" hampir tidak menurunkan apa pun** (turun < ~1%): cabang teks
-praktis tidak terpakai. Fusion adalah model citra dengan parameter ekstra, dan
-kenaikan akurasinya di data bersih kemungkinan berasal dari kapasitas tambahan, bukan
-dari modalitas kedua. `#temuan/negatif`, dan temuan paling serius yang mungkin
-muncul di seluruh proyek.
+Tiga kemungkinan ditulis sebelum eksekusi. **Yang terjadi adalah gabungan kemungkinan
+pertama dan ketiga — keduanya yang paling buruk.**
 
-**Kalau "citra dinolkan" jatuh ke sekitar level TEXT standalone**: fusion memakai
-kedua modalitas dengan wajar, dan degradasi anggun ketika satu hilang.
+*Kemungkinan 1, "teks dinolkan hampir tidak menurunkan apa pun (< ~1%)": TERJADI, jauh
+di bawah ambang itu (0,15%).* Cabang teks praktis tidak terpakai. Fusion adalah model
+citra dengan parameter ekstra, dan kenaikan +2,56% di data bersih kemungkinan berasal
+dari kapasitas tambahan atau efek regularisasi head concat, bukan dari modalitas kedua.
+Ini `#temuan/negatif` yang paling serius di seluruh proyek, persis seperti yang
+diantisipasi.
 
-**Kalau "citra dinolkan" jatuh jauh di BAWAH TEXT standalone**: model belajar
-representasi yang bergantung pada kehadiran kedua masukan sekaligus. Itu bukan
-kegagalan, tapi berarti model tidak bisa dipakai pada dokumen tanpa citra — relevan
-untuk penerapan nyata dan layak disebut.
+*Kemungkinan 2, "citra dinolkan jatuh ke sekitar TEXT standalone": TIDAK terjadi.*
+Itu akan menjadi hasil yang sehat. Tidak terjadi.
+
+*Kemungkinan 3, "citra dinolkan jatuh jauh di bawah TEXT standalone": TERJADI, ekstrem.*
+0,0731 melawan 0,7345. Bahkan di bawah tebakan acak.
+
+### Kenapa 0,0731 dan bukan sekadar "buruk"
+
+Di bawah tebakan acak berarti model bukan menebak, melainkan memberi jawaban yang
+**secara sistematis salah** — kemungkinan besar mengeluarkan satu kelas minoritas untuk
+hampir semua masukan. Dua sebab yang mungkin, dan keduanya menunjuk hal yang sama:
+
+1. **Head fusion sepenuhnya bergantung pada 128 dimensi dari cabang citra.** Tanpa itu,
+   128 dimensi dari teks tidak cukup mengarahkan keputusan, karena head-nya tidak pernah
+   belajar memakainya.
+2. **Efek out-of-distribution.** Nol pada tensor citra yang sudah ternormalisasi berarti
+   "citra rata-rata ImageNet", masukan konstan yang tidak pernah dilihat saat training,
+   termasuk oleh statistik BatchNorm di cabang citra.
+
+Sebab 2 sendiri tidak menjelaskan kenapa cabang teks tidak menyelamatkan apa pun —
+kalau cabang teks berfungsi, ia semestinya tetap memberi sinyal berguna. Jadi sebab 1
+tetap penjelasan utamanya.
 
 ## Kaitan dengan oracle
 
@@ -105,15 +138,57 @@ berdampak (potensi tidak dipakai). Itu akan berarti komplementaritasnya nyata ta
 arsitektur concat gagal memanfaatkannya — dan itulah kondisi yang membuat ablasi 4
 (fusion bergerbang) layak dikerjakan.
 
+**Kombinasi itulah yang terjadi.**
+
+| Pengukuran | Nilai | Artinya |
+|---|---|---|
+| Oracle | 0,8977 | potensi +8,9% di atas baseline terbaik |
+| "Hanya TEXT benar" | 8,9% | 239 dokumen hanya bisa diselamatkan teks |
+| Dipanen FUSION | +2,6% | 29% dari potensi |
+| Efek menolkan teks | −0,15% | **cabang teks tidak dipakai** |
+
+Komplementaritasnya terukur dan nyata. Yang gagal adalah arsitekturnya memanfaatkannya.
+Dengan itu, syarat untuk mengerjakan **ablasi 4 (fusion bergerbang / cross-attention)**
+sudah terpenuhi — lihat rekomendasi.
+
 ## Keterbatasan
 
-1. Satu seed (42), tidak ada ± std.
-2. Definisi "kosong" untuk citra adalah pilihan, bukan sesuatu yang kanonik.
+1. Satu seed (42), tidak ada ± std. Perlu dicatat bahwa pada seed inilah FUSION
+   kebetulan **di bawah** IMAGE (0,8218 vs 0,8315), sedangkan rata-rata tiga seed
+   sebaliknya. Jadi kesimpulan "teks tidak terpakai" sebaiknya dikonfirmasi pada seed
+   43 atau 44 — biayanya beberapa menit, checkpoint sudah ada.
+2. Definisi "kosong" untuk citra adalah pilihan, bukan sesuatu yang kanonik. Nol pada
+   tensor ternormalisasi = citra rata-rata ImageNet. Alternatif (hitam, putih, noise)
+   akan memberi angka berbeda.
 3. Menolkan masukan di inferensi tidak sama dengan melatih model tanpa modalitas itu.
-   Model ini tidak pernah melihat masukan kosong saat training (kecuali dokumen yang
-   OCR-nya memang kosong), jadi sebagian penurunan bisa jadi efek out-of-distribution,
-   bukan hilangnya informasi.
+   Sebagian dari penurunan 0,7487 hampir pasti efek out-of-distribution, bukan
+   hilangnya informasi.
+
+   **Tapi keterbatasan ini tidak melemahkan temuan utamanya.** Temuan utamanya adalah
+   arah *sebaliknya*: menolkan teks **tidak** menurunkan apa-apa. Efek
+   out-of-distribution hanya bisa membuat penurunan tampak **lebih besar** daripada
+   kenyataan, tidak lebih kecil. Jadi 0,15% adalah batas atas kontribusi cabang teks,
+   bukan batas bawah.
+4. **Belum diuji pada checkpoint FUSION-sum**, yang bobot cabang teksnya 0,31 dan
+   menyiratkan hasil berbeda. Lihat [[06-fusion-sum]].
 
 ## Temuan
 
-Diisi setelah eksekusi.
+**#temuan/negatif — cabang teks pada FUSION-concat praktis tidak terpakai.** Menolkan
+seluruh masukan teks menurunkan akurasi 0,0015. Ini temuan utama Tahap 7 dan ia
+mengubah kesimpulan Tahap 6: kenaikan +2,56% FUSION di atas baseline citra **bukan**
+bukti bahwa modalitas kedua membantu.
+
+**#temuan/negatif — fusion tidak bisa dipakai tanpa citra.** 0,0731, di bawah tebakan
+acak. Untuk penerapan nyata ini penting: model tidak degradasi dengan anggun, ia
+runtuh.
+
+**#temuan/positif — komplementaritasnya sendiri nyata.** Oracle 0,8977 dan 8,9% sampel
+hanya benar lewat teks. Masalahnya bukan pada data atau pada modalitas, melainkan pada
+cara fusion dilatih.
+
+Ketiganya bersama membentuk satu kesimpulan yang lebih tajam daripada "replikasi
+berhasil": **potensinya ada, arsitekturnya tidak memanennya, dan penyebab paling
+mungkin adalah early stopping yang mengakhiri training sebelum cabang teks matang.**
+Diagnosis lengkap dan uji yang menentukannya ada di [[05-fusion-concat]] dan
+[[tabel-utama]].

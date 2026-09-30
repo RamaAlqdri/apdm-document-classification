@@ -3,7 +3,7 @@ judul: Tabel Utama — TEXT / IMAGE / FUSION / Oracle
 tipe: hasil
 tahap: "06"
 tanggal: 2026-09-28
-status: belum-dijalankan
+status: selesai
 tags:
   - tipe/hasil
   - tahap/06
@@ -20,21 +20,28 @@ terkait:
 
 # Tabel Utama — TEXT / IMAGE / FUSION / Oracle
 
-> **STATUS: BELUM DIJALANKAN.** Kerangka tabel ini sudah siap tapi **semua selnya
-> kosong**. Diisi dari `reports/tabel_utama.csv` yang dihasilkan
-> `notebooks/05_fusion.ipynb`. Jangan mengisi dari dugaan — aturan 3 `CLAUDE.md`.
+> **DIJALANKAN 2026-09-30** di laptop Windows (i7 gen 11, RTX 3050 4 GB, CUDA).
+> Sumber angka: `reports/tabel_utama.csv` dari `notebooks/05_fusion.ipynb`.
 
 Padanan Tabel 3 paper, dirata-ratakan atas tiga seed.
 
 ## Hasil kita
 
+Rata-rata tiga seed (42/43/44). F1 per kelas; baris OA di kolom kedua.
+
 | Model | OA | Macro F1 | Adv. | Email | Form | Letter | Memo | News | Note | Report | Resume | Sci. |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| TEXT (CNN1D) | | | | | | | | | | | | |
-| IMAGE (MobileNetV2) | | | | | | | | | | | | |
-| FUSION (concat) | | | | | | | | | | | | |
-| FUSION (sum) | | | | | | | | | | | | |
-| Oracle | | | | | | | | | | | | |
+| TEXT (CNN1D) | 0,7266 | 0,7017 | 0,537 | 0,953 | 0,718 | 0,671 | 0,758 | 0,709 | 0,621 | 0,495 | **0,969** | 0,587 |
+| IMAGE (MobileNetV2) | 0,8086 | 0,7837 | 0,902 | 0,955 | 0,804 | 0,805 | 0,844 | 0,890 | 0,771 | 0,527 | 0,784 | 0,554 |
+| **FUSION (concat)** | **0,8342** | **0,8105** | 0,894 | 0,961 | 0,848 | 0,835 | 0,879 | 0,883 | 0,780 | 0,638 | 0,803 | 0,583 |
+| FUSION (sum) | 0,8275 | 0,7990 | — | — | — | — | — | — | — | — | — | — |
+| Oracle | 0,8977 | 0,8850 | 0,930 | 0,983 | 0,902 | 0,898 | 0,920 | 0,938 | 0,876 | 0,735 | 0,951 | 0,718 |
+
+F1 per kelas untuk FUSION sum tidak dihitung; notebook hanya menyimpan OA dan macro F1
+untuk strategi pembanding.
+
+Standar deviasi antar seed: TEXT ± 0,0059 · IMAGE ± 0,0210 · FUSION concat ± 0,0105 ·
+FUSION sum ± 0,0164.
 
 ## Tabel 3 paper, sebagai pembanding
 
@@ -47,6 +54,20 @@ Padanan Tabel 3 paper, dirata-ratakan atas tiga seed.
 
 Paper tidak melaporkan angka untuk FUSION penjumlahan sama sekali.
 
+### Selisih kita − paper
+
+| Model | OA | Sel terburuk |
+|---|---|---|
+| TEXT | **−0,011** | Advertisement −0,063 |
+| IMAGE | −0,036 | Report −0,083 |
+| FUSION | −0,044 | **Resume −0,157** |
+| Oracle | −0,023 | Report −0,075 |
+
+Semuanya 1-4% di bawah paper, merata di hampir semua kelas — konsisten dengan deviasi
+lingkungan, bukan kegagalan pada komponen tertentu. Dua pengecualian: kita **lebih
+baik** dari paper pada TEXT Report (+0,065) dan TEXT News (+0,039), dan jauh **lebih
+buruk** pada FUSION Resume (−0,157), yang dibahas di bawah.
+
 ## Tiga pertanyaan yang tabel ini harus menjawab
 
 ### 1. Apakah urutannya konsisten?
@@ -56,7 +77,11 @@ paper wajar mengingat framework berbeda (PyTorch vs TensorFlow), split berbeda
 (3 random split vs k-fold), dan sumber citra berbeda (JPG re-encode vs TIF asli).
 Urutan yang terbalik jauh lebih serius daripada angka yang bergeser.
 
-Hasil: diisi setelah eksekusi.
+**Hasil: terpenuhi.** 0,7266 < 0,8086 < 0,8342 < 0,8977. Urutannya sama dengan paper,
+dan seluruh selisih dari paper di rentang 1-4% yang sudah diperkirakan.
+
+Ditambah satu konfirmasi independen dari [[01-ekstraksi-fitur-teks]]: rata-rata token
+≥4 karakter keluar **135** sementara paper menyebut **136**. Korpus teksnya identik.
 
 ### 2. Berapa besar potensi fusion yang benar-benar dipanen?
 
@@ -65,20 +90,33 @@ pernyataan yang bisa diperdebatkan.
 
 | Besaran | Paper | Kita |
 |---|---|---|
-| Baseline terbaik | 84,5% | |
-| Oracle | 92,1% | |
-| Potensi tersedia | +7,6% | |
-| Dipanen FUSION | +3,3% | |
-| Proporsi dipanen | 43% | |
+| Baseline terbaik | 84,5% | 80,86% |
+| Oracle | 92,1% | 89,77% |
+| Potensi tersedia | +7,6% | **+8,91%** |
+| Dipanen FUSION | +3,3% | +2,56% |
+| Proporsi dipanen | 43% | **29%** |
+
+Potensi kita **lebih besar** dari paper (+8,9% vs +7,6%) karena kedua baseline kita
+lebih lemah sehingga lebih saling melengkapi. Tapi yang dipanen justru lebih sedikit:
+29% versus 43%.
 
 Pemecahan oracle per sampel — angka yang paper tidak laporkan tapi paling informatif:
 
 | Kategori | Kita | Arti |
 |---|---|---|
-| Keduanya benar | | bagian mudah, tidak butuh fusion |
-| Hanya TEXT benar | | **komplementaritas langsung**: citra gagal, teks menyelamatkan |
-| Hanya IMAGE benar | | citra menyelamatkan |
-| Keduanya salah | | tidak bisa diselamatkan skema pemilihan apa pun |
+| Keduanya benar | 0,6374 | bagian mudah, tidak butuh fusion |
+| **Hanya TEXT benar** | **0,0891** | **komplementaritas langsung**: citra gagal, teks menyelamatkan |
+| Hanya IMAGE benar | 0,1711 | citra menyelamatkan |
+| Keduanya salah | 0,1023 | tidak bisa diselamatkan skema pemilihan apa pun |
+
+Rata-rata tiga seed. Per seed: hanya TEXT 0,0783 / 0,0854 / 0,1037.
+
+"Hanya TEXT benar" = 8,9% berarti sekitar **239 dari 2682 dokumen** yang cabang citranya
+gagal tapi cabang teksnya berhasil. Komplementaritasnya terukur, bukan hipotetis.
+
+Perhatikan identitas: "potensi tersedia" (+8,91%) dan "hanya TEXT benar" (0,0891)
+**sama persis**. Bukan kebetulan — oracle = (IMAGE benar ATAU TEXT benar), jadi
+oracle − IMAGE = sampel yang hanya TEXT benar. Berguna sebagai pemeriksaan kewarasan.
 
 "Hanya TEXT benar" adalah ukuran paling langsung bahwa modalitas teks membawa
 sesuatu. Kalau angka itu mendekati nol, seluruh premis proyek runtuh — lihat
@@ -90,12 +128,22 @@ Paper menulis gain-nya konsisten dan fusion hampir tidak pernah di bawah salah s
 baseline pada kelas mana pun. **Tabel 3 paper sendiri membantahnya di dua kelas:**
 Resume (TEXT 0,97 > FUSION 0,96) dan Advertisement (IMAGE 0,94 > FUSION 0,93).
 
-Jumlah pengecualian pada hasil kita: diisi setelah eksekusi.
+**Jumlah pengecualian pada hasil kita: 4 dari 10.** Tapi angka mentah itu menyesatkan —
+tiga di antaranya di dalam derau antar-seed (std 0,0105):
 
-Kelas yang paling perlu diperhatikan adalah **Resume**: paper memberi TEXT 0,97
-melawan IMAGE 0,80, selisih terbesar di seluruh tabel. Kalau fusion kita tidak
-mengangkat Resume mendekati nilai TEXT, kemungkinan cabang teks tidak benar-benar
-terpakai — lihat catatan risiko di [[05-fusion-concat]].
+| Kelas | FUSION | Baseline terbaik | Selisih |
+|---|---|---|---|
+| Advertisement | 0,894 | IMAGE 0,902 | −0,008 |
+| News | 0,883 | IMAGE 0,890 | −0,007 |
+| Scientific | 0,583 | TEXT 0,587 | −0,004 |
+| **Resume** | **0,803** | **TEXT 0,969** | **−0,166** |
+
+Yang sungguhan hanya satu. Dan itu persis kelas yang catatan risiko di
+[[05-fusion-concat]] tunjuk sebagai indikator: **paper mengangkat Resume ke 0,96
+melawan TEXT 0,97; kita hanya 0,803, praktis sama dengan cabang citra (0,784).**
+
+Pada kelas dengan keunggulan teks terbesar di seluruh dataset, fusion kita memilih
+berperilaku seperti cabang citra. Itu bukan anomali kecil — itu gejala.
 
 ## Deviasi yang berlaku untuk seluruh tabel ini
 
@@ -106,19 +154,97 @@ terpakai — lihat catatan risiko di [[05-fusion-concat]].
    modalitas tidak identik.
 5. Mekanisme penjumlahan adaptif adalah pilihan kita; paper tidak menyebutkannya.
 6. Head fusion dan inisialisasi cabang adalah asumsi kita.
-7. **BatchNorm melihat micro-batch, bukan batch 40.** Di GPU dengan VRAM terbatas,
-   batch 40 dipecah jadi micro-batch dan gradiennya diakumulasi. Update optimizer
-   tetap dihitung dari 40 sampel seperti paper, tapi statistik BatchNorm berasal dari
-   ukuran micro-batch. Akumulasi gradien tidak bisa memperbaiki ini.
-   Micro-batch yang benar-benar dipakai: diisi setelah eksekusi.
-8. **Mixed precision (AMP) aktif di GPU CUDA**, tidak dipakai paper. Berpengaruh pada
-   presisi numerik meski secara praktis dapat diabaikan untuk klasifikasi.
-9. Pemotongan budget epoch, kalau terjadi: diisi setelah eksekusi.
+7. **BatchNorm melihat micro-batch 8, bukan batch 40.** VRAM 4 GB tidak bisa menampung
+   batch 40 pada 384x384, jadi batch dipecah dan gradiennya diakumulasi. Update
+   optimizer tetap dari 40 sampel seperti paper, tapi statistik BatchNorm berasal dari
+   8 sampel. Akumulasi gradien tidak bisa memperbaiki ini.
+8. **Mixed precision (AMP) aktif**, tidak dipakai paper.
+9. **Epoch efektif 26-61, bukan 200.** Tidak dipotong manual — `EPOCHS` tetap 200 di
+   semua notebook. Pemotongannya terjadi sendiri lewat early stopping, dan inilah
+   deviasi yang paling mungkin merugikan. Lihat diagnosis di bawah.
 
 Daftar lengkap 14 ambiguitas paper ada di
 [[1907.06370-spesifikasi-implementasi]].
 
+## Diagnosis: early stopping mengakhiri training terlalu dini
+
+Ini penjelasan yang menyatukan hampir semua selisih terhadap paper.
+
+| Model | Epoch terbaik (3 seed) | Epoch dijalankan | Rencana |
+|---|---|---|---|
+| IMAGE | 22 / 14 / 11 | 37 / 29 / 26 | 200 |
+| FUSION concat | 18 / 31 / 46 | 33 / 46 / 61 | 200 |
+| FUSION sum | 12 / 20 / 19 | 27 / 35 / 34 | 200 |
+
+Kita melatih **sekitar 15% anggaran paper**, dan itu tidak direncanakan.
+
+Penyebab langsungnya: **validation hanya 80 sampel.** Granularitasnya 1,25% per
+sampel, sehingga `val_oa` sangat berderau dan `patience=15` bisa menyala karena derau
+semata. Bukti konkretnya: IMAGE seed 42 mencatat `val_oa` 0,9250 di epoch 22 — nilai
+tertinggi yang pernah dicapai, hampir pasti kebetulan — dan checkpoint itulah yang
+disimpan. Test-nya keluar 0,8315, sembilan poin di bawah. Seleksi checkpoint-nya
+overfit ke 80 sampel itu.
+
+Dampaknya **berbeda** untuk kedua cabang, dan ini yang penting:
+
+**Untuk IMAGE, masalahnya seleksi, bukan lamanya training.** Train loss saat berhenti
+sudah 0,025-0,05, jadi 720 sampel train sudah dihafal. Melatih lebih lama tidak otomatis
+menolong; memilih checkpoint dengan validation yang layak yang menolong.
+
+**Untuk FUSION, masalahnya lamanya training.** Cabang citra memakai bobot ImageNet
+sehingga berguna sejak epoch 1. Cabang teks dilatih **dari nol** dan butuh ~28 epoch
+untuk berguna ketika berdiri sendiri ([[03-baseline-cnn1d]]). Di dalam fusion, cabang
+citra sudah menurunkan loss lebih dulu sehingga tidak ada tekanan bagi cabang teks
+untuk matang — lalu early stopping mengakhiri run di epoch 33-61, sebelum ia sempat.
+
+Korelasinya terlihat: seed FUSION yang dilatih paling lama (44, 61 epoch) dan yang
+terbaik (43, 46 epoch) keduanya di atas seed yang berhenti paling dini (42, 33 epoch,
+OA terendah). Bukan bukti, tapi konsisten.
+
+**Paper melatih 200 epoch tetap tanpa early stopping.** Kemungkinan itu bukan detail
+sepele melainkan justru alasan cabang teks mereka terpakai.
+
 ## Temuan
 
-Diisi setelah eksekusi, dengan `#temuan/positif`, `#temuan/negatif`, atau
-`#temuan/anomali`.
+**#temuan/positif — replikasi berhasil pada tingkat angka.** Urutan TEXT < IMAGE <
+FUSION < Oracle terpenuhi, semua OA 1-4% di bawah paper, korpus teks terkonfirmasi
+identik (135 vs 136 token ≥4 karakter), dan pola komplementaritas Resume terreplikasi
+pada tingkat baseline (TEXT 0,969 vs IMAGE 0,784).
+
+**#temuan/negatif — tapi fusion tidak bekerja seperti yang diklaim paper.** Kenaikan
++2,56% di atas baseline citra **bukan** berasal dari modalitas teks. Tiga bukti
+independen di [[08-ablasi-missing-modality]] dan [[09-ablasi-degradasi-teks]]:
+menolkan seluruh teks menurunkan akurasi 0,0015; menghapus 0-100% kata mengubahnya
+0,0015; dan Resume mendarat di sisi citra. Kenaikan itu kemungkinan dari kapasitas
+tambahan atau efek regularisasi head concat.
+
+**#temuan/negatif — fusion lebih rapuh, bukan lebih tahan.** Di bawah rotasi, blur,
+dan noise, fusion kolaps lebih dalam daripada baseline citra
+([[07-ablasi-degradasi-citra]]). Konsekuensi logis dari poin di atas.
+
+**#temuan/negatif — klaim kegagalan fusion penjumlahan tidak terreplikasi.** Paper
+menyebut penjumlahan jatuh signifikan di bawah baseline citra; milik kita 1,9% di
+atasnya dan tidak terbedakan secara statistik dari concat (selisih 0,0067 melawan std
+0,0105-0,0164). Lihat [[06-fusion-sum]] untuk caveat soal mekanisme.
+
+**#temuan/anomali — komplementaritas ada, arsitekturnya tidak memanennya.** Oracle
+0,8977, 8,9% sampel hanya benar lewat teks, tapi hanya 29% potensi yang dipanen dan
+cabang teksnya tidak terpakai. Ini kondisi yang membuat ablasi 4 (fusion bergerbang
+atau cross-attention) layak dikerjakan — syaratnya yang ditulis di Tahap 7 sudah
+terpenuhi.
+
+## Yang harus dikerjakan sebelum kesimpulan ini final
+
+Urut manfaat per biaya:
+
+1. **Latih ulang FUSION satu seed tanpa early stopping, 200 epoch penuh** (± 4,2 jam),
+   lalu ulangi ablasi missing modality. Ini menguji langsung apakah cabang teks yang
+   tidak terpakai adalah artefak early stopping atau sifat arsitektur concat. **Hasilnya
+   menentukan kesimpulan laporan akhir.**
+2. **Ablasi missing modality pada checkpoint FUSION-sum** (menit-an, checkpoint sudah
+   ada). Bobot cabang teks 0,31 menyiratkan hasil berbeda dari concat.
+3. **Perbesar validation ke 15-20% dari train** atau pilih checkpoint pada `val_loss`
+   yang dihaluskan. Perkiraan perolehan 1-2% untuk semua model.
+4. **Uji empat pasangan salah-eja milik paper** dengan model FastText kita, untuk
+   memisahkan artefak heuristik dari sifat model — lihat
+   [[01-ekstraksi-fitur-teks]].

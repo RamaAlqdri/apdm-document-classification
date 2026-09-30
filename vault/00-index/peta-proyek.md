@@ -31,26 +31,44 @@ menolong.
 Target relatif yang harus terlihat: TEXT < IMAGE < FUSION < Oracle.
 Angka paper pada Tobacco3482: 73,8% / 84,5% / 87,8% / 92,1%.
 
+## Hasil, per 2026-09-30
+
+Keenam notebook sudah dijalankan penuh di laptop Windows (RTX 3050, CUDA).
+
+| Model | Kita | Paper |
+|---|---|---|
+| TEXT (CNN1D) | 0,7266 ± 0,0059 | 0,738 |
+| IMAGE | 0,8086 ± 0,0210 | 0,845 |
+| FUSION concat | 0,8342 ± 0,0105 | 0,878 |
+| FUSION sum | 0,8275 ± 0,0164 | tidak dilaporkan |
+| Oracle | 0,8977 | 0,921 |
+
+Urutan terpenuhi, semuanya 1-4% di bawah paper. Tabel lengkap dengan F1 per kelas:
+[[tabel-utama]].
+
+**Tapi angka itu bukan keseluruhan ceritanya.** Ablasi menunjukkan cabang teks pada
+model fusion **praktis tidak terpakai** — menolkan seluruh masukan teks menurunkan
+akurasi hanya 0,0015. Jadi kenaikan +2,56% di atas baseline citra bukan berasal dari
+modalitas kedua, meski komplementaritasnya sendiri terbukti ada (oracle 0,8977, 239
+dokumen hanya benar lewat teks). Diagnosis dan uji lanjutannya di akhir [[tabel-utama]].
+
 ## Tahap
 
 - [ ] **00** — Brief proyek (`CLAUDE.md`) → lihat [[rencana-prompt]]
 - [x] **01** — Scaffolding + vault + template + MOC
 - [x] **02** — Sintesis jurnal → [[1907.06370-ringkasan]],
       [[1907.06370-spesifikasi-implementasi]], 10 catatan konsep, 8 catatan pustaka
-- [~] **03** — Audit data, pairing citra↔teks, EDA — kode siap
-      ([[00-audit-data]] masih `belum-dijalankan`, eksekusi di mesin compute)
-- [~] **04** — Split + representasi teks — kode siap
-      ([[01-ekstraksi-fitur-teks]] masih `belum-dijalankan`)
-- [~] **05** — Baseline unimodal TEXT dan IMAGE — kode siap
-      ([[02-baseline-mlp-sif]], [[03-baseline-cnn1d]], [[04-baseline-mobilenetv2]]
-      masih `belum-dijalankan`)
-- [~] **06** — FUSION (concat vs penjumlahan adaptif) + Oracle — kode siap
-      ([[05-fusion-concat]], [[06-fusion-sum]], [[tabel-utama]] masih
-      `belum-dijalankan`)
-- [~] **07** — Ablasi: degradasi citra, missing modality, degradasi teks — kode
-      siap ([[07-ablasi-degradasi-citra]], [[08-ablasi-missing-modality]],
-      [[09-ablasi-degradasi-teks]] masih `belum-dijalankan`; ablasi 4 dilewati)
-- [ ] **08** — Sintesis akhir + limitasi
+- [x] **03** — Audit data, pairing citra↔teks, EDA → [[00-audit-data]]
+- [x] **04** — Split + representasi teks → [[01-ekstraksi-fitur-teks]]
+- [x] **05** — Baseline unimodal TEXT dan IMAGE → [[02-baseline-mlp-sif]],
+      [[03-baseline-cnn1d]], [[04-baseline-mobilenetv2]]
+- [x] **06** — FUSION (concat vs penjumlahan adaptif) + Oracle →
+      [[05-fusion-concat]], [[06-fusion-sum]], [[tabel-utama]]
+- [x] **07** — Ablasi: degradasi citra, missing modality, degradasi teks →
+      [[07-ablasi-degradasi-citra]], [[08-ablasi-missing-modality]],
+      [[09-ablasi-degradasi-teks]]. Ablasi 4 dilewati, tapi syaratnya kini terpenuhi
+- [ ] **08** — Sintesis akhir + limitasi — **tunggu dua uji lanjutan dulu**, lihat
+      akhir [[tabel-utama]]
 
 ## MOC lain
 

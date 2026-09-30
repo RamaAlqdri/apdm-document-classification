@@ -512,11 +512,11 @@ D. README.md final + commit terakhir.
 - [x] Langkah 0 — CLAUDE.md dibuat dan diperiksa manual
 - [x] Tahap 1 — Scaffolding + vault + git init
 - [x] Tahap 2 — Sintesis jurnal (isi path PDF dulu)
-- [~] Tahap 3 — Audit & pairing data (kode siap, eksekusi di mesin compute)
-- [~] Tahap 4 — Split + fitur teks (kode siap; siapkan ruang ~7GB untuk cc.en.300.bin)
-- [~] Tahap 5 — Baseline TEXT dan IMAGE (kode siap, latih di mesin compute)
-- [~] Tahap 6 — FUSION + Oracle (kode siap, latih di mesin compute)
-- [~] Tahap 7 — Ablasi (kode siap; ablasi 4 dilewati, butuh training baru)
+- [x] Tahap 3 — Audit & pairing data
+- [x] Tahap 4 — Split + fitur teks
+- [x] Tahap 5 — Baseline TEXT dan IMAGE
+- [x] Tahap 6 — FUSION + Oracle
+- [x] Tahap 7 — Ablasi (ablasi 4 dilewati)
 - [ ] Tahap 8 — Sintesis akhir
 
 ## Catatan praktis

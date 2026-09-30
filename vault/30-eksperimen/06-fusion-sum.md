@@ -3,7 +3,7 @@ judul: FUSION — penjumlahan adaptif
 tipe: eksperimen
 tahap: "06"
 tanggal: 2026-09-28
-status: belum-dijalankan
+status: selesai
 tags:
   - tipe/eksperimen
   - tahap/06
@@ -22,12 +22,12 @@ model:: FUSION-sum
 dataset:: Tobacco3482 (citra JPG + QS-OCR-small)
 split:: 800 train (termasuk 10% val) / 2682 test, stratified
 seed:: 42, 43, 44
-oa:: 
-macro_f1:: 
-durasi:: 
+oa:: 0.8275
+macro_f1:: 0.7990
+durasi:: 1.95 jam
 
-> **STATUS: BELUM DIJALANKAN.** Field angka kosong sampai dijalankan di mesin
-> compute.
+> **DIJALANKAN 2026-09-30** di laptop Windows (RTX 3050 4 GB, CUDA). Angka di bawah
+> dari eksekusi nyata `notebooks/05_fusion.ipynb`.
 
 ## Kenapa eksperimen ini ada
 
@@ -71,40 +71,94 @@ sepenuhnya.** Itu bukan sekadar hasil buruk, itu penjelasan mengapa buruk — da
 sekaligus bukti untuk hipotesis paper bahwa kedua ruang fitur tidak bisa disejajarkan
 tanpa merusak daya diskriminatifnya.
 
-Bobot terlatih: diisi setelah eksekusi.
-
 | Seed | Bobot citra | Bobot teks |
 |---|---|---|
-| 42 | | |
-| 43 | | |
-| 44 | | |
+| 42 | 0,694 | **0,306** |
+| 43 | 0,685 | **0,315** |
+| 44 | 0,691 | **0,309** |
+
+**Sangat konsisten antar seed, dan teks mendapat bobot yang jauh dari nol.** Kalau
+cabang teks benar-benar derau, tekanan pelatihan seharusnya menurunkan bobotnya
+mendekati 0. Itu tidak terjadi: ketiga seed berhenti di sekitar 0,31 dengan sebaran
+hanya 0,009.
+
+Ini membuat gambarannya menarik sekaligus belum selesai. Pada strategi `concat`,
+[[08-ablasi-missing-modality]] menunjukkan cabang teks praktis tidak terpakai. Pada
+`sum`, bobot terlatihnya menyiratkan sebaliknya.
+
+**Yang belum diuji:** ablasi missing modality **hanya dijalankan pada checkpoint
+concat**. Menjalankannya pada checkpoint `sum` biayanya beberapa menit dan
+checkpointnya sudah ada. Sampai itu dikerjakan, bobot 0,31 adalah petunjuk, bukan
+bukti — pada penjumlahan, menolkan teks menghasilkan `0,69 × v_citra`, yaitu versi
+terskala dari fitur citra yang mungkin masih bisa ditangani head-nya, sehingga
+ujinya memang kurang tajam daripada pada concat.
 
 ## Hasil
 
-Diisi setelah eksekusi.
+| Seed | OA | Macro F1 | Epoch terbaik | Epoch dijalankan | Durasi |
+|---|---|---|---|---|---|
+| 42 | 0,8043 | 0,7785 | 12 | 27 | 32,9 menit |
+| 43 | 0,8389 | 0,8116 | 20 | 35 | 42,1 menit |
+| 44 | 0,8393 | 0,8068 | 19 | 34 | 41,8 menit |
+| **rata-rata ± std** | **0,8275 ± 0,0164** | **0,7990 ± 0,0146** | 17 | 32 | 1,95 jam |
 
-| Seed | OA | Macro F1 | Epoch terbaik | Durasi |
-|---|---|---|---|---|
-| 42 | | | | |
-| 43 | | | | |
-| 44 | | | | |
-| **rata-rata ± std** | | | | |
+Paper tidak memberi angka untuk dibandingkan. Patokannya baseline IMAGE — paper
+mengklaim penjumlahan turun **di bawah** itu.
 
-Paper tidak memberi angka untuk dibandingkan. Patokannya baseline IMAGE (84,5% di
-paper): paper mengklaim penjumlahan turun **di bawah** itu.
+### Perbandingan langsung
+
+| Model | OA | vs baseline IMAGE |
+|---|---|---|
+| baseline IMAGE | 0,8086 | — |
+| FUSION sum | **0,8275 ± 0,0164** | **+0,0189** |
+| FUSION concat | 0,8342 ± 0,0105 | +0,0256 |
+
+**Penjumlahan tidak jatuh di bawah baseline citra. Ia berada 1,9% di atasnya.**
+
+Dan selisih concat vs sum hanya **0,0067**, jauh di dalam satu standar deviasi
+(concat ± 0,0105, sum ± 0,0164). Pada tiga seed, kedua strategi **tidak terbedakan
+secara statistik**.
 
 ## Cara membaca hasilnya
 
-**Kalau penjumlahan memang di bawah baseline citra:** konsisten dengan arah klaim
-paper. Tandai `#temuan/positif`, tapi tulis "konsisten untuk mekanisme yang kami
-pilih", bukan "berhasil mereplikasi temuan paper" — paper tidak menyebut mekanisme
-apa pun untuk direplikasi.
+Dua cabang yang ditulis sebelum eksekusi, disimpan apa adanya supaya jelas mana yang
+terjadi:
 
-**Kalau tidak:** ini `#temuan/negatif` terhadap paper, dan justru temuan yang lebih
-menarik. Kemungkinan besar kegagalan yang dilaporkan paper adalah artefak mekanisme
-mereka, bukan sifat fusion penjumlahan. Jangan dihaluskan jadi "hasil kami sedikit
-berbeda".
+- *Kalau penjumlahan memang di bawah baseline citra:* konsisten dengan arah klaim
+  paper, tapi ditulis sebagai "konsisten untuk mekanisme yang kami pilih", bukan
+  "berhasil mereplikasi temuan paper".
+- *Kalau tidak:* `#temuan/negatif` terhadap paper, dan jangan dihaluskan jadi "hasil
+  kami sedikit berbeda".
+
+**Yang terjadi adalah cabang kedua.** Penjumlahan berada 1,9% **di atas** baseline
+citra dan tidak terbedakan secara statistik dari concat. Ditulis apa adanya di bagian
+Temuan.
 
 ## Temuan
 
-Diisi setelah eksekusi.
+**#temuan/negatif terhadap paper — klaim kegagalan penjumlahan tidak terreplikasi.**
+Paper menyatakan penjumlahan "jatuh signifikan di bawah baseline citra murni". Milik
+kita 1,9% di atasnya, dan tidak terbedakan secara statistik dari concat.
+
+Konsekuensinya bukan "paper salah", melainkan lebih spesifik dan lebih berguna:
+**alasan paper memilih concat tidak berdasar pada bukti yang bisa diperiksa.** Mereka
+tidak melaporkan angka, tidak menyebutkan mekanisme, dan kesimpulannya tidak bertahan
+pada satu bacaan yang wajar atas frasa "adaptive averaging".
+
+Caveat yang wajib tetap disebut: mekanisme kita adalah **pilihan kita** — satu skalar
+terlatih per cabang lewat softmax. Dua alternatif yang tidak diuji berperilaku beda:
+rata-rata tanpa bobot terlatih, dan gate per-dimensi. Kalau paper memakai yang
+pertama, kegagalan mereka masuk akal dan tidak bertentangan dengan hasil kita.
+Dugaan paling wajar tetap: **kegagalan yang mereka laporkan adalah artefak mekanisme
+mereka, bukan sifat fusion penjumlahan sebagai kelas metode.**
+
+**#temuan/anomali — bobot teks 0,31 bertentangan dengan hasil ablasi concat.** Pada
+concat, teks praktis tidak terpakai; pada sum, bobotnya jauh dari nol dan stabil
+antar seed. Dua model berbeda, jadi bukan kontradiksi logis — tapi ini pertanyaan
+terbuka yang **bisa dijawab dalam beberapa menit** dengan menjalankan ablasi missing
+modality pada checkpoint sum. Sudah dicatat sebagai rekomendasi.
+
+**#temuan/positif — sum lebih murah.** 1,95 jam vs 2,92 jam untuk concat, karena
+head-nya menerima 128 dimensi alih-alih 256 dan early stopping menyala lebih awal.
+Kalau keduanya memang setara akurasinya, sum adalah pilihan yang lebih efisien —
+kesimpulan yang berlawanan dengan rekomendasi paper.

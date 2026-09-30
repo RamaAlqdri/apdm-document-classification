@@ -3,7 +3,7 @@ judul: Ablasi 3 — degradasi teks
 tipe: eksperimen
 tahap: "07"
 tanggal: 2026-09-28
-status: belum-dijalankan
+status: selesai
 tags:
   - tipe/eksperimen
   - tahap/07
@@ -23,11 +23,12 @@ model:: FUSION-concat (checkpoint Tahap 6)
 dataset:: Tobacco3482, test split seed 42 (2682 dokumen)
 split:: seed 42 saja
 seed:: 42
-oa:: 
-macro_f1:: 
-durasi:: 
+oa:: 0.8218 (0% hapus) → 0.8203 (100% hapus)
+macro_f1:: 0.8047 → 0.8004
+durasi:: menit-an, tanpa training
 
-> **STATUS: BELUM DIJALANKAN.** Field angka kosong.
+> **DIJALANKAN 2026-09-30**, memakai `FUSION-concat_seed42.pt` apa adanya. Injeksi
+> typo **ikut dikerjakan** — `cc.en.300.bin` masih tersedia.
 
 ## Pertanyaan
 
@@ -68,7 +69,9 @@ Menghapus **100%** kata harus setara dengan menolkan teks di
 [[08-ablasi-missing-modality]]. Notebook meng-assert selisihnya di bawah 2% — kalau
 gagal, ada bug di salah satu dari keduanya, bukan temuan ilmiah.
 
-Hasil pemeriksaan silang: diisi setelah eksekusi.
+**Hasil: selisihnya 0,0000.** Menghapus 100% kata memberi OA 0,8203, identik dengan
+menolkan teks di [[08-ablasi-missing-modality]]. Kedua jalur kode sepakat sampai empat
+angka desimal, jadi tidak ada bug di salah satunya.
 
 ## Hasil — penghapusan kata
 
@@ -76,12 +79,18 @@ Diisi setelah eksekusi. Figur: `reports/figures/07_ablasi_degradasi_teks.png`.
 
 | Fraksi dihapus | OA | Macro F1 | Turun dari utuh |
 |---|---|---|---|
-| 0% | | | — |
-| 10% | | | |
-| 25% | | | |
-| 50% | | | |
-| 75% | | | |
-| 100% | | | |
+| 0% | 0,8218 | 0,8047 | — |
+| 10% | 0,8225 | 0,8050 | **+0,0007** |
+| 25% | 0,8225 | 0,8047 | **+0,0007** |
+| 50% | 0,8229 | 0,8057 | **+0,0011** |
+| 75% | 0,8233 | 0,8065 | **+0,0015** |
+| 100% | 0,8203 | 0,8004 | −0,0015 |
+
+Baca kolom terakhir sekali lagi: **menghapus 10% sampai 75% kata membuat akurasi
+sedikit NAIK.** Bukan turun. Puncaknya justru di 75% penghapusan.
+
+Rentang seluruh kurva dari 0% sampai 100% hanya **0,0030** — tiga persepuluh persen.
+Dengan 2682 sampel test, itu selisih 8 dokumen. Seluruh kurva rata dalam derau.
 
 Garis acuan pada grafik adalah **IMAGE standalone**. Kalau kurva berhenti di atas
 garis itu bahkan saat teks habis, fusion masih mendapat sesuatu dari arsitekturnya
@@ -94,43 +103,77 @@ Diisi setelah eksekusi.
 
 | Fraksi typo | OA | Macro F1 |
 |---|---|---|
-| 0% | | |
-| 10% | | |
-| 25% | | |
-| 50% | | |
+| 0% | 0,8218 | 0,8047 |
+| 10% | 0,8218 | 0,8049 |
+| 25% | 0,8218 | 0,8049 |
+| 50% | 0,8210 | 0,8038 |
 
-**Bagian ini mungkin tidak dikerjakan.** Merusak karakter di dalam token berarti
-token itu harus di-embed ulang, jadi `cc.en.300.bin` (~7 GB di disk, ~15 GB saat
-dimuat) harus tersedia lagi. Fitur yang sudah dihitung tidak cukup.
+Merusak setengah token korpus mengubah OA sebesar **0,0008**. Sama ratanya dengan
+kurva penghapusan.
 
-Notebook melewati bagian ini kalau modelnya tidak ada dan mencetak peringatan. Kalau
-dilewati, **tulis di sini bahwa ia tidak dikerjakan** — jangan hilangkan diam-diam
-dari laporan.
+**Status injeksi typo: DIKERJAKAN.** `cc.en.300.bin` masih tersedia di mesin compute,
+sehingga token yang dirusak bisa di-embed ulang.
 
-Status injeksi typo: diisi setelah eksekusi.
+Catatan teknis: loop inilah yang memicu `PermissionError: [WinError 32]` di Windows —
+memory-map `.npy` sementara menahan file sehingga `unlink()` gagal. Diperbaiki di
+`src/` lewat `close_datasets()` dan context manager `scratch_npy()`, bukan ditambal di
+notebook. Lihat log 2026-09-30.
 
-## Hipotesis sebelum menjalankan
+## Hipotesis sebelum menjalankan — dan hasilnya
 
-1. **Typo pada fraksi x akan jauh lebih ringan daripada penghapusan pada fraksi x.**
-   Kalau tidak, argumen subword paper tidak bertahan pada model terlatih, hanya pada
-   cosine similarity — dan itu `#temuan/negatif` yang penting.
-2. **Kurva penghapusan akan mendatar lebih awal dari dugaan.** Dokumen rata-rata cuma
-   ~136 kata berguna, dan CNN1D memakai max-pool-through-time yang hanya butuh pola
-   terkuat muncul di suatu tempat. Menghapus 25% kata mungkin nyaris tidak berefek.
-3. **100% penghapusan akan mendarat di sekitar IMAGE standalone**, bukan di bawahnya.
+**1. "Typo jauh lebih ringan daripada penghapusan." → TIDAK BISA DIJAWAB.** Keduanya
+tidak berefek sama sekali (0,0008 vs 0,0030), jadi tidak ada selisih untuk
+dibandingkan. Pertanyaannya jadi tidak bisa dijawab pada model ini — bukan karena
+subword FastText bekerja atau gagal, melainkan karena **cabang teksnya tidak dipakai
+sama sekali**. Perbandingan ini harus diulang pada model yang benar-benar memakai teks.
 
-Hipotesis 2 adalah yang paling spesifik dan karena itu paling berguna kalau salah.
+**2. "Kurva penghapusan mendatar lebih awal dari dugaan." → BENAR, dan jauh lebih
+ekstrem dari dugaan.** Saya menduga 25% penghapusan "mungkin nyaris tidak berefek".
+Kenyataannya **100% penghapusan** nyaris tidak berefek. Dugaannya benar arahnya tapi
+meleset besar soal derajatnya — dan alasan sebenarnya bukan max-pool-through-time
+seperti yang saya kira, melainkan sesuatu yang jauh lebih mendasar.
+
+**3. "100% penghapusan mendarat di sekitar IMAGE standalone." → BENAR.** 0,8203 versus
+IMAGE standalone 0,8315. Tapi ini benar untuk alasan yang salah: saya mengira fusion
+akan turun *ke* level citra setelah kehilangan teks; kenyataannya ia **sudah** berada di
+situ sejak awal, karena teksnya tidak pernah berkontribusi.
 
 ## Keterbatasan
 
 1. Satu seed (42).
-2. Typo buatan tidak sama dengan noise OCR asli. Tesseract juga berhalusinasi string
+2. **Hipotesis 1 tidak terjawab** karena cabang teks tidak dipakai, bukan karena
+   pengukurannya gagal. Ulangi pada model yang memakai teks.
+3. Typo buatan tidak sama dengan noise OCR asli. Tesseract juga berhalusinasi string
    yang bukan kata sama sekali dan mengacaukan urutan baris — lihat
    [[noise-ocr-dan-oov]]. Kita hanya meniru kerusakan ejaan, bagian yang paling
    mudah disimulasikan dan justru bagian yang paling bisa ditangani FastText. Jadi
    ablasi ini kemungkinan **melebih-lebihkan** ketahanan.
-3. Degradasi seragam ke seluruh test set, bukan dicampur.
+4. Degradasi seragam ke seluruh test set, bukan dicampur.
 
 ## Temuan
 
-Diisi setelah eksekusi.
+**#temuan/negatif — kurva degradasi teks benar-benar rata, dan itu bukan bukti
+ketahanan.** Menghapus 100% kata mengubah akurasi 0,0015; menghapus 75% justru
+menaikkannya 0,0015. Merusak setengah token dengan typo mengubah 0,0008.
+
+Godaannya besar untuk membaca ini sebagai "fusion sangat tahan terhadap noise teks".
+Itu salah, dan [[08-ablasi-missing-modality]] membuktikannya: model tahan karena tidak
+memakai teks sama sekali. **Ketahanan dan ketidakpedulian memberi kurva yang sama
+bentuknya; yang membedakan hanyalah uji missing modality.** Tanpa ablasi 2, ablasi 3
+akan disalahtafsirkan sebagai hasil positif.
+
+**#temuan/positif — pemeriksaan silang lolos sempurna.** Menghapus 100% kata dan
+menolkan teks memberi angka identik (selisih 0,0000). Dua jalur kode yang berbeda,
+satu hasil. Assert ini ditanam sebelum eksekusi justru untuk menangkap bug, dan
+hasilnya menaikkan kepercayaan pada kedua ablasi.
+
+**#temuan/anomali — akurasi naik sedikit saat kata dihapus.** Puncak di 75%
+penghapusan (+0,0015). Besarnya di dalam derau (8 dokumen dari 2682), jadi jangan
+ditafsirkan berlebihan. Tapi arahnya konsisten: kalau cabang teks menyumbang derau
+alih-alih sinyal, menguranginya memang sedikit membantu.
+
+**Apa yang harus dikerjakan sebelum hipotesis 1 bisa dijawab:** latih ulang fusion
+tanpa early stopping sehingga cabang teks benar-benar terpakai, lalu ulangi ablasi ini.
+Perbandingan typo-versus-penghapusan baru punya arti pada model seperti itu. Sampai
+saat itu, ablasi 3 tidak mengatakan apa pun tentang subword FastText — hanya tentang
+model fusion kita.
