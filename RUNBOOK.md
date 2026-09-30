@@ -66,12 +66,17 @@ di dalam notebook itu sendiri. Untuk run penuh itu belasan jam yang hilang.
 ada. Untuk menimpanya dengan sengaja: `--timpa`. Untuk menyimpan hasil lama lebih dulu,
 salin `models/` dan `reports/` ke folder lain.
 
-**Notebook 07 aman dijalankan kapan saja** — seluruh artefaknya memakai nama sendiri
-(`FUSION-concat-noES_*`, `uji_lanjutan.csv`, `figures/08_*`) dan checkpoint lama hanya
-dibaca:
+**Notebook 07, 08, dan 09 aman dijalankan kapan saja** — masing-masing memakai nama
+artefak sendiri dan checkpoint lama hanya dibaca:
+
+| Notebook | Menulis | Membaca |
+|---|---|---|
+| 07 | `FUSION-concat-noES_*`, `uji_lanjutan.csv`, `figures/08_*` | checkpoint 05 |
+| 08 | `diagnostik_cabang_teks.csv`, `figures/09_*` | checkpoint 03, 05, 07 |
+| 09 | `FUSION-fix_*`, `uji_perbaikan*.csv`, `figures/10_*` | `CNN1D_seed42.pt` |
 
 ```bash
-python run_all.py --dari 07
+python run_all.py --dari 07     # atau 08, atau 09
 ```
 
 Dua hal yang tetap butuh Anda:
@@ -255,7 +260,9 @@ Jalankan **berurutan**. Tiap notebook bergantung pada keluaran sebelumnya.
 | 04 | `04_baseline_citra.ipynb` | **jam-an** | checkpoint IMAGE, prediksi IMAGE |
 | 05 | `05_fusion.ipynb` | **paling berat** | checkpoint FUSION, tabel utama |
 | 06 | `06_ablasi.ipynb` | menit-an, tanpa training | CSV + figur ablasi |
-| 07 | `07_uji_lanjutan.ipynb` | menit-an (uji A) + ± 4,2 jam (uji B) | `uji_lanjutan.csv`, checkpoint `-noES` |
+| 07 | `07_uji_lanjutan.ipynb` | menit-an (uji A) + ± 3,3 jam (uji B) | `uji_lanjutan.csv`, checkpoint `-noES` |
+| 08 | `08_diagnostik_cabang_teks.ipynb` | menit-an, read-only | `diagnostik_cabang_teks.csv` |
+| 09 | `09_uji_perbaikan.ipynb` | ± 3,3 jam | `uji_perbaikan.csv`, checkpoint `-fix` |
 
 Notebook 07 opsional dan tidak menimpa apa pun. Ia menjawab dua pertanyaan yang
 tertinggal: apakah cabang teks dipakai pada strategi `sum`, dan apakah cabang teks yang

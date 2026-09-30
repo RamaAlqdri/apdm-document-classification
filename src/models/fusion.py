@@ -28,6 +28,8 @@ THREE ambiguities the paper leaves open are decided here, not silently:
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import torch
 import torch.nn as nn
 
@@ -41,7 +43,7 @@ STRATEGIES = ("concat", "sum")
 class FusionModel(nn.Module):
     def __init__(self, n_classes: int = 10, strategy: str | None = None,
                  pretrained_image: bool = True, fusion_width: int = 256,
-                 dropout: float | None = None):
+                 dropout: float | None = None, normalize_branches: bool = False):
         super().__init__()
         strategy = CONFIG["fusion_strategy"] if strategy is None else strategy
         if strategy not in STRATEGIES:
@@ -51,6 +53,7 @@ class FusionModel(nn.Module):
         dim = CONFIG["fusion_dim"]
 
         self.strategy = strategy
+        self.normalize_branches = normalize_branches
 
         # Both branches are reused as-is, with their classifiers replaced by
         # Identity: the paper cuts the final layers off, and leaving dead Linear
@@ -61,6 +64,19 @@ class FusionModel(nn.Module):
 
         self.text = CNN1D(n_classes=n_classes, out_dim=dim)
         self.text.classifier = nn.Identity()
+
+        # Per-branch normalisation, off by default so existing checkpoints still load.
+        # Notebook 08 measured the image branch's features at 3.7x the norm of the
+        # text branch's, which lets the concat head be dominated numerically without
+        # ever "deciding" anything. LayerNorm rather than BatchNorm on purpose: it
+        # normalises per sample, so it is unaffected by the micro-batch of 8 that a
+        # 4GB GPU forces on us.
+        if normalize_branches:
+            self.norm_image: nn.Module = nn.LayerNorm(dim)
+            self.norm_text: nn.Module = nn.LayerNorm(dim)
+        else:
+            self.norm_image = nn.Identity()
+            self.norm_text = nn.Identity()
 
         if strategy == "sum":
             # two logits -> softmax -> weights that sum to 1
@@ -81,9 +97,31 @@ class FusionModel(nn.Module):
             raise AttributeError('branch_weights hanya ada untuk strategy="sum"')
         return torch.softmax(self.branch_logits, dim=0)
 
+    def init_text_from(self, path) -> dict:
+        """Copy a trained standalone CNN1D's weights into the text branch.
+
+        Notebook 08 measured the text branch inside fusion as collapsed: variance 38x
+        smaller than a standalone CNN1D's, 67 of 128 units dead. The suspected cause is
+        that the image branch starts from ImageNet weights and wins the optimisation
+        before the from-scratch text branch ever becomes useful. Starting the text
+        branch from a trained checkpoint removes that asymmetry.
+
+        The checkpoint's `classifier.*` keys are dropped: in fusion that layer is an
+        Identity, since the 128-d features go to the fusion head instead.
+        """
+        ckpt = torch.load(path, map_location="cpu", weights_only=True)
+        state = ckpt.get("state_dict", ckpt)
+        kept = {k: v for k, v in state.items() if not k.startswith("classifier.")}
+        hasil = self.text.load_state_dict(kept, strict=False)
+        tak_terisi = [k for k in hasil.missing_keys if not k.startswith("classifier.")]
+        if tak_terisi:
+            raise RuntimeError(f"bobot cabang teks tidak terisi penuh: {tak_terisi}")
+        return {"epoch": ckpt.get("epoch"), "val_oa": ckpt.get("val_oa"),
+                "tensor_dimuat": len(kept)}
+
     def features(self, image: torch.Tensor, text: torch.Tensor) -> torch.Tensor:
-        v_img = self.project(self.image.features(image))
-        v_txt = self.text.features(text)
+        v_img = self.norm_image(self.project(self.image.features(image)))
+        v_txt = self.norm_text(self.text.features(text))
         if self.strategy == "concat":
             return torch.cat([v_img, v_txt], dim=1)
         w = torch.softmax(self.branch_logits, dim=0)
@@ -156,6 +194,61 @@ def _self_check() -> None:
         pass
     else:
         raise AssertionError("strategy tak dikenal seharusnya ditolak")
+
+    # --- normalize_branches: memang menyamakan skala kedua cabang? -------------
+    polos = FusionModel(strategy="concat", pretrained_image=False)
+    ternorm = FusionModel(strategy="concat", pretrained_image=False,
+                          normalize_branches=True)
+    polos.eval(); ternorm.eval()
+    with torch.no_grad():
+        for m, nama in [(polos, "tanpa norm"), (ternorm, "dengan norm")]:
+            ni = m.norm_image(m.project(m.image.features(img))).norm(dim=1).mean()
+            nt = m.norm_text(m.text.features(txt)).norm(dim=1).mean()
+            rasio = float(ni / max(float(nt), 1e-9))
+            if nama == "dengan norm":
+                # LayerNorm menormalkan per sampel, jadi kedua cabang berakhir di
+                # sekitar sqrt(128) dan rasionya mendekati 1
+                assert abs(rasio - 1.0) < 0.25, (nama, rasio)
+            print(f"  rasio norma citra/teks {nama:12s}: {rasio:.2f}x")
+    # Angka "tanpa norm" di atas tidak berarti apa-apa: bobotnya acak
+    # (pretrained_image=False) pada masukan acak. Rasio sungguhan pada model terlatih
+    # adalah 3,7x, terukur di notebook 08. Yang diuji di sini hanya bahwa LayerNorm
+    # membuat rasionya mendekati 1 apa pun skala masukannya.
+
+    assert isinstance(polos.norm_text, torch.nn.Identity)
+    assert isinstance(ternorm.norm_text, torch.nn.LayerNorm)
+    # gradien tetap mencapai kedua cabang saat norm aktif
+    ternorm.train(); ternorm.zero_grad()
+    ternorm((img, txt)).sum().backward()
+    assert next(p for p in ternorm.text.conv.parameters()
+                if p.ndim == 3).grad.abs().sum() > 0
+    assert next(p for p in ternorm.image.trunk.parameters()
+                if p.ndim == 4).grad.abs().sum() > 0
+
+    # --- init_text_from: bobot benar-benar terkopi, dan checkpoint lama tetap muat --
+    import tempfile
+    with tempfile.TemporaryDirectory() as tmp:
+        sumber = CNN1D(out_dim=CONFIG["fusion_dim"])
+        jalan = Path(tmp) / "cnn1d.pt"
+        torch.save({"epoch": 7, "val_oa": 0.5,
+                    "state_dict": sumber.state_dict()}, jalan)
+
+        target = FusionModel(strategy="concat", pretrained_image=False)
+        info = target.init_text_from(jalan)
+        assert info["epoch"] == 7 and info["tensor_dimuat"] > 0, info
+        for k, v in sumber.state_dict().items():
+            if k.startswith("classifier."):
+                continue
+            assert torch.allclose(target.text.state_dict()[k], v), \
+                f"bobot {k} tidak terkopi ke cabang teks"
+
+        # checkpoint FusionModel lama (tanpa norm) harus tetap bisa dimuat
+        lama = FusionModel(strategy="concat", pretrained_image=False)
+        jalan2 = Path(tmp) / "fusion_lama.pt"
+        torch.save({"state_dict": lama.state_dict()}, jalan2)
+        baru = FusionModel(strategy="concat", pretrained_image=False)
+        baru.load_state_dict(torch.load(jalan2, weights_only=True)["state_dict"])
+        print("  checkpoint lama tanpa norm tetap bisa dimuat")
 
     print("fusion self-check ok")
     n = sum(p.numel() for p in FusionModel(strategy="concat",
