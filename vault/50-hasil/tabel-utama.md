@@ -10,6 +10,9 @@ tags:
   - modal/fusion
   - komponen/evaluasi
 terkait:
+  - "[[12-perbaikan-norm-dan-init]]"
+  - "[[11-diagnostik-cabang-teks]]"
+  - "[[sintesis-akhir]]"
   - "[[03-baseline-cnn1d]]"
   - "[[04-baseline-mobilenetv2]]"
   - "[[05-fusion-concat]]"
@@ -36,6 +39,18 @@ Rata-rata tiga seed (42/43/44). F1 per kelas; baris OA di kolom kedua.
 | **FUSION (concat)** | **0,8342** | **0,8105** | 0,894 | 0,961 | 0,848 | 0,835 | 0,879 | 0,883 | 0,780 | 0,638 | 0,803 | 0,583 |
 | FUSION (sum) | 0,8275 | 0,7990 | — | — | — | — | — | — | — | — | — | — |
 | Oracle | 0,8977 | 0,8850 | 0,930 | 0,983 | 0,902 | 0,898 | 0,920 | 0,938 | 0,876 | 0,735 | 0,951 | 0,718 |
+
+Tiga model tambahan dari uji lanjutan, semuanya **seed 42 saja** sehingga tidak
+sebanding langsung dengan baris rata-rata tiga seed di atas:
+
+| Model (seed 42) | OA | Macro F1 | Resume | Memo | Catatan |
+|---|---|---|---|---|---|
+| FUSION concat, seed 42 | 0,8218 | 0,8047 | 0,803 | 0,879 | run pertama |
+| FUSION concat tanpa early stopping | 0,8304 | 0,8108 | 0,814 | 0,902 | [[10-uji-lanjutan-early-stopping]] |
+| **FUSION diperbaiki** | 0,8110 | **0,8108** | **0,968** | 0,807 | [[12-perbaikan-norm-dan-init]] |
+
+Model terakhir adalah satu-satunya yang **benar-benar memakai kedua modalitas**, dan
+satu-satunya yang mereplikasi Resume paper (0,96). OA-nya justru paling rendah.
 
 F1 per kelas untuk FUSION sum tidak dihitung; notebook hanya menyimpan OA dan macro F1
 untuk strategi pembanding.
@@ -248,3 +263,27 @@ Urut manfaat per biaya:
 4. **Uji empat pasangan salah-eja milik paper** dengan model FastText kita, untuk
    memisahkan artefak heuristik dari sifat model — lihat
    [[01-ekstraksi-fitur-teks]].
+
+## Status keempat langkah itu, per 2026-09-30
+
+| # | Langkah | Status |
+|---|---|---|
+| 1 | FUSION tanpa early stopping | **selesai** — [[10-uji-lanjutan-early-stopping]] |
+| 2 | Missing modality pada FUSION-sum | **selesai** — [[10-uji-lanjutan-early-stopping]] |
+| 3 | Perbesar validation | **belum** — lihat [[limitasi-dan-lanjutan]] |
+| 4 | Uji empat pasangan paper | **belum** — lihat [[limitasi-dan-lanjutan]] |
+
+Dua langkah pertama memicu dua eksperimen lanjutan yang tidak direncanakan
+([[11-diagnostik-cabang-teks]] dan [[12-perbaikan-norm-dan-init]]), dan keduanya
+mengubah kesimpulan proyek. Ringkasannya di [[sintesis-akhir]].
+
+### Yang berubah setelah keempat uji itu
+
+Diagnosis "early stopping" di atas **benar sebagian, bukan penyebab utamanya**.
+Penyebab sebenarnya: cabang teks **kolaps** (varians 38× lebih kecil dari CNN1D
+standalone, 67 dari 128 unit mati) dan skalanya **timpang 3,7×** terhadap cabang citra.
+Keduanya bisa diperbaiki, dan setelah diperbaiki cabang teks jadi sama informatifnya
+dengan CNN1D standalone (probe 0,7468 melawan 0,7479).
+
+Ongkosnya OA turun 0,0194 sementara macro F1 identik. Yang berubah bukan besarnya
+akurasi, melainkan **dari mana akurasinya berasal**.

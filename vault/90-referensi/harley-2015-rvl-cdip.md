@@ -46,3 +46,8 @@ anggaran. Yang relevan adalah dua hal. Pertama, angka 79,9% jadi patokan bahwa
 84,5% memang bukan baseline lemah. Kedua, **Tobacco3482 adalah subset RVL-CDIP** —
 itu sebabnya QS-OCR-Small dan QS-OCR-Large punya irisan, dan mengapa transfer
 learning antar keduanya akan bocor. Lihat [[kumar-2014-tobacco3482]].
+
+Ketiga, dan ini yang paling penting untuk kesimpulan kami: seluruh temuan kami berlaku
+pada 720 sampel train. Mengulanginya pada RVL-CDIP adalah arah lanjutan F7 di
+[[limitasi-dan-lanjutan]], dan satu-satunya cara menguji apakah kolapsnya cabang teks
+memang artefak rezim data kecil.

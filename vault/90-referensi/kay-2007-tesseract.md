@@ -61,3 +61,8 @@ akibatnya.
 Kalau nanti perlu meregenerasi OCR sendiri, script di repo QS-OCR bernama
 `tobacco3482.sh` — README-nya menyebut `tobacco3842.sh` (angka tertukar) sehingga
 mengikuti README mentah-mentah akan kena *file not found*.
+
+Itu bukan sekadar catatan kaki: menjalankan Tesseract ulang pada citra yang terdegradasi
+adalah satu-satunya cara mengukur ketahanan **sistem ujung ke ujung**, dan ketidakmampuan
+kami melakukannya adalah limitasi D1 di [[limitasi-dan-lanjutan]]. Lihat juga
+[[07-ablasi-degradasi-citra]].

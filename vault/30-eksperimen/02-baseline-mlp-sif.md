@@ -104,4 +104,5 @@ Wajar: masukannya vektor 300 dimensi yang sudah dihitung sebelumnya, tidak ada
 augmentasi, dan modelnya kecil.
 
 Catatan: MLP tidak dipakai di model fusion, sesuai paper. Perannya murni pembanding
-untuk membenarkan pemilihan CNN1D.
+untuk membenarkan pemilihan CNN1D — pemilihan yang ternyata tepat, karena cabang CNN1D
+itulah yang kemudian jadi pusat seluruh temuan proyek ini ([[sintesis-akhir]]).

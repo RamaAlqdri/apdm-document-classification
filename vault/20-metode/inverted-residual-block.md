@@ -55,4 +55,8 @@ sempit tidak ada dimensi cadangan untuk memulihkannya. Paper Audebert et al.
 menyebut konvolusi 1x1 terakhir memakai ReLU; deskripsi itu tidak persis sesuai
 desain MobileNetV2 aslinya. Kalau kita memakai `torchvision.models.mobilenet_v2`
 kita mendapat implementasi resmi, jadi tidak ada yang perlu diperbaiki — hanya
-jangan mengutip deskripsi paper sebagai spesifikasi arsitektur.
+jangan mengutip deskripsi paper sebagai spesifikasi arsitektur. Dicatat juga di
+[[sandler-2018-mobilenetv2]].
+
+Efisiensi blok ini terbukti di praktik: baseline citra kami selesai dalam 120 menit untuk
+tiga seed di GPU 4 GB ([[04-baseline-mobilenetv2]]).

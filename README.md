@@ -101,6 +101,35 @@ Semua hyperparameter ada di satu `CONFIG` dict di `src/config.py`, seed global
 lewat `set_seed()`. Angka hasil di catatan vault **selalu** berasal dari
 eksekusi nyata; yang belum dijalankan ditandai `status: belum-dijalankan`.
 
+## Hasil
+
+Seluruh pipeline dijalankan penuh pada 2026-09-30 (laptop Windows, RTX 3050 4 GB, CUDA).
+
+| Model | Kita | Paper |
+|---|---|---|
+| TEXT (CNN1D) | 0,7266 ± 0,0059 | 0,738 |
+| IMAGE (MobileNetV2) | 0,8086 ± 0,0210 | 0,845 |
+| FUSION concat | 0,8342 ± 0,0105 | 0,878 |
+| FUSION sum | 0,8275 ± 0,0164 | tidak dilaporkan |
+| Oracle | 0,8977 | 0,921 |
+
+Urutan TEXT < IMAGE < FUSION < Oracle terpenuhi, semuanya 1-4% di bawah paper.
+
+**Tapi replikasi angka bukan temuan utamanya.** Ablasi menunjukkan cabang teks pada model
+fusion praktis **tidak terpakai**: menolkan seluruh masukan teks menurunkan akurasi hanya
+0,0015. Penyebabnya ditelusuri sampai mekanisme — cabang teks kolaps (varians 38× lebih
+kecil dari CNN1D standalone, 67 dari 128 unit mati) dan skalanya timpang 3,7× terhadap
+cabang citra — lalu **diperbaiki** dengan LayerNorm per cabang plus inisialisasi dari
+checkpoint CNN1D. Setelah diperbaiki, probe linear cabang teks naik 0,4236 → 0,7468
+(acuan CNN1D 0,7479) dan kelas Resume 0,803 → 0,968 (paper 0,96).
+
+Pelajaran metodologisnya: **OA fusion yang tinggi bukan bukti bahwa fusion memakai kedua
+modalitas.**
+
+Cerita lengkapnya di `vault/50-hasil/sintesis-akhir.md`, limitasinya di
+`vault/50-hasil/limitasi-dan-lanjutan.md`, tabel per kelas di
+`vault/50-hasil/tabel-utama.md`.
+
 ## Progress
 
 Lihat `vault/00-index/papan-progress.md` (butuh plugin Dataview di Obsidian).

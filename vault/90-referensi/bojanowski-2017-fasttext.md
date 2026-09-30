@@ -54,3 +54,8 @@ dilakukan. Memakai `.vec` berarti membuang seluruh alasan FastText dipilih.
 
 Ukurannya ~7GB di disk dan ~15GB saat dimuat. `reduce_model` tidak menolong soal RAM
 karena harus memuat model penuh lebih dulu. Lihat [[fasttext-subword]].
+
+Hasil pengukurannya di [[01-ekstraksi-fitur-teks]], dan hasilnya belum meyakinkan:
+median cosine untuk pasangan salah-eja di korpus kita hanya 0,190 melawan ~0,96 di paper.
+Dua perancu belum dikendalikan, jadi ini pertanyaan terbuka — lihat D4 di
+[[limitasi-dan-lanjutan]].

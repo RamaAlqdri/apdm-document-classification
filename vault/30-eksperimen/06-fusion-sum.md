@@ -156,7 +156,22 @@ mereka, bukan sifat fusion penjumlahan sebagai kelas metode.**
 concat, teks praktis tidak terpakai; pada sum, bobotnya jauh dari nol dan stabil
 antar seed. Dua model berbeda, jadi bukan kontradiksi logis — tapi ini pertanyaan
 terbuka yang **bisa dijawab dalam beberapa menit** dengan menjalankan ablasi missing
-modality pada checkpoint sum. Sudah dicatat sebagai rekomendasi.
+modality pada checkpoint sum.
+
+> **SUDAH DIJAWAB, dan jawabannya tidak seperti dugaan.**
+> [[10-uji-lanjutan-early-stopping]] menjalankan ablasi itu pada checkpoint `sum`:
+> menolkan teks menurunkan OA **0,0097** (0,8043 → 0,7946). Enam setengah kali lipat
+> efeknya pada concat, tapi tetap hanya 26 dokumen dari 2682 — 12% dari potensi oracle.
+>
+> **Bobot 0,31 bukan bukti teks dipakai.** Softmax sekadar tidak punya tekanan kuat untuk
+> mendorongnya ke nol. Kontradiksinya hilang: pada **kedua** strategi penggabungan,
+> cabang teks nyaris tidak berkontribusi, dan [[11-diagnostik-cabang-teks]] mengukur
+> penyebabnya sama pada keduanya — kolaps fitur (std 0,033 melawan acuan 1,069, 65 dari
+> 128 unit mati) plus ketimpangan skala 3,62×.
+>
+> Pelajaran metodologisnya: **bobot gerbang terlatih adalah diagnostik yang lemah.**
+> Ia memberitahu apa yang tidak dimatikan model, bukan apa yang dipakainya. Yang
+> menentukan adalah uji missing modality dan probe linear.
 
 **#temuan/positif — sum lebih murah.** 1,95 jam vs 2,92 jam untuk concat, karena
 head-nya menerima 128 dimensi alih-alih 256 dan early stopping menyala lebih awal.

@@ -65,4 +65,8 @@ Dua hal yang tidak disebut dan harus kita asumsikan: normalisasi citra (kita pak
 statistik ImageNet, konsisten dengan bobot pretrained) dan apakah ada layer yang
 dibekukan (kita fine-tune penuh, sesuai narasi paper). Bobot MobileNetV2
 torchvision juga tidak identik dengan versi Keras yang dipakai penulis — deviasi
-yang sudah pasti.
+yang sudah pasti, didaftar sebagai C1 di [[limitasi-dan-lanjutan]].
+
+Hasilnya OA 0,8086 melawan 0,845 di paper ([[04-baseline-mobilenetv2]]). Dan cabang ini
+ternyata **mendominasi** model fusion: fiturnya bernorma 3,7x lebih besar daripada fitur
+cabang teks, yang membuat head concat mengabaikan teks ([[11-diagnostik-cabang-teks]]).

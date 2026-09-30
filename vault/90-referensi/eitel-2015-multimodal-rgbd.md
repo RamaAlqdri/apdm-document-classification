@@ -52,3 +52,8 @@ perilaku sistem ketika satu modalitas memburuk; Audebert et al. tidak mengujinya
 pada kasus dokumen meski mengakui di bagian limitasi bahwa datasetnya terlalu
 bersih. Itulah celah yang ablasi kita isi: degradasi citra bertahap, missing
 modality, dan degradasi teks.
+
+Hasilnya justru berlawanan dengan semangat Eitel: fusion kami **lebih rapuh** daripada
+baseline citra ([[07-ablasi-degradasi-citra]]), karena cabang teksnya tidak berfungsi
+([[08-ablasi-missing-modality]]). Setelah diperbaiki di [[12-perbaikan-norm-dan-init]],
+modelnya baru benar-benar multimodal.

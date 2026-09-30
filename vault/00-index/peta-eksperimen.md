@@ -3,7 +3,7 @@ judul: Peta Eksperimen
 tipe: referensi
 tahap: "00"
 tanggal: 2026-09-28
-status: wip
+status: selesai
 tags:
   - tipe/referensi
   - tahap/00
@@ -76,3 +76,17 @@ SORT file.name ASC
 | Oracle | 92,1% | — |
 
 Selisih 2-4% wajar. Yang wajib konsisten adalah urutannya.
+
+## Hasil akhir, per 2026-09-30
+
+| Model | Kita | Paper |
+|---|---|---|
+| TEXT (CNN1D) | 0,7266 ± 0,0059 | 0,738 |
+| IMAGE | 0,8086 ± 0,0210 | 0,845 |
+| FUSION concat | 0,8342 ± 0,0105 | 0,878 |
+| FUSION sum | 0,8275 ± 0,0164 | tidak dilaporkan |
+| Oracle | 0,8977 | 0,921 |
+
+Urutan terpenuhi. Tapi lihat [[sintesis-akhir]] sebelum menyimpulkan bahwa fusion
+memakai kedua modalitas — ia tidak, sampai diperbaiki di
+[[12-perbaikan-norm-dan-init]]. Tabel lengkap dengan F1 per kelas: [[tabel-utama]].

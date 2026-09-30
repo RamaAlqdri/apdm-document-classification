@@ -3,7 +3,7 @@ judul: Papan Progress
 tipe: referensi
 tahap: "00"
 tanggal: 2026-09-28
-status: wip
+status: selesai
 tags:
   - tipe/referensi
   - tahap/00
@@ -69,6 +69,22 @@ FROM ""
 WHERE tipe AND length(file.outlinks) < 2
 SORT file.name ASC
 ```
+
+## Indeks log
+
+Query Dataview di bawah mengambilnya otomatis, tapi wikilink eksplisit diperlukan supaya
+log tidak jadi catatan yatim di graf Obsidian:
+
+- [[2026-09-28-tahap-01]]
+- [[2026-09-28-tahap-02]]
+- [[2026-09-28-tahap-03]]
+- [[2026-09-28-tahap-04]]
+- [[2026-09-28-tahap-05]]
+- [[2026-09-28-tahap-06]]
+- [[2026-09-28-tahap-07]]
+- [[2026-09-30-migrasi-lingkungan-py312]]
+- [[2026-09-30-pengisian-hasil]]
+- [[2026-09-30-tahap-08-sintesis]]
 
 ## Log terakhir
 

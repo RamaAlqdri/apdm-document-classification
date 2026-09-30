@@ -53,4 +53,8 @@ komponen PCA yang dibuang. Kita pakai default (`a = 1e-3`, buang 1 komponen).
 
 Jebakan implementasi: PCA harus dipasang hanya pada data train lalu diterapkan ke
 test. Menghitungnya atas seluruh korpus adalah kebocoran yang halus dan mudah
-terlewat.
+terlewat — diverifikasi bersih di [[01-ekstraksi-fitur-teks]], sisa proyeksi tinggal
+1e-07.
+
+Hasil baseline-nya di [[02-baseline-mlp-sif]]: OA 0,6780, memang di bawah CNN1D seperti
+paper, dengan margin yang bahkan lebih lebar (0,049 melawan 0,031).

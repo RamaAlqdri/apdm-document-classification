@@ -81,9 +81,16 @@ Dua alternatif yang **tidak** kita uji dan berperilaku berbeda: rata-rata tanpa 
 terlatih, dan gate per-dimensi (satu bobot per indeks vektor alih-alih satu per
 cabang). Detail dan cara membaca hasilnya di [[06-fusion-sum]].
 
-Satu keuntungan tak terduga dari mekanisme ini: **bobot terlatihnya sendiri adalah
+Satu keuntungan yang saya kira akan didapat: **bobot terlatihnya sendiri sebagai
 diagnostik.** Kalau bobot cabang teks mendekati nol, model belajar mengabaikan teks
 sepenuhnya — itu bukan cuma hasil buruk, itu penjelasan mengapa buruk, dan sekaligus
 bukti langsung untuk hipotesis paper bahwa kedua ruang fitur tidak bisa disejajarkan
-tanpa merusak daya diskriminatifnya. Strategi konkatenasi tidak memberi sinyal
-seperti ini.
+tanpa merusak daya diskriminatifnya.
+
+**Harapan itu tidak terbukti.** Bobotnya keluar 0,31 di ketiga seed — jauh dari nol — tapi
+[[10-uji-lanjutan-early-stopping]] menunjukkan menolkan teks pada model `sum` hanya
+menurunkan OA 0,0097.
+
+Pelajarannya: **bobot gerbang terlatih adalah diagnostik yang lemah.** Ia memberitahu apa
+yang tidak dimatikan model, bukan apa yang dipakainya. Yang menentukan adalah uji missing
+modality dan probe linear — lihat [[11-diagnostik-cabang-teks]].

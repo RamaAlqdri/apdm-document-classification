@@ -50,4 +50,7 @@ Dataset inti proyek. Beberapa sifatnya yang menentukan keputusan teknis kita:
 
 Format aslinya TIF di server UMIACS yang sering sulit diakses, jadi kita memakai
 versi JPG dari Kaggle. Teks QS-OCR di-OCR dari TIF asli — sumber kedua modalitas
-kita karena itu tidak identik.
+kita karena itu tidak identik, dicatat sebagai limitasi A1 di [[limitasi-dan-lanjutan]].
+
+Hasil audit datanya di [[00-audit-data]]: 3482/3482 pasangan, nol yatim, dan ketimpangan
+kelas 5,17:1 yang ternyata menentukan cara membaca OA melawan macro F1.

@@ -54,3 +54,7 @@ kecil (3-5 kata). Audebert et al. memakai window 12 pada dokumen sepanjang 500 k
 Perluasan skala itu masuk akal, tapi tidak diuji — dan di teks OCR yang urutannya
 bisa kacau, tidak jelas apakah jendela selebar itu menangkap frasa atau bertindak
 sebagai detektor kemunculan kata longgar.
+
+Arsitektur turunannya berhasil sebagai model mandiri ([[03-baseline-cnn1d]], OA 0,7266)
+tapi **kolaps** ketika dipakai sebagai cabang di dalam fusion — varians 38x lebih kecil,
+67 dari 128 unit mati. Diukur di [[11-diagnostik-cabang-teks]].

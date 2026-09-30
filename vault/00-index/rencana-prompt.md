@@ -3,7 +3,7 @@ judul: Rencana Prompt Bertahap - Implementasi Jurnal Multimodal
 tipe: referensi
 tahap: "00"
 tanggal: 2026-09-28
-status: wip
+status: selesai
 tags:
   - tipe/referensi
   - tahap/00
@@ -154,7 +154,7 @@ tahap:       # 00 sampai 08
 tanggal:
 status:      # todo | wip | selesai | ditunda
 tags: []
-terkait: []  # daftar [[wikilink]]
+terkait: []  # daftar `[[wikilink]]`
 ---
 ```
 
@@ -167,7 +167,7 @@ tanpa mendaftarkannya di vault/00-index/peta-tag.md):
 - #status/todo #status/wip #status/selesai
 - #temuan/positif #temuan/negatif #temuan/anomali
 
-Keterkaitan: pakai [[wikilink]] di badan teks, bukan hanya di frontmatter.
+Keterkaitan: pakai `[[wikilink]]` di badan teks, bukan hanya di frontmatter.
 Setiap catatan minimal punya 2 link keluar dan terhubung ke MOC-nya.
 Catatan eksperimen wajib punya inline field Dataview:
   model:: | dataset:: | split:: | seed:: | oa:: | macro_f1:: | durasi::
@@ -517,7 +517,7 @@ D. README.md final + commit terakhir.
 - [x] Tahap 5 — Baseline TEXT dan IMAGE
 - [x] Tahap 6 — FUSION + Oracle
 - [x] Tahap 7 — Ablasi (ablasi 4 dilewati)
-- [ ] Tahap 8 — Sintesis akhir
+- [x] Tahap 8 — Sintesis akhir (plus 3 eksperimen lanjutan di luar rencana)
 
 ## Catatan praktis
 

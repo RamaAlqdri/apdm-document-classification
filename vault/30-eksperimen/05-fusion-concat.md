@@ -179,3 +179,28 @@ detail sepele melainkan justru yang membuat cabang teksnya terpakai.
 (± 4,2 jam), lalu ulangi ablasi missing modality. Kalau menolkan teks kemudian
 benar-benar menurunkan akurasi, penyebabnya early stopping. Kalau tetap tidak,
 penyebabnya arsitektur concat itu sendiri dan gerbang eksplisit jadi layak dicoba.
+
+## Terselesaikan — apa yang akhirnya ditemukan
+
+Ketiga uji lanjutannya sudah dijalankan, dan diagnosis di atas **benar sebagian**.
+
+**Early stopping memang merusak, tapi bukan penyebab utamanya.** Tanpa early stopping,
+epoch terbaik melompat 18 → 102 dan kontribusi teks naik 4,7× — tapi tetap hanya 9% dari
+potensi. Lihat [[10-uji-lanjutan-early-stopping]].
+
+**Penyebab sebenarnya terukur di [[11-diagnostik-cabang-teks]]:** cabang teks **kolaps**
+(varians 38× lebih kecil dari CNN1D standalone, 67 dari 128 unit mati) **dan** skalanya
+timpang 3,7× terhadap cabang citra. Fitur teks terlalu lirih untuk didengar head concat —
+meski probe linear membuktikan fiturnya masih membawa informasi.
+
+**Keduanya bisa diperbaiki.** [[12-perbaikan-norm-dan-init]]: LayerNorm per cabang plus
+inisialisasi cabang teks dari `CNN1D_seed42.pt` membuat probe naik 0,4236 → **0,7468**
+(acuan 0,7479), unit mati 67 → **4**, dan efek menolkan teks 0,0071 → **0,6887**. Resume
+0,803 → **0,968**, menutup penyimpangan per-kelas terbesar kita terhadap paper.
+
+Ongkosnya: OA turun 0,0194 sementara **macro F1 identik** (0,8108). Perbaikannya
+memindahkan akurasi dari kelas besar yang dikuasai citra ke kelas kecil yang butuh teks.
+
+Kesimpulan yang dibawa ke [[sintesis-akhir]]: **OA fusion yang tinggi bukan bukti bahwa
+fusion memakai kedua modalitas.** Model yang secara diam-diam unimodal bisa mencetak OA
+lebih tinggi daripada model yang benar-benar multimodal pada dataset ini.

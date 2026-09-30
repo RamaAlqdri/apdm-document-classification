@@ -3,7 +3,7 @@ judul: Peta Proyek
 tipe: referensi
 tahap: "00"
 tanggal: 2026-09-28
-status: wip
+status: selesai
 tags:
   - tipe/referensi
   - tahap/00
@@ -50,11 +50,24 @@ Urutan terpenuhi, semuanya 1-4% di bawah paper. Tabel lengkap dengan F1 per kela
 model fusion **praktis tidak terpakai** — menolkan seluruh masukan teks menurunkan
 akurasi hanya 0,0015. Jadi kenaikan +2,56% di atas baseline citra bukan berasal dari
 modalitas kedua, meski komplementaritasnya sendiri terbukti ada (oracle 0,8977, 239
-dokumen hanya benar lewat teks). Diagnosis dan uji lanjutannya di akhir [[tabel-utama]].
+dokumen hanya benar lewat teks).
+
+Penyebabnya ditelusuri sampai mekanismenya: cabang teks **kolaps** (varians 38x lebih
+kecil dari CNN1D standalone, 67 dari 128 unit mati) dan skalanya **timpang 3,7x**
+terhadap cabang citra ([[11-diagnostik-cabang-teks]]). Keduanya bisa diperbaiki, dan
+setelah diperbaiki cabang teks jadi sama informatifnya dengan CNN1D standalone —
+probe 0,7468 melawan 0,7479 ([[12-perbaikan-norm-dan-init]]).
+
+Ongkosnya OA turun 0,0194 sementara macro F1 identik. **Yang berubah bukan besarnya
+akurasi, melainkan dari mana akurasinya berasal.**
+
+Pelajaran metodologis yang dibawa keluar: *OA fusion yang tinggi bukan bukti bahwa
+fusion memakai kedua modalitas.* Cerita lengkapnya di [[sintesis-akhir]], daftar
+limitasinya di [[limitasi-dan-lanjutan]].
 
 ## Tahap
 
-- [ ] **00** — Brief proyek (`CLAUDE.md`) → lihat [[rencana-prompt]]
+- [x] **00** — Brief proyek (`CLAUDE.md`) → lihat [[rencana-prompt]]
 - [x] **01** — Scaffolding + vault + template + MOC
 - [x] **02** — Sintesis jurnal → [[1907.06370-ringkasan]],
       [[1907.06370-spesifikasi-implementasi]], 10 catatan konsep, 8 catatan pustaka
@@ -67,8 +80,15 @@ dokumen hanya benar lewat teks). Diagnosis dan uji lanjutannya di akhir [[tabel-
 - [x] **07** — Ablasi: degradasi citra, missing modality, degradasi teks →
       [[07-ablasi-degradasi-citra]], [[08-ablasi-missing-modality]],
       [[09-ablasi-degradasi-teks]]. Ablasi 4 dilewati, tapi syaratnya kini terpenuhi
-- [ ] **08** — Sintesis akhir + limitasi — **tunggu dua uji lanjutan dulu**, lihat
-      akhir [[tabel-utama]]
+- [x] **08** — Sintesis akhir + limitasi → [[sintesis-akhir]],
+      [[limitasi-dan-lanjutan]]
+
+**Ditambahkan di luar rencana**, karena hasil Tahap 6-7 menuntutnya:
+
+- [x] Uji lanjutan early stopping dan missing modality pada `sum` →
+      [[10-uji-lanjutan-early-stopping]]
+- [x] Diagnostik kolaps cabang teks → [[11-diagnostik-cabang-teks]]
+- [x] Perbaikan LayerNorm + inisialisasi cabang teks → [[12-perbaikan-norm-dan-init]]
 
 ## MOC lain
 

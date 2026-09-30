@@ -60,5 +60,8 @@ miring tidak akan diperbaiki.
 
 Ini tidak berdampak pada Tobacco3482 karena semua dokumennya sudah berorientasi
 benar — tapi penulis sendiri menyebut orientasi sebagai masalah utama di aplikasi
-nyata, dan justru mematikannya di pipeline mereka. Relevan untuk ablasi rotasi di
-Tahap 7.
+nyata, dan justru mematikannya di pipeline mereka.
+
+Ablasi rotasi di [[07-ablasi-degradasi-citra]] menunjukkan kenapa itu penting: rotasi 45
+derajat menjatuhkan baseline citra dari 0,8315 ke 0,3031. Statistik noise yang dihasilkan
+konfigurasi OCR ini diukur di [[01-ekstraksi-fitur-teks]].

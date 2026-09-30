@@ -57,3 +57,7 @@ di-fine-tune penuh. Dua hal yang perlu diingat:
 
 Vektor 1280 dimensi yang dipakai cabang citra di model fusion adalah keluaran
 global average pooling atas feature map konvolusi terakhir MobileNetV2.
+
+Hasil baseline-nya ada di [[04-baseline-mobilenetv2]]: OA 0,8086 melawan 0,845 di paper.
+Dan [[11-diagnostik-cabang-teks]] mengukur fitur 1280 itu setelah diproyeksikan ke 128 —
+normanya 3,7x lebih besar daripada fitur cabang teks, yang ternyata penting.
