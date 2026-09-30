@@ -31,6 +31,7 @@ NOTEBOOKS = [
     ("05", "05_fusion", "fusion concat dan sum + oracle"),
     ("06", "06_ablasi", "ablasi degradasi dan missing modality"),
     ("07", "07_uji_lanjutan", "uji lanjutan: missing modality pada sum + concat tanpa early stopping"),
+    ("08", "08_diagnostik_cabang_teks", "diagnostik: kolaps fitur vs head yang mengabaikan"),
 ]
 
 # Hasil yang mahal dan tidak boleh hilang karena run ulang yang tidak sengaja.
@@ -162,7 +163,7 @@ def main() -> int:
     # jam. Notebook 07 memakai nama sendiri (...-noES..., uji_lanjutan.csv) sehingga
     # aman dan tidak dijaga di sini.
     ada = [f for f in HASIL_PENTING if (ROOT / f).exists()]
-    if ada and args.dari != "07" and not args.timpa:
+    if ada and args.dari not in ("07", "08") and not args.timpa:
         print(f"\n{'=' * 70}")
         print("BERHENTI: hasil run sebelumnya sudah ada di repo ini.")
         print(f"{'=' * 70}\n")
