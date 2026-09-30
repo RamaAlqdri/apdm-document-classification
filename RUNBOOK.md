@@ -56,6 +56,24 @@ Kalau ada notebook yang gagal, perbaiki lalu lanjutkan dari titik itu:
 python run_all.py --dari 04
 ```
 
+## Sudah pernah jalan? Jangan jalankan 01-06 lagi
+
+Notebook 01-06 menulis ke nama file yang sama setiap kali dijalankan, jadi run ulang
+**menghapus** hasil sebelumnya: checkpoint di `models/`, log di `reports/`, dan output
+di dalam notebook itu sendiri. Untuk run penuh itu belasan jam yang hilang.
+
+`run_all.py` menolak berjalan dari notebook 01 kalau `reports/tabel_utama.csv` sudah
+ada. Untuk menimpanya dengan sengaja: `--timpa`. Untuk menyimpan hasil lama lebih dulu,
+salin `models/` dan `reports/` ke folder lain.
+
+**Notebook 07 aman dijalankan kapan saja** — seluruh artefaknya memakai nama sendiri
+(`FUSION-concat-noES_*`, `uji_lanjutan.csv`, `figures/08_*`) dan checkpoint lama hanya
+dibaca:
+
+```bash
+python run_all.py --dari 07
+```
+
 Dua hal yang tetap butuh Anda:
 
 1. **Token Kaggle** (sekali saja) — kaggle.com → Settings → API → Create New Token,
@@ -237,6 +255,11 @@ Jalankan **berurutan**. Tiap notebook bergantung pada keluaran sebelumnya.
 | 04 | `04_baseline_citra.ipynb` | **jam-an** | checkpoint IMAGE, prediksi IMAGE |
 | 05 | `05_fusion.ipynb` | **paling berat** | checkpoint FUSION, tabel utama |
 | 06 | `06_ablasi.ipynb` | menit-an, tanpa training | CSV + figur ablasi |
+| 07 | `07_uji_lanjutan.ipynb` | menit-an (uji A) + ± 4,2 jam (uji B) | `uji_lanjutan.csv`, checkpoint `-noES` |
+
+Notebook 07 opsional dan tidak menimpa apa pun. Ia menjawab dua pertanyaan yang
+tertinggal: apakah cabang teks dipakai pada strategi `sum`, dan apakah cabang teks yang
+tidak terpakai pada `concat` disebabkan early stopping.
 
 Angka di atas kasar. **Notebook 04, 05, dan 06 masing-masing punya sel estimasi
 durasi** yang menjalankan 2 epoch lalu mengekstrapolasi ke target. Jalankan sel itu

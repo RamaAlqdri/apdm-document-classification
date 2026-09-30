@@ -30,6 +30,13 @@ NOTEBOOKS = [
     ("04", "04_baseline_citra", "baseline MobileNetV2"),
     ("05", "05_fusion", "fusion concat dan sum + oracle"),
     ("06", "06_ablasi", "ablasi degradasi dan missing modality"),
+    ("07", "07_uji_lanjutan", "uji lanjutan: missing modality pada sum + concat tanpa early stopping"),
+]
+
+# Hasil yang mahal dan tidak boleh hilang karena run ulang yang tidak sengaja.
+HASIL_PENTING = [
+    "reports/tabel_utama.csv",
+    "reports/ablasi1_degradasi_citra.csv",
 ]
 
 
@@ -146,7 +153,30 @@ def main() -> int:
     ap.add_argument("--dari", default="01", help="mulai dari notebook ini (01-06)")
     ap.add_argument("--periksa", action="store_true",
                     help="hanya cek prasyarat dan self-check")
+    ap.add_argument("--timpa", action="store_true",
+                    help="izinkan menimpa hasil run sebelumnya (checkpoint, log, CSV)")
     args = ap.parse_args()
+
+    # Notebook 01-06 menulis ke nama file yang sama setiap kali dijalankan, jadi run
+    # ulang menghapus hasil sebelumnya — termasuk checkpoint dan log yang butuh belasan
+    # jam. Notebook 07 memakai nama sendiri (...-noES..., uji_lanjutan.csv) sehingga
+    # aman dan tidak dijaga di sini.
+    ada = [f for f in HASIL_PENTING if (ROOT / f).exists()]
+    if ada and args.dari != "07" and not args.timpa:
+        print(f"\n{'=' * 70}")
+        print("BERHENTI: hasil run sebelumnya sudah ada di repo ini.")
+        print(f"{'=' * 70}\n")
+        for f in ada:
+            print(f"  {f}")
+        print("\nMenjalankan notebook 01-06 lagi akan menimpa file di atas, plus")
+        print("seluruh checkpoint di models/, log di reports/, dan output di dalam")
+        print("notebook itu sendiri.\n")
+        print("Yang mungkin Anda maksud:")
+        print("  python run_all.py --dari 07     # uji lanjutan, tidak menimpa apa pun")
+        print("  python run_all.py --timpa       # ya, saya memang mau menimpa semuanya")
+        print("\nUntuk menyimpan hasil lama sebelum menimpa, salin dulu models/ dan")
+        print("reports/ ke folder lain.")
+        return 1
 
     if args.cepat:
         os.environ["APDM_CEPAT"] = "1"
@@ -190,6 +220,7 @@ def main() -> int:
     if not mulai:
         print(f"--dari harus salah satu dari {[n for n, _, _ in NOTEBOOKS]}")
         return 1
+
 
     t0 = time.perf_counter()
     for _, nama, deskripsi in NOTEBOOKS[mulai[0]:]:

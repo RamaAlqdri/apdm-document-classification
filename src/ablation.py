@@ -193,6 +193,35 @@ def zero_modality(batch, which: str):
     raise ValueError(f"which harus 'text' atau 'image', dapat {which!r}")
 
 
+@torch.no_grad()
+def evaluate_zeroed(model, loader, which: str, device) -> dict:
+    """Evaluate a fusion model with one modality blanked, batch by batch.
+
+    Same return shape as train.evaluate, so results are directly comparable.
+
+    NOTE: `notebooks/06_ablasi.ipynb` has an equivalent loop written inline, from
+    before this helper existed. The duplication is deliberate: regenerating that
+    notebook would wipe the outputs of a 12-hour run. Notebook 07 re-measures the
+    concat number with THIS function and asserts it matches the inline version's
+    0.8203, so the two cannot silently disagree.
+    """
+    from sklearn.metrics import f1_score
+
+    model.eval()
+    trues, preds = [], []
+    for (img, txt), y in loader:
+        batch = zero_modality((img.to(device), txt.to(device)), which)
+        preds.append(model(batch).argmax(1).cpu().numpy())
+        trues.append(y.numpy())
+    yt, yp = np.concatenate(trues), np.concatenate(preds)
+    return {
+        "oa": float((yt == yp).mean()),
+        "macro_f1": float(f1_score(yt, yp, average="macro")),
+        "y_true": yt,
+        "y_pred": yp,
+    }
+
+
 class DegradedPairDataset(torch.utils.data.Dataset):
     """Wraps a PairDataset and perturbs the text side on the fly."""
 
