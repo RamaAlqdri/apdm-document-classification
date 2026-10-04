@@ -1,0 +1,217 @@
+% Kompilasi:  latexmk -pdf proposal.tex
+% Bersihkan:  latexmk -C
+\documentclass[10pt,a4paper]{article}
+
+\usepackage[T1]{fontenc}
+\usepackage{amsmath}
+\usepackage[margin=2cm]{geometry}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{enumitem}
+\usepackage{titlesec}
+\usepackage[hidelinks]{hyperref}
+\usepackage{microtype}
+
+\setlist{nosep,leftmargin=*}
+\titlespacing*{\section}{0pt}{1.1ex plus .2ex}{0.5ex}
+\titleformat{\section}{\normalfont\large\bfseries}{\thesection.}{0.5em}{}
+\renewcommand{\arraystretch}{1.1}
+\newcolumntype{L}{>{\raggedright\arraybackslash}X}
+\pagestyle{empty}
+
+\begin{document}
+
+\begin{center}
+{\large\bfseries Klasifikasi Dokumen Multimodal:
+Penggabungan Fitur Teks Hasil OCR dan Citra Dokumen}\\[0.4em]
+{\small Proposal Tugas Akhir --- Analisis dan Pemrosesan Data Multimodal}\\[0.2em]
+{\small Ramadhani Al-Qadri \quad$\cdot$\quad 4 Oktober 2026}
+\end{center}
+\vspace{0.3em}
+
+\section{Problem statement}
+
+Klasifikasi dokumen hasil pindai secara alami bermodalitas ganda. Satu dokumen
+membawa informasi di dua lapis: \textbf{tata letaknya} (posisi blok, kerapatan
+tulisan, tabel, tanda tangan) dan \textbf{isi tekstualnya} (kata kunci seperti
+``Dear Sir'', ``Abstract'', ``Curriculum Vitae''). Pendekatan unimodal memakai
+salah satu saja, sehingga langit-langitnya bisa diprediksi: model berbasis citra
+kebingungan pada dua kelas yang tata letaknya mirip tapi isinya berbeda, model
+berbasis teks gagal saat OCR-nya buruk atau dokumennya nyaris tanpa teks.
+
+Proyek ini mereplikasi dan memperluas Audebert \textit{et al.}~\cite{audebert2019}
+di atas dataset Tobacco3482, menjawab tiga pertanyaan:
+
+\begin{enumerate}[label=\textbf{P\arabic*.},leftmargin=2.4em]
+  \item Seberapa besar keuntungan penggabungan di atas baseline unimodal
+  terbaik, dan berapa bagian dari potensi teoretisnya yang berhasil dipanen?
+  \item Strategi penggabungan mana yang bekerja --- konkatenasi atau penjumlahan
+  berbobot --- dan apakah temuan negatif paper terhadap penjumlahan dapat
+  direproduksi?
+  \item Apakah model gabungan benar-benar \textit{memakai} kedua modalitas, atau
+  hanya tampak lebih baik karena satu cabang mendominasi?
+\end{enumerate}
+
+\textbf{P3 bukan bagian dari paper asli} dan merupakan kontribusi tambahan
+proyek ini: paper hanya melaporkan akurasi agregat, yang secara prinsip tidak
+dapat membedakan model yang benar-benar multimodal dari model yang diam-diam
+unimodal.
+
+\section{Modalitas yang digunakan}
+
+\textbf{Citra dokumen.} Citra grayscale satu halaman penuh, diubah ke
+$384\times384$ tanpa \textit{padding} (rasio aspek di-\textit{warp}); resolusi
+jauh di atas 224 standar karena tulisan perlu tetap terbaca sebagai tekstur.
+Diproses dengan MobileNetV2~\cite{sandler2018} berbobot awal ImageNet --- dipilih
+bukan karena paling akurat, melainkan paling murah secara komputasi.
+
+\textbf{Teks hasil OCR.} Diekstraksi dengan Tesseract~4.0 (mesin LSTM,
+\texttt{-{}-oem 1 -{}-psm 3 -l eng}), tanpa praproses citra maupun pascaproses
+teks: salah eja dibiarkan apa adanya, karena justru ketahanan terhadap derau OCR
+inilah yang diuji. Tiap kata dipetakan ke vektor FastText 300
+dimensi~\cite{bojanowski2017}; \textit{subword n-gram}-nya dipilih karena mampu
+memberi vektor pada kata yang rusak akibat OCR dan karena itu tidak ada di
+kosakata mana pun. Sekuens kata diproses CNN~1D ber-\textit{filter} multi-lebar
+bergaya Kim~\cite{kim2014}. Kedua cabang menghasilkan vektor fitur 128 dimensi.
+
+\section{Dataset kandidat: sumber dan lisensi}
+
+\begingroup\small
+\begin{tabularx}{\textwidth}{@{}p{2.6cm} p{3.4cm} L@{}}
+\toprule
+\textbf{Dataset} & \textbf{Sumber} & \textbf{Lisensi / status hak} \\
+\midrule
+Tobacco3482-jpg \newline (3.482 citra, 10 kelas) &
+Kaggle \texttt{patrick\-audriaz/\allowbreak tobacco3482jpg} &
+Kolom lisensi Kaggle: \textit{``Other (specified in description)''}; deskripsinya
+hanya menyatakan \textit{``All rights belong to their respective owners''} dan
+merujuk Kumar \textit{et al.}~\cite{kumar2014}. \textbf{Tidak ada lisensi baku.} \\
+\addlinespace
+QS-OCR-Small \newline (3.482 \texttt{.txt}) &
+GitHub \texttt{QuickSign/\allowbreak ocrized-text-dataset}, Releases tag \texttt{v1.0} &
+\textbf{Apache-2.0} (lisensi repositori, terverifikasi lewat GitHub API).
+Teksnya turunan Tobacco3482, sehingga syarat hak sumber hulu tetap berlaku. \\
+\addlinespace
+RVL-CDIP + QS-OCR-Large &
+Harley \textit{et al.}~\cite{harley2015} &
+\textbf{Tidak dipakai}: $\sim$400.000 dokumen, di luar anggaran waktu dan
+penyimpanan untuk lingkup satu mata kuliah. \\
+\bottomrule
+\end{tabularx}
+\endgroup
+
+\smallskip
+Dua konsekuensi yang sudah diputuskan: pemakaian dibatasi pada konteks akademik
+non-komersial, konsisten dengan asal dokumen (arsip litigasi industri tembakau
+yang dipublikasikan untuk kepentingan publik); dan tidak ada berkas dataset yang
+diredistribusikan lewat repositori proyek --- direktori \texttt{data/}
+di-\textit{gitignore}, notebook mengunduh langsung dari sumber aslinya.
+
+Satu limitasi dinyatakan di awal: citra berasal dari versi JPG hasil
+\textit{re-encode}, sedangkan teks QS-OCR di-OCR dari TIF asli. Sumber kedua
+modalitas karena itu \textbf{tidak identik}. Ini akan dilaporkan sebagai
+limitasi, bukan diperlakukan sebagai \textit{bug}.
+
+\section{Metode fusion yang direncanakan}
+
+Penggabungan dilakukan di tingkat fitur (\textit{late fusion}): kedua cabang
+dilatih sampai konvergen sebagai pengklasifikasi mandiri, lapisan klasifikasinya
+dipotong, lalu fiturnya digabungkan dan dilatih bersama \textit{end-to-end}. Dua
+strategi diuji berdampingan:
+
+\begin{enumerate}[label=\textbf{F\arabic*.},leftmargin=2.4em]
+  \item \textbf{Konkatenasi.} $[\,v_\text{teks};v_\text{citra}\,]$ menjadi vektor
+  256 dimensi, masuk MLP dua lapis tersembunyi berlebar 2048 dengan
+  \textit{dropout} 0,5. Tidak mengandaikan apa pun tentang hubungan kedua ruang
+  fitur; tugas menemukannya diserahkan ke MLP.
+  \item \textbf{Penjumlahan berbobot} (paper menyebutnya \textit{adaptive
+  averaging}). $w_t v_\text{teks} + w_i v_\text{citra}$ menjadi vektor 128
+  dimensi. Mengandaikan kedua ruang fitur dapat \textit{disejajarkan} --- dimensi
+  ke-$i$ vektor teks harus bermakna sebanding dengan dimensi ke-$i$ vektor citra.
+\end{enumerate}
+
+Paper melaporkan F2 jatuh di bawah baseline citra murni, tetapi \textbf{tanpa
+angka, tanpa jumlah \textit{run}, dan tanpa menjelaskan apa yang membuat
+penjumlahan itu ``adaptif''}. Karena itu F2 diuji sendiri dengan mekanisme yang
+dicatat eksplisit sebagai asumsi: satu skalar terlatih per cabang, dilewatkan
+\textit{softmax} sehingga $w_t + w_i = 1$, diinisialisasi seimbang 0,5 --- bacaan
+yang paling cocok dengan frasa ``\textit{adaptive averaging}''. Bila hasilnya juga
+negatif, itu dilaporkan sebagai satu titik data untuk mekanisme yang \textit{kami}
+pilih, bukan sebagai konfirmasi klaim paper secara umum.
+
+\section{Metrik evaluasi}
+
+\begingroup\small
+\begin{tabularx}{\textwidth}{@{}p{3.8cm} L@{}}
+\toprule
+\textbf{Metrik} & \textbf{Alasan pemilihan} \\
+\midrule
+\textit{Overall accuracy} (OA) & Metrik utama paper; perlu agar perbandingan
+langsung dengan angka yang dilaporkan menjadi mungkin. \\
+Macro F1 & Kelasnya timpang ($\sim5{:}1$ terbesar berbanding terkecil). OA
+sendirian didominasi kelas besar, jadi macro F1 dilaporkan
+\textit{berdampingan}, tidak menggantikan. \\
+F1 per kelas + \textit{confusion matrix} & Keuntungan fusion diperkirakan tidak
+merata; kelas mana yang membaik justru yang menunjukkan modalitas mana
+menyumbang apa. \\
+\textit{Oracle} (batas atas) & ``Benar bila cabang teks \textbf{atau} citra
+benar''. Memungkinkan keuntungan fusion dinyatakan sebagai persentase potensi
+yang dipanen, bukan selisih mentah. \\
+\textit{Missing-modality test} & Penurunan akurasi saat satu modalitas dinolkan
+pada inferensi. Metrik yang menjawab \textbf{P3}, dan satu-satunya yang dapat
+membedakan fusion sejati dari dominasi satu cabang. \\
+Ablasi degradasi bertingkat & Rotasi, \textit{blur}, derau, kompresi JPEG pada
+citra; penghapusan kata dan penyuntikan salah eja pada teks. Menguji klaim
+ketahanan yang tidak diuji paper. \\
+\bottomrule
+\end{tabularx}
+\endgroup
+
+\smallskip
+Seluruh eksperimen dijalankan pada \textbf{3 \textit{split} acak terstratifikasi}
+(seed 42/43/44, masing-masing 800 dokumen latih mengikuti protokol paper) dan
+dilaporkan sebagai rata-rata $\pm$ simpangan baku --- tanpa simpangan
+antar-\textit{seed}, selisih beberapa persepuluh persen tidak dapat dibedakan
+dari derau. Target replikasi adalah angka paper: OA 0,738 (teks), 0,845 (citra),
+0,878 (fusion).
+
+\section{Kelayakan dalam sisa waktu semester}
+
+Komputasi memakai RTX 3050 \textit{laptop} 4~GB VRAM; \textit{batch} 40 dari
+paper dipertahankan lewat akumulasi gradien dengan \textit{micro-batch} 8
+ditambah \textit{mixed precision}, dengan estimasi 12--18 jam untuk satu kali
+jalan pipeline penuh. Penyimpanan yang dibutuhkan: 3,29~GB citra, 2,5~MB teks,
+dan model FastText \texttt{cc.en.300.bin} sekitar 7~GB di disk ($\sim$15~GB RAM
+saat dimuat). Alur kerjanya dua mesin --- kode ditulis dan diuji di satu mesin,
+dataset dan pelatihan dijalankan di mesin ber-CUDA --- sehingga seluruh unduhan
+dan konfigurasi harus terjadi \textit{di dalam} notebook, tanpa langkah terminal.
+
+Risiko utamanya model fusion gagal melampaui baseline citra. Mitigasinya: tiga
+baseline unimodal, \textit{oracle}, dan seluruh ablasi tetap merupakan hasil yang
+dapat dilaporkan. Temuan negatif yang terdokumentasi rapi lebih berguna daripada
+angka positif yang tidak bisa dijelaskan. Perlu dicatat bahwa seluruh arsitektur
+ditulis ulang dari spesifikasi di paper: repositori QuickSign hanya berisi
+\textit{script} OCR, tidak ada kode model, sehingga tidak ada implementasi acuan
+yang dapat disalin.
+
+\begingroup\footnotesize
+\begin{thebibliography}{9}
+\bibitem{audebert2019} N. Audebert, C. Herold, K. Slimani, C. Vidal,
+``Multimodal deep networks for text and image-based document classification,''
+arXiv:1907.06370, 2019.
+\bibitem{kumar2014} J. Kumar, P. Ye, D. Doermann, ``Structural similarity for
+document image classification and retrieval,'' \textit{Pattern Recognition
+Letters}, 2014.
+\bibitem{harley2015} A. W. Harley, A. Ufkes, K. G. Derpanis, ``Evaluation of deep
+convolutional nets for document image classification and retrieval,''
+\textit{ICDAR}, 2015.
+\bibitem{sandler2018} M. Sandler, A. Howard, M. Zhu, A. Zhmoginov, L.-C. Chen,
+``MobileNetV2: Inverted residuals and linear bottlenecks,'' \textit{CVPR}, 2018.
+\bibitem{bojanowski2017} P. Bojanowski, E. Grave, A. Joulin, T. Mikolov,
+``Enriching word vectors with subword information,'' \textit{TACL}, 2017.
+\bibitem{kim2014} Y. Kim, ``Convolutional neural networks for sentence
+classification,'' \textit{EMNLP}, 2014.
+\end{thebibliography}
+\endgroup
+
+\end{document}
