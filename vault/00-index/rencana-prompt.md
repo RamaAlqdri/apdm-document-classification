@@ -15,6 +15,10 @@ terkait:
 
 Kumpulan prompt untuk menjalankan implementasi paper Audebert et al. (arXiv:1907.06370) secara lokal dengan agen coding. Kirim satu blok per sesi, jangan digabung.
 
+**Fase 1 (Tahap 0–8)** adalah replikasi Audebert dan sudah selesai. **Fase 2 (Tahap 9–14)**
+ditambahkan setelah tanggapan dosen pada 2026-10-09: referensi utama harus terbit
+minimal 2025, dan gap harus dirumuskan sendiri. Lihat bagian [Fase 2](#fase-2--ocr-dan-embedding-sebagai-variabel).
+
 ---
 
 ## Basis rujukan tiap perintah
@@ -507,6 +511,185 @@ D. README.md final + commit terakhir.
 
 ---
 
+# Fase 2 — OCR dan embedding sebagai variabel
+
+## Tanggapan dosen (2026-10-09) dan cara membacanya
+
+| Poin dosen | Ditafsirkan sebagai |
+|---|---|
+| Eksplorasi OCR: EasyOCR, PaddleOCR, Keras-OCR | Mesin OCR jadi **variabel**, bukan konstanta |
+| Gap belum ditentukan | Proposal butuh gap eksplisit, bukan sekadar replikasi |
+| Kemungkinan eksplorasi embedding | Sumbu kedua: FastText vs BERT |
+| Teks yang dideteksi sebagai objek, untuk tahap selanjutnya | Kotak posisi teks sebagai fitur tata letak → Tahap 14 |
+| Referensi 2019 dan arXiv; minimal 2025 | Referensi utama diganti ke [[kashyap-2026-ringkasan]] |
+
+PaddleOCR disebut dua kali dalam catatan dosen. Mungkin salah satunya maksudnya mesin
+lain (docTR? TrOCR?). **Perlu dikonfirmasi ke dosen.**
+
+## Gap
+
+> Fusion teks–citra terbaru ([[kashyap-2026-ringkasan]]) memakai mesin OCR komersial yang
+> tidak disebutkan, dan fusionnya rata-rata logit tanpa bobot. Meta-analisis
+> [[mironczuk-2026-review-fusion]] tidak bisa mengontrol kualitas OCR karena studi primer
+> tidak melaporkannya. Belum diukur bagaimana **pilihan mesin OCR × jenis embedding**
+> memengaruhi kekuatan cabang teks, dan **seberapa jauh fusion benar-benar memakainya**.
+
+Bagian kedua gap ini lahir dari Fase 1: dengan Tesseract + FastText, cabang teks fusion
+praktis tidak terpakai ([[11-diagnostik-cabang-teks]]). Pertanyaannya sekarang: apakah
+OCR atau embedding yang lebih baik mengubah itu?
+
+## Pertanyaan penelitian Fase 2
+
+- **Q1.** Seberapa besar pilihan mesin OCR mengubah akurasi cabang teks pada Tobacco3482?
+- **Q2.** Apakah embedding kontekstual (BERT) mengecilkan selisih antar-mesin OCR
+  dibanding FastText, yaitu apakah ada interaksi OCR × embedding?
+- **Q3.** Apakah cabang teks yang lebih kuat membuat fusion lebih *memakai* teks, diukur
+  dengan uji missing modality? Dan apakah aturan fusion Kashyap (rata-rata logit) lebih
+  tahan terhadap cabang yang timpang daripada fusion fitur?
+
+## Prinsip yang dipertahankan dari Fase 1
+
+- Protokol Tobacco3482 yang sama: 800 dokumen latih, split seed 42/43/44, indeks split
+  dari `src/splits.py`. **Tidak memakai RVL-CDIP** (alasan biaya; lihat catatan kritis di
+  [[kashyap-2026-ringkasan]]).
+- Uji missing modality wajib untuk setiap model fusion.
+- **Baru:** uji statistik. McNemar berpasangan per seed antar-kondisi pada test set yang
+  sama, ditambah rata-rata ± simpangan baku 3 seed. Ini menanggapi angka 11,8% di
+  [[mironczuk-2026-review-fusion]].
+
+---
+
+## Tahap 9 — Revisi landasan
+
+```text
+TAHAP 9: Revisi arah setelah tanggapan dosen.
+
+A. Cari referensi utama ≥2025 yang sudah terbit. Verifikasi metadata lewat
+   Crossref/Semantic Scholar, jangan dari ingatan. Baca teks lengkap referensi
+   utama, bukan abstraknya saja.
+B. Catatan jurnal di vault/10-jurnal/ dan catatan pustaka di vault/90-referensi/.
+C. Revisi proposal/proposal.tex: judul, gap, pertanyaan penelitian, referensi.
+   Hasil Fase 1 masuk sebagai hasil awal yang memotivasi gap.
+D. Tahap baru di rencana-prompt.md, tag tahap baru di peta-tag.md, CLAUDE.md.
+Log + commit. Berhenti.
+```
+
+## Tahap 10 — Ekstraksi OCR multi-mesin
+
+```text
+TAHAP 10: OCR sendiri dengan beberapa mesin.
+
+Tujuan: teks Tobacco3482 dari tiap mesin, dari CITRA YANG SAMA (JPG Kaggle),
+plus kotak posisi teks untuk Tahap 14.
+
+A. src/ocr.py, satu fungsi per mesin, keluaran seragam:
+   [{"text": str, "box": [[x,y]x4], "conf": float}, ...]
+   - tesseract: pytesseract, --oem 1 --psm 3 -l eng (konfigurasi QS-OCR)
+   - easyocr: Reader(["en"], gpu=True)
+   - paddleocr: lang="en"
+   - keras-ocr: OPSIONAL (lihat risiko)
+   Fungsi reading_order(boxes): urutkan per baris (atas→bawah, kiri→kanan)
+   lalu gabung jadi teks. Mesin berbasis kotak tidak menjamin urutan baca.
+   Self-check pakai kotak sintetis, tanpa model OCR.
+B. Simpan per mesin: data/interim/ocr/<mesin>/<doc_id>.json (kotak + teks).
+   Bisa dilanjutkan: lewati dokumen yang sudah ada, catat detik per halaman.
+C. Kualitas OCR tanpa transkripsi acuan (Tobacco3482 tidak punya CER):
+   - jumlah token, halaman kosong
+   - laju OOV terhadap kosakata FastText (pakai oov_rate yang sudah ada)
+   - kesepakatan antar-mesin (Jaccard himpunan kata, kemiripan karakter)
+   - Tesseract-JPG vs QS-OCR (Tesseract-TIF): mengukur efek JPG vs TIF
+   Laporkan sebagai PROKSI, bukan akurasi OCR.
+D. Notebook 10_ocr_multi_mesin.ipynb. Audit resolusi citra JPG di sel pertama,
+   karena resolusi menentukan kualitas OCR.
+
+Risiko yang harus diputuskan sebelum menulis kode:
+- Tesseract di Windows bukan paket pip. Notebook mencoba memasangnya sendiri
+  (winget); kalau gagal, dokumentasikan langkah manualnya.
+- paddlepaddle-gpu besar (wheel PyPI 2.6.2 saja 758 MB): tanya dulu (aturan 4).
+  Alternatif: versi CPU.
+- Keras-OCR berbasis TensorFlow; TF GPU tidak didukung di Windows native sejak
+  versi 2.11, dan rilis terakhir pustakanya 0.9.3 (November 2023). Kemungkinan hanya CPU
+  dan lambat. Boleh dilewati dengan alasan tertulis.
+Estimasi: ±1–3 jam per mesin untuk 3.482 halaman di RTX 3050. Jalankan di
+laptop compute, bukan di mesin agen.
+
+Catatan eksperimen 13-ocr-multi-mesin.md. Log + commit. Berhenti.
+```
+
+## Tahap 11 — Grid teks: OCR × embedding
+
+```text
+TAHAP 11: Cabang teks untuk setiap kombinasi.
+
+Kondisi OCR: qs-ocr (Tesseract-TIF, acuan Fase 1), tesseract-jpg, easyocr,
+paddleocr (+ keras-ocr bila ada).
+Kondisi embedding:
+- FastText + CNN1D: pipeline Fase 1 apa adanya (src/text_features.py,
+  src/models/text_models.py). Fitur per mesin ke memmap terpisah.
+- BERT-base fine-tune (src/models/bert_text.py), maksimal 512 token, AMP,
+  micro-batch + akumulasi gradien agar muat di 4 GB. Fallback DistilBERT
+  bila tidak muat, dan catat sebagai deviasi dari Kashyap.
+Teks masuk TANPA praproses gaya Kashyap (buang angka/stopword) di kedua
+embedding, supaya efek embedding tidak tercampur efek praproses.
+
+3 seed per sel. Laporkan OA, macro F1, F1 per kelas, McNemar antar-sel per
+seed. Sel qs-ocr × FastText harus mereproduksi CNN1D Fase 1 (0,7266 ± 0,0059);
+kalau tidak, ada yang rusak, berhenti dan laporkan.
+
+Catatan eksperimen per embedding + tabel grid di vault/50-hasil/. Tanya dulu
+sebelum menjalankan bila estimasi total >15 menit (pasti). Log + commit. Berhenti.
+```
+
+## Tahap 12 — Fusion per kondisi OCR
+
+```text
+TAHAP 12: Apakah teks yang lebih kuat membuat fusion memakai teks?
+
+A. Aturan fusion Kashyap: rata-rata logit TEXT dan IMAGE. Tanpa training, jadi
+   jalankan untuk SEMUA sel Tahap 11 × 3 seed. Checkpoint IMAGE dari Fase 1.
+B. Fusion fitur dengan arsitektur yang sudah diperbaiki (LayerNorm per cabang +
+   inisialisasi dari checkpoint teks, src/models/fusion.py) hanya untuk kondisi
+   OCR terbaik dan terburuk, embedding FastText. Seed 42 dulu; tiga seed bila
+   waktunya cukup.
+C. Untuk setiap model fusion: OA, macro F1, oracle, dan uji missing modality
+   (nolkan teks / nolkan citra, src/ablation.py).
+Pertanyaan yang harus dijawab: apakah penurunan saat teks dinolkan membesar
+seiring akurasi cabang teks? Apakah rata-rata logit lebih tahan terhadap
+cabang yang timpang daripada fusion fitur?
+
+Catatan eksperimen + tabel. Log + commit. Berhenti.
+```
+
+## Tahap 13 — Sintesis Fase 2
+
+```text
+TAHAP 13: Jawab Q1–Q3 di vault/50-hasil/sintesis-fase-2.md dengan link ke
+catatan sumber tiap angka. Perbarui limitasi-dan-lanjutan.md. Siapkan bahan
+laporan/presentasi: tabel grid, kurva missing modality vs akurasi teks.
+Log + commit. Berhenti.
+```
+
+## Tahap 14 — Teks sebagai objek (tahap lanjutan dari dosen)
+
+```text
+TAHAP 14: Rancangan dulu, jangan langsung implementasi.
+
+Bahan: kotak teks yang sudah disimpan di Tahap 10, jadi tidak perlu OCR ulang.
+Kandidat representasi:
+- posisi kotak sebagai fitur 2D di samping embedding kata (gaya LayoutLM);
+- peta kotak teks sebagai citra, yaitu teks digambar sebagai kotak berwarna
+  (Noce et al., dikutip Kashyap);
+- graf antar-kotak teks.
+WAJIB: kontrol jalan pintas kode ID ([[larson-2025-id-codes]]). Kode ID adalah
+objek teks berposisi tetap; model berbasis posisi bisa belajar jalan pintas itu.
+Bandingkan dengan dan tanpa kotak kode ID.
+
+Tulis rancangan + referensi ≥2025 untuk tahap ini. Berhenti, tunggu
+persetujuan sebelum implementasi.
+```
+
+---
+
 ## Checklist eksekusi
 
 - [x] Langkah 0 — CLAUDE.md dibuat dan diperiksa manual
@@ -518,6 +701,12 @@ D. README.md final + commit terakhir.
 - [x] Tahap 6 — FUSION + Oracle
 - [x] Tahap 7 — Ablasi (ablasi 4 dilewati)
 - [x] Tahap 8 — Sintesis akhir (plus 3 eksperimen lanjutan di luar rencana)
+- [x] Tahap 9 — Revisi landasan: referensi ≥2025, gap, proposal (2026-10-09)
+- [ ] Tahap 10 — Ekstraksi OCR multi-mesin
+- [ ] Tahap 11 — Grid teks OCR × embedding
+- [ ] Tahap 12 — Fusion per kondisi OCR + rata-rata logit
+- [ ] Tahap 13 — Sintesis Fase 2
+- [ ] Tahap 14 — Rancangan teks sebagai objek
 
 ## Catatan praktis
 

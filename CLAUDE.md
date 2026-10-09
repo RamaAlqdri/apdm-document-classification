@@ -2,9 +2,16 @@
 
 ## Konteks
 Proyek tugas matakuliah "Analisis dan Pemrosesan Data Multimodal".
-Mereplikasi paper: Audebert et al., "Multimodal deep networks for text and
-image-based document classification" (arXiv:1907.06370).
-PDF paper: references/1907.06370v1.pdf
+
+Fase 1 (Tahap 0-8, selesai): replikasi Audebert et al., "Multimodal deep
+networks for text and image-based document classification", ECML PKDD 2019
+Workshops, CCIS 1167, Springer 2020 (PDF: references/1907.06370v1.pdf).
+
+Fase 2 (Tahap 9-14, sejak tanggapan dosen 2026-10-09): mesin OCR dan embedding
+dijadikan variabel. Referensi utama: Kashyap et al. (2026), Int. J. Intelligent
+Systems, doi:10.1155/int/4241437 (PDF di references/). Syarat dosen: referensi
+utama minimal 2025 dan sudah terbit, BUKAN preprint arXiv. Rencana per tahap di
+vault/00-index/rencana-prompt.md.
 
 Dataset:
 - Citra: Tobacco3482 versi JPG dari Kaggle (patrickaudriaz/tobacco3482jpg)
@@ -64,7 +71,7 @@ Semua catatan .md wajib punya YAML frontmatter:
 ---
 judul:
 tipe:        # jurnal | konsep | eksperimen | log | hasil | referensi
-tahap:       # 00 sampai 08
+tahap:       # 00 sampai 14
 tanggal:
 status:      # todo | wip | selesai | ditunda
 tags: []
@@ -75,7 +82,7 @@ terkait: []  # daftar [[wikilink]]
 Taksonomi tag (gunakan nested tag, konsisten, jangan bikin varian baru
 tanpa mendaftarkannya di vault/00-index/peta-tag.md):
 - #tipe/jurnal #tipe/konsep #tipe/eksperimen #tipe/log #tipe/hasil #tipe/referensi
-- #tahap/00 ... #tahap/08
+- #tahap/00 ... #tahap/14
 - #modal/teks #modal/citra #modal/fusion
 - #komponen/ocr #komponen/embedding #komponen/cnn #komponen/fusion #komponen/evaluasi
 - #status/todo #status/wip #status/selesai

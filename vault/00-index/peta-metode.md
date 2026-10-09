@@ -58,6 +58,17 @@ mengutipnya dan bukan dari membaca sumber aslinya:
 [[kim-2014-cnn-sentence]] · [[eitel-2015-multimodal-rgbd]] ·
 [[kay-2007-tesseract]]
 
+### Fase 2 (≥2025, dibaca dari teks lengkap)
+
+Referensi utama dan pembingkai gap ada di `10-jurnal/`: [[kashyap-2026-ringkasan]] dan
+[[mironczuk-2026-review-fusion]]. Pendukung di `90-referensi/`:
+
+- [[francis-2025-perbandingan-ocr]] — Tesseract, EasyOCR, PaddleOCR, Keras-OCR
+  dibandingkan, tapi hanya pada tingkat OCR, bukan dampaknya pada klasifikasi
+- [[zhang-2025-ocr-hinders-rag]] — galat OCR merambat ke tugas lanjutan
+- [[michail-2025-embedding-tahan-ocr]] — embedding yang tahan derau OCR
+- [[larson-2025-id-codes]] — jalan pintas kode ID di Tobacco3482; *baru dari abstrak*
+
 ## Tiga hal yang harus kita uji sendiri, bukan diwarisi dari paper
 
 1. **Kegagalan fusion penjumlahan** dilaporkan tanpa angka dan tanpa spesifikasi

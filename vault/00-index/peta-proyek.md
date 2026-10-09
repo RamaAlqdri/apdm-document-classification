@@ -90,6 +90,25 @@ limitasinya di [[limitasi-dan-lanjutan]].
 - [x] Diagnostik kolaps cabang teks → [[11-diagnostik-cabang-teks]]
 - [x] Perbaikan LayerNorm + inisialisasi cabang teks → [[12-perbaikan-norm-dan-init]]
 
+## Fase 2 — tanggapan dosen 2026-10-09
+
+Dosen meminta tiga hal: referensi utama **minimal 2025 dan sudah terbit**, **gap** yang
+dirumuskan sendiri, dan eksplorasi **mesin OCR** (EasyOCR, PaddleOCR, Keras-OCR) serta
+**embedding**. "Teks yang dideteksi sebagai objek" disiapkan untuk tahap berikutnya.
+
+Referensi utama kini [[kashyap-2026-ringkasan]]. Gap dibingkai dengan
+[[mironczuk-2026-review-fusion]]. Fase 1 tidak dibuang: hasilnya menjadi sel acuan
+(Tesseract + FastText) dan alat ukurnya (uji missing modality, probe linear) dipakai di
+setiap sel Fase 2. Prompt lengkap per tahap ada di [[rencana-prompt]].
+
+- [x] **09** — Revisi landasan: referensi, gap, proposal → [[kashyap-2026-ringkasan]],
+      [[mironczuk-2026-review-fusion]], [[2026-10-09-tahap-09-revisi-arah]]
+- [ ] **10** — Ekstraksi OCR multi-mesin (+ simpan kotak teks)
+- [ ] **11** — Grid teks OCR × embedding (FastText, BERT)
+- [ ] **12** — Fusion per kondisi OCR + rata-rata logit gaya Kashyap
+- [ ] **13** — Sintesis Fase 2
+- [ ] **14** — Rancangan teks sebagai objek, dengan kontrol [[larson-2025-id-codes]]
+
 ## MOC lain
 
 - [[peta-tag]] — daftar resmi tag dan kapan dipakai

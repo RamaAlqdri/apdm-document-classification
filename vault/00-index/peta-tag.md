@@ -35,6 +35,10 @@ Didaftar satu per satu, bukan sebagai rentang, supaya bisa diperiksa otomatis:
 `#tahap/00` `#tahap/01` `#tahap/02` `#tahap/03` `#tahap/04` `#tahap/05`
 `#tahap/06` `#tahap/07` `#tahap/08`
 
+Fase 2 (ditambahkan 2026-10-09 setelah tanggapan dosen):
+
+`#tahap/09` `#tahap/10` `#tahap/11` `#tahap/12` `#tahap/13` `#tahap/14`
+
 Sesuai daftar tahap di [[peta-proyek]]. Catatan uji lanjutan (notebook 07-09) memakai
 `#tahap/07` karena merupakan kelanjutan ablasi, bukan tahap baru.
 
@@ -50,7 +54,7 @@ Sesuai daftar tahap di [[peta-proyek]]. Catatan uji lanjutan (notebook 07-09) me
 
 | Tag | Dipakai untuk |
 |---|---|
-| `#komponen/ocr` | Tesseract, kualitas OCR, noise, OOV |
+| `#komponen/ocr` | Mesin OCR (Tesseract, EasyOCR, PaddleOCR, Keras-OCR), kualitas OCR, noise, OOV |
 | `#komponen/embedding` | FastText, SIF, representasi kata/dokumen |
 | `#komponen/cnn` | Arsitektur konvolusi (1D untuk teks, 2D untuk citra) |
 | `#komponen/fusion` | Strategi penggabungan, concat vs penjumlahan |
@@ -78,9 +82,6 @@ benar-benar dieksekusi — lihat aturan 3 di `CLAUDE.md`).
 
 `#temuan/negatif` **bukan** alasan menyembunyikan hasil. Paper melaporkan fusion
 penjumlahan gagal; kalau kita mendapat hasil sebaliknya, itu temuan, bukan bug.
-
-Dan itulah yang terjadi — lihat [[06-fusion-sum]]. Agregasi seluruh temuan bertanda ada
-di [[peta-eksperimen]], statusnya di [[papan-progress]].
 
 Dan itulah yang terjadi — lihat [[06-fusion-sum]]. Agregasi seluruh temuan bertanda ada
 di [[peta-eksperimen]], statusnya di [[papan-progress]].
