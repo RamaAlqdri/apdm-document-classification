@@ -1,0 +1,106 @@
+\chapter{Riwayat Pemilihan Referensi dan Tanggapan Dosen}\label{lam:riwayat}
+
+\section*{A.1 Pemilihan Jurnal Awal}
+
+Jurnal pertama yang dipilih pada Progress~1 adalah \textcite{audebert2020}. Ada empat
+alasan:
+\begin{enumerate}
+  \item \textbf{Sesuai topik mata kuliah.} Paper ini menggabungkan dua modalitas yang
+  asalnya sama tetapi sifatnya berbeda: tata letak halaman dan isi tulisan.
+  \item \textbf{Datanya terbuka.} Citra Tobacco3482 tersedia di Kaggle, dan teks OCR-nya
+  dirilis penulis sebagai QS-OCR, sehingga modalitas teks tidak perlu dibuat sendiri.
+  \item \textbf{Arsitekturnya ringan.} MobileNetV2 dan FastText dengan CNN~1D dapat
+  dilatih pada GPU laptop 4~GB.
+  \item \textbf{Tidak ada kode resmi.} Repositori QS-OCR hanya berisi skrip OCR, sehingga
+  seluruh arsitektur harus ditulis ulang dari spesifikasi paper. Ini menuntut pemahaman
+  metode, bukan sekadar menjalankan kode orang lain.
+\end{enumerate}
+
+\section*{A.2 Tanggapan Dosen atas Progress 1}
+
+\begin{table}[H]
+  \centering
+  \caption{Tanggapan dosen pengampu dan tindak lanjutnya}
+  \label{tab:tanggapan}
+  \fontsize{10}{12}\selectfont
+  \begin{tabularx}{\textwidth}{|>{\raggedright\arraybackslash}p{5.4cm}|>{\raggedright\arraybackslash}X|}
+    \hline
+    \textbf{Tanggapan} & \textbf{Tindak lanjut} \\ \hline
+    Alur OCR $\rightarrow$ teks dengan Tesseract dan FastText sudah dipahami &
+    Dipertahankan sebagai kondisi acuan (QS-OCR $\times$ FastText) \\ \hline
+    Eksplorasi metode OCR: EasyOCR, PaddleOCR, Keras-OCR &
+    Mesin OCR dijadikan variabel penelitian (RM1). Keras-OCR bersyarat, lihat risiko
+    R3 \\ \hline
+    Celah penelitian belum ditentukan &
+    Dirumuskan pada Bab~\ref{bab:pendahuluan} dan Subbab~\ref{sec:kajian-pustaka}, didukung
+    hasil studi pendahuluan \\ \hline
+    Kemungkinan eksplorasi pada embedding &
+    Embedding dijadikan variabel kedua: FastText dan BERT (RM2) \\ \hline
+    Teks yang dideteksi sebagai objek, untuk tahap selanjutnya &
+    Kotak posisi teks disimpan sejak langkah OCR; rancangannya pada
+    Subbab~\ref{sec:lanjutan} \\ \hline
+    Referensi masih tahun 2019 dan berbentuk arsip; minimal tahun 2025 &
+    Referensi utama diganti ke \textcite{kashyap2026}. Audebert dikutip dari versi
+    terbitnya (Springer, 2020) sebagai baseline yang telah direplikasi \\ \hline
+  \end{tabularx}
+  \sumber{Catatan tanggapan dosen pengampu.}
+\end{table}
+
+Satu hal perlu dicatat soal referensi. Paper Audebert sebenarnya telah terbit di ECML
+PKDD 2019 Workshops, Springer CCIS vol.~1167 (2020). Kesalahan ada pada Progress~1, yang
+mengutip versi arXiv. Namun tahun terbitnya tetap tidak memenuhi syarat, sehingga posisi
+referensi utama tetap diganti.
+
+\section*{A.3 Pencarian Referensi Baru}
+
+Pencarian dilakukan melalui Crossref dan Semantic Scholar dengan empat kriteria:
+\begin{enumerate}
+  \item terbit di jurnal atau prosiding pada 2025 atau sesudahnya, bukan
+  \textit{preprint};
+  \item membahas klasifikasi dokumen multimodal teks--citra, perbandingan mesin OCR, atau
+  ketahanan embedding terhadap derau OCR;
+  \item metadata (DOI, volume, halaman) dapat diverifikasi;
+  \item teks lengkapnya dapat dibaca, tidak hanya abstraknya.
+\end{enumerate}
+
+Hasilnya dirangkum pada Tabel~\ref{tab:referensi-baru}. Untuk \textcite{larson2025}, yang
+dibaca baru abstraknya, karena unduhan teks lengkapnya belum berhasil.
+
+\begin{table}[H]
+  \centering
+  \caption{Referensi utama dan pendukung yang terbit tahun 2025--2026}
+  \label{tab:referensi-baru}
+  \fontsize{10}{12}\selectfont
+  \begin{tabularx}{\textwidth}{|l|>{\raggedright\arraybackslash}X|}
+    \hline
+    \textbf{Referensi} & \textbf{Peran dalam penelitian ini} \\ \hline
+    \textcite{kashyap2026} & Referensi utama: fusion teks--citra terkini pada
+    Tobacco3482 \\ \hline
+    \textcite{mironczuk2026} & Pembingkai celah: meta-analisis 139 studi fusion untuk
+    klasifikasi dokumen \\ \hline
+    \textcite{francis2025} & Perbandingan Tesseract, EasyOCR, PaddleOCR, Keras-OCR, dan
+    mesin lain \\ \hline
+    \textcite{zhang2025} & Bukti bahwa galat OCR merambat ke tugas lanjutan \\ \hline
+    \textcite{michail2025} & Ketahanan embedding terhadap derau OCR \\ \hline
+    \textcite{larson2025} & Jalan pintas kode ID pada Tobacco3482 \\ \hline
+  \end{tabularx}
+  \sumber{Penelusuran kelompok.}
+\end{table}
+
+\section*{A.4 Mengapa Kashyap et al. sebagai Referensi Utama}
+
+\textcite{kashyap2026} adalah penerus langsung Audebert: keduanya menggabungkan cabang
+citra dan cabang teks OCR, dan keduanya diuji pada Tobacco3482. Kashyap juga
+membandingkan hasilnya secara eksplisit dengan Audebert.
+
+Paper ini \textbf{tidak direplikasi}. \textit{Fine-tuning}-nya memakan sekitar 63 jam
+pada GPU 16~GB dengan RVL-CDIP, jauh di luar perangkat yang tersedia. Yang diambil dari
+paper ini adalah:
+\begin{itemize}
+  \item embedding BERT;
+  \item aturan fusion rata-rata logit;
+  \item arah lanjutan yang disebut penulisnya sendiri, yaitu pembobotan modalitas adaptif
+  dan kondisi degradasi OCR.
+\end{itemize}
+Celah yang paling menentukan adalah mesin OCR-nya yang tidak disebutkan. Catatan kritis
+lengkapnya ada pada Lampiran~\ref{lam:kashyap}.

@@ -1,0 +1,22 @@
+% Kerangka penelitian. Kotak biru = variabel yang diuji.
+\begin{tikzpicture}[
+  box/.style={draw, rounded corners=2pt, align=center, font=\footnotesize,
+              minimum height=1.15cm, minimum width=2.35cm, inner sep=2pt, fill=white},
+  var/.style={box, fill=blue!8},
+  arr/.style={-{Stealth[length=2mm]}, thick}]
+\node[box] (img) at (0,0) {Citra JPG\\Tobacco3482};
+\node[var] (ocr) at (3.0,1.35) {\textbf{Mesin OCR}\\Tesseract,\\EasyOCR, PaddleOCR};
+\node[var] (emb) at (6.5,1.35) {\textbf{Embedding}\\FastText + CNN1D,\\BERT};
+\node[box] (cnn) at (4.75,-1.35) {Cabang citra\\MobileNetV2\\(tetap)};
+\node[var] (fus) at (9.6,0) {\textbf{Fusion}\\rata-rata logit,\\fitur + LN};
+\node[box] (eva) at (12.6,0) {OA, macro F1,\\McNemar,\\$\Delta_\text{teks}$, oracle};
+\node[font=\scriptsize, text=gray, align=center] (kotak) at (3.0,2.75)
+     {kotak posisi teks $\rightarrow$ tahap lanjutan};
+\draw[arr] (img.north) |- (ocr.west);
+\draw[arr] (img.south) |- (cnn.west);
+\draw[arr] (ocr) -- (emb);
+\draw[arr] (emb.east) -| (fus.north);
+\draw[arr] (cnn.east) -| (fus.south);
+\draw[arr] (fus) -- (eva);
+\draw[-{Stealth[length=1.6mm]}, gray, dashed] (ocr.north) -- (kotak.south);
+\end{tikzpicture}

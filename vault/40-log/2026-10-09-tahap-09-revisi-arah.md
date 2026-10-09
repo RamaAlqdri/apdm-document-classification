@@ -88,3 +88,23 @@ halaman:
 
 Kode Tahap 10 (commit `7df43ed`) sudah ada tapi belum di-push. Statusnya menunggu
 keputusan pengguna.
+
+## Tambahan: proposal dipindah ke template FILKOM UB
+
+Atas permintaan pengguna, proposal ditulis ulang memakai template di
+`proposal/template-latex/`. Naskahnya ada di `proposal/naskah/`, dan PDF finalnya di
+`proposal/proposal.pdf` (33 halaman). Versi sebelumnya diarsipkan di `proposal/arsip/`.
+
+- **Sampul** meniru susunan Progress 1: mata kuliah, tiga anggota kelompok diurutkan
+  menurut NIM, dan dosen pengampu.
+- **Isinya** terdiri atas Bab I–IV dan Lampiran A–C, dengan gambar asli dari eksekusi
+  Fase 1.
+- **Progress 1 ternyata masih rencana, tanpa hasil.** Karena itu proposal menjawab
+  pertanyaan (a)–(c) Progress 1 secara eksplisit di studi pendahuluan.
+- **Referensi:** 21 entri BibTeX diambil lewat content negotiation doi.org, ditambah
+  entri perangkat lunak (versi yang diuji) dan dataset.
+- **Arsitektur PaddleOCR** hanya ditulis sebagai pipeline modul. Detail arsitektur
+  PP-OCRv5 mobile tidak tercantum di dokumentasinya, jadi tidak diklaim.
+- **Holm diganti Bonferroni** (Dunn 1961), karena entri Holm 1979 tidak bisa
+  diverifikasi lewat Crossref.
+- **Pemeriksaan template:** 0 overfull, 0 rujukan menggantung, 0 penanda merah.

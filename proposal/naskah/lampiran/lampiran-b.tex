@@ -1,0 +1,35 @@
+\chapter{Catatan Kritis atas Kashyap et al. (2026)}\label{lam:kashyap}
+
+Catatan berikut disusun dari pembacaan teks lengkap \textcite{kashyap2026}.
+
+\begin{enumerate}
+  \item \textbf{Angka 92,00\% pada Tobacco3482 tidak konsisten dengan protokolnya
+  sendiri.}
+  \begin{itemize}
+    \item Model dilatih pada 16 kelas RVL-CDIP. Penulis sendiri menyatakan bahwa kelas
+    Note dan Report hanya ada di Tobacco3482.
+    \item Kedua kelas itu berisi $201 + 265 = 466$ dokumen, yang tidak mungkin diprediksi
+    benar oleh model 16 kelas RVL-CDIP.
+    \item Bila seluruh 3.482 dokumen dievaluasi, akurasi maksimum yang mungkin adalah:
+    \begin{equation}\label{eq:kashyap-maks}
+      \mathrm{OA}_\text{maks} = \frac{3482 - 466}{3482} = \frac{3016}{3482} = 0{,}866
+    \end{equation}
+    \item Tabel per kelas paper memang hanya memuat 8 kelas.
+  \end{itemize}
+  Kemungkinan besar 92\% dihitung pada sekitar 3.016 dokumen, padahal tabel dataset
+  paper menyebut 3.482 dokumen dan 10 kelas.
+  \item \textbf{Perbandingan dengan Audebert tidak setara.} Paper menyandingkan 92,00\%
+  (dilatih pada $\pm$320.000 dokumen RVL-CDIP) dengan 87,8\% Audebert (dilatih pada
+  800 dokumen Tobacco3482), tanpa menyebut perbedaan protokol itu.
+  \item \textbf{Potensi tumpang tindih data tidak dibahas.} RVL-CDIP dan Tobacco3482
+  sama-sama diambil dari arsip industri tembakau yang sama. Hal ini belum kami verifikasi,
+  karena verifikasinya membutuhkan RVL-CDIP.
+  \item \textbf{Satu kali run}, tanpa simpangan baku dan tanpa uji statistik. Metrik
+  Tobacco3482 dilaporkan dalam bentuk \textit{weighted}, bukan macro.
+  \item \textbf{Mesin OCR tidak disebutkan}, sehingga cabang teksnya tidak dapat
+  direproduksi, dan keunggulan BERT tidak dapat dipisahkan dari efek mesin OCR.
+\end{enumerate}
+
+Catatan ini tidak mengurangi nilai paper tersebut sebagai acuan arsitektur. Catatan ini
+menjelaskan mengapa angka penelitian ini tidak dibandingkan langsung dengan angka
+Kashyap, dan mengapa mesin OCR dijadikan variabel.

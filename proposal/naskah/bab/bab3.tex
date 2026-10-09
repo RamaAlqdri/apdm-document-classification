@@ -1,0 +1,387 @@
+\chapter{Metodologi Penelitian}\label{bab:metodologi}
+
+\section{Tahapan Penelitian}\label{sec:tahapan}
+
+Penelitian dibagi menjadi dua fase. \textbf{Fase~1} adalah studi pendahuluan, yaitu
+replikasi \textcite{audebert2020} yang diusulkan pada Progress~1. Fase ini telah selesai
+dijalankan, dan hasilnya dipaparkan pada Subbab~\ref{sec:studi-pendahuluan}.
+\textbf{Fase~2} adalah penelitian yang diusulkan dalam proposal ini. Kerangkanya
+ditunjukkan Gambar~\ref{fig:kerangka}.
+
+\begin{figure}[H]
+  \centering
+  \resizebox{\textwidth}{!}{\input{gambar/kerangka}}
+  \caption{Kerangka penelitian Fase~2; kotak biru adalah variabel yang diuji}
+  \label{fig:kerangka}
+\end{figure}
+
+Fase~2 terdiri atas empat langkah:
+\begin{enumerate}
+  \item OCR ulang seluruh citra dengan tiga mesin.
+  \item Melatih cabang teks untuk setiap kombinasi mesin OCR dan embedding.
+  \item Menggabungkan setiap cabang teks dengan cabang citra yang sama.
+  \item Mengevaluasi akurasi sekaligus pemanfaatan modalitas.
+\end{enumerate}
+Cabang citra sengaja dibuat tetap, supaya setiap perbedaan hasil hanya dapat berasal dari
+sisi teks.
+
+\section{Studi Pendahuluan: Replikasi Audebert et al.}\label{sec:studi-pendahuluan}
+
+\subsection{Hasil Replikasi}
+
+Replikasi dijalankan penuh pada Tobacco3482 dengan tiga pembagian acak terstratifikasi
+(seed 42, 43, 44). Setiap pembagian terdiri atas 800 dokumen latih dan 2.682 dokumen uji.
+Seluruh arsitektur ditulis ulang dari spesifikasi paper, karena tidak tersedia kode
+resmi. Hasilnya disajikan pada Tabel~\ref{tab:replikasi}.
+
+\begin{table}[H]
+  \centering
+  \caption{Hasil replikasi pada Tobacco3482 (rata-rata $\pm$ simpangan baku tiga seed)}
+  \label{tab:replikasi}
+  \fontsize{10}{12}\selectfont
+  \begin{tabular}{|l|c|c|c|}
+    \hline
+    \textbf{Model} & \textbf{OA kami} & \textbf{Macro F1 kami} & \textbf{OA paper} \\ \hline
+    Teks (FastText + CNN 1D) & $0{,}7266 \pm 0{,}0059$ & 0,7017 & 0,738 \\ \hline
+    Citra (MobileNetV2) & $0{,}8086 \pm 0{,}0210$ & 0,7837 & 0,845 \\ \hline
+    Fusion konkatenasi & $0{,}8342 \pm 0{,}0105$ & 0,8105 & 0,878 \\ \hline
+    Fusion penjumlahan berbobot & $0{,}8275 \pm 0{,}0164$ & 0,7990 & tidak dilaporkan \\ \hline
+    Oracle & 0,8977 & 0,8850 & 0,921 \\ \hline
+  \end{tabular}
+  \sumber{Eksekusi kelompok; angka paper dari \textcite{audebert2020}.}
+\end{table}
+
+Ketiga pertanyaan Progress~1 terjawab sebagai berikut.
+
+\textbf{(a) Kenaikan akurasi.} Urutan Teks $<$ Citra $<$ Fusion $<$ Oracle terpenuhi.
+Semua angka berada 1--4\% di bawah paper, yang wajar mengingat framework, protokol
+pembagian data, dan format citra berbeda. Korpus teksnya terkonfirmasi identik: rata-rata
+kata dengan panjang minimal empat huruf per dokumen adalah 135, sedangkan paper
+menyebut 136.
+
+Fusion menaikkan akurasi 2,56 poin di atas baseline citra. Padahal potensi yang tersedia,
+yaitu selisih oracle dengan baseline citra, adalah 8,91 poin. Jadi hanya 29\% potensi
+yang dipanen; paper memanen 43\%.
+
+\textbf{(b) Strategi penggabungan.} Konkatenasi dan penjumlahan berbobot berselisih
+0,0067, masih di dalam satu simpangan baku. Pada tiga seed keduanya tidak terbedakan,
+walaupun belum diuji secara formal. Ini bertentangan dengan klaim paper bahwa
+penjumlahan berada di bawah baseline citra; hasil kami justru 0,8275, di atas citra.
+
+\textbf{(c) Pemanfaatan kedua modalitas.} Pertanyaan ini dijawab dengan uji tambahan yang
+tidak dilakukan paper (Subbab~\ref{sec:uji-tambahan}). Jawabannya: \textbf{tidak}.
+
+\subsection{Uji Missing Modality dan Degradasi}\label{sec:uji-tambahan}
+
+\begin{table}[H]
+  \centering
+  \caption{Uji pada model fusion konkatenasi saat inferensi (seed 42)}
+  \label{tab:missing}
+  \fontsize{10}{12}\selectfont
+  \begin{tabular}{|l|c|l|}
+    \hline
+    \textbf{Perlakuan} & \textbf{OA} & \textbf{Arti} \\ \hline
+    Utuh & 0,8218 & acuan \\ \hline
+    Seluruh masukan teks dinolkan & 0,8203 & turun hanya 0,0015 \\ \hline
+    Seluruh masukan citra dinolkan & 0,0731 & runtuh total \\ \hline
+    0\% sampai 100\% kata dihapus & 0,8218 $\rightarrow$ 0,8203 & kurva rata \\ \hline
+  \end{tabular}
+  \sumber{Eksekusi kelompok.}
+\end{table}
+
+Tabel~\ref{tab:missing} menunjukkan bahwa model fusion praktis tidak memakai teks.
+Akibatnya, ketika citra didegradasi, fusion justru lebih rapuh daripada model citra saja
+(Gambar~\ref{fig:degradasi}). Pada rotasi $45^\circ$, akurasi model citra 0,3031,
+sedangkan fusion 0,1223. Pada \textit{blur} 8 piksel, model citra 0,6115 dan fusion
+0,5026.
+
+Hasil ini membalik hipotesis kami sendiri sebelum eksekusi, yaitu bahwa teks akan
+mengompensasi citra yang rusak.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.92\textwidth]{ablasi-degradasi-citra}
+  \caption{Akurasi model citra dan fusion terhadap tingkat degradasi citra}
+  \label{fig:degradasi}
+  \sumber{Eksekusi kelompok (seed 42).}
+\end{figure}
+
+\subsection{Diagnosis: Cabang Teks yang Kolaps}
+
+Penyebabnya ditelusuri dalam tiga langkah:
+\begin{enumerate}
+  \item \textbf{Bukan karena pelatihan terlalu singkat.} Tanpa \textit{early stopping},
+  dengan 200 epoch penuh, cabang teks tetap hanya memanen 9--12\% potensi oracle.
+  \item \textbf{Bukan karena strategi penggabungan.} Fusion penjumlahan menunjukkan pola
+  yang sama.
+  \item \textbf{Cabang teks itu sendiri kolaps} (Gambar~\ref{fig:diagnostik}). Simpangan
+  fiturnya 38 kali lebih kecil daripada CNN~1D yang dilatih sendiri. Sebanyak 67 dari
+  128 unit mati. Kemiripan kosinus antar-dokumen 0,978, padahal acuannya 0,650. Skala
+  fiturnya juga 3,72 kali lebih kecil daripada fitur citra.
+\end{enumerate}
+
+Informasinya belum hilang sepenuhnya. \textit{Linear probe}, yaitu regresi logistik di
+atas fitur teks yang dibekukan, masih mencapai OA 0,4236. Namun informasi itu tertutup
+oleh cabang citra yang skalanya jauh lebih besar.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{diagnostik-fitur-teks}
+  \caption{Diagnostik fitur teks di dalam model fusion: varians per dimensi, skala kedua
+  cabang, dan akurasi \textit{linear probe}}
+  \label{fig:diagnostik}
+  \sumber{Eksekusi kelompok (seed 42).}
+\end{figure}
+
+\subsection{Perbaikan dan Implikasinya}
+
+Dua perubahan diterapkan bersamaan: Layer Normalization pada tiap cabang
+(Persamaan~\ref{eq:layernorm}), dan inisialisasi cabang teks dari CNN~1D yang sudah
+terlatih. Hasilnya disajikan pada Tabel~\ref{tab:perbaikan}.
+
+\begin{table}[H]
+  \centering
+  \caption{Model fusion sebelum dan sesudah perbaikan (seed 42)}
+  \label{tab:perbaikan}
+  \fontsize{10}{12}\selectfont
+  \begin{tabular}{|l|c|c|c|}
+    \hline
+    \textbf{Pengukuran} & \textbf{Sebelum} & \textbf{Sesudah} & \textbf{Acuan CNN 1D} \\ \hline
+    \textit{Linear probe} fitur teks & 0,4236 & 0,7468 & 0,7479 \\ \hline
+    Unit mati & 67/128 & 4/128 & 18/128 \\ \hline
+    $\Delta_\text{teks}$ & 0,0071 & 0,6887 & -- \\ \hline
+    F1 kelas Resume & 0,814 & 0,968 & 0,969 \\ \hline
+    OA & 0,8304 & 0,8110 & -- \\ \hline
+    Macro F1 & 0,8108 & 0,8108 & -- \\ \hline
+  \end{tabular}
+  \sumber{Eksekusi kelompok. Model \enquote{sebelum} adalah fusion konkatenasi tanpa
+  \textit{early stopping}.}
+\end{table}
+
+Sesudah perbaikan, cabang teks sama informatifnya dengan CNN~1D yang dilatih sendiri, dan
+F1 kelas Resume menyamai paper (0,96). Ada ongkosnya: OA turun 0,019, sedangkan macro F1
+tetap persis sama. Akurasi berpindah dari kelas besar yang dikuasai citra ke kelas kecil
+yang membutuhkan teks (Gambar~\ref{fig:confusion}).
+
+Model yang diperbaiki ini kini sangat bergantung pada teks: tanpa teks, akurasinya jatuh
+ke 0,1223. Fenomena ini dibahas sebagai risiko pengukuran R5 pada
+Subbab~\ref{sec:risiko}.
+
+\begin{figure}[H]
+  \centering
+  \begin{minipage}{0.49\textwidth}\centering
+    \includegraphics[width=\textwidth]{confusion-sebelum}\\[-2pt]
+    {\small (a) sebelum perbaikan}
+  \end{minipage}\hfill
+  \begin{minipage}{0.49\textwidth}\centering
+    \includegraphics[width=\textwidth]{confusion-sesudah}\\[-2pt]
+    {\small (b) sesudah perbaikan}
+  \end{minipage}
+  \caption{\textit{Confusion matrix} model fusion sebelum dan sesudah perbaikan}
+  \label{fig:confusion}
+  \sumber{Eksekusi kelompok (seed 42).}
+\end{figure}
+
+\noindent Studi pendahuluan ini memberi tiga implikasi bagi Fase~2:
+\begin{enumerate}
+  \item \textbf{Akurasi gabungan tidak cukup.} Model yang diam-diam unimodal dapat
+  mencetak OA \emph{lebih tinggi} daripada model yang benar-benar multimodal. Karena itu
+  uji \textit{missing modality} wajib untuk setiap model fusion.
+  \item \textbf{Kekuatan cabang teks menentukan apakah teks dipakai.} Kekuatan itu
+  bergantung pada OCR dan embedding, dan kedua hal inilah yang menjadi variabel Fase~2.
+  \item \textbf{Fusion fitur yang dipakai di Fase~2 adalah versi yang sudah diperbaiki.}
+  Dengan begitu, kegagalan yang sudah diketahui tidak dicampuradukkan dengan efek mesin
+  OCR.
+\end{enumerate}
+
+\section{Dataset dan Protokol}\label{sec:dataset}
+
+\textbf{Tobacco3482} \parencite{kumar2014} berisi 3.482 citra dokumen dalam 10 kelas:
+Advertisement, Email, Form, Letter, Memo, News, Note, Report, Resume, dan Scientific.
+Kelas terbesar adalah Memo (620 dokumen) dan terkecil Resume (120 dokumen). Citra
+diambil dari Kaggle dalam format JPG \parencite{kaggletobacco}, yang tidak memiliki
+lisensi baku.
+
+\textbf{QS-OCR-Small} \parencite{qsocr} berlisensi Apache-2.0. Isinya teks Tesseract~4
+dari citra TIF asli. Dataset ini dipakai sebagai \textbf{kondisi acuan} dari Fase~1.
+
+Contoh pasangan citra dan teksnya ditunjukkan Gambar~\ref{fig:contoh-pasangan}. Derau OCR
+terlihat jelas pada contoh itu, misalnya \texttt{Tur Council For Tospacco REsEaARCH}.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{contoh-pasangan}
+  \caption{Contoh pasangan citra dokumen dan teks QS-OCR-nya}
+  \label{fig:contoh-pasangan}
+  \sumber{Tobacco3482 dan QS-OCR; diolah kelompok.}
+\end{figure}
+
+Protokol pembagian data sama dengan Fase~1:
+\begin{itemize}
+  \item 800 dokumen latih per pembagian, 10\% di antaranya dipakai untuk validasi;
+  \item seed 42, 43, dan 44;
+  \item \textbf{indeks pembagian yang sama} di semua kondisi, supaya perbedaan
+  antar-kondisi tidak tercampur perbedaan data.
+\end{itemize}
+Pemakaian dataset dibatasi untuk keperluan akademik non-komersial, dan tidak ada berkas
+dataset yang didistribusikan ulang.
+
+\section{Ekstraksi OCR Multi-mesin}\label{sec:metode-ocr}
+
+Konfigurasi setiap mesin disajikan pada Tabel~\ref{tab:mesin}.
+
+\begin{table}[H]
+  \centering
+  \caption{Mesin OCR dan konfigurasinya}
+  \label{tab:mesin}
+  \fontsize{10}{12}\selectfont
+  \begin{tabularx}{\textwidth}{|l|>{\raggedright\arraybackslash}X|l|}
+    \hline
+    \textbf{Mesin} & \textbf{Konfigurasi} & \textbf{Kotak teks} \\ \hline
+    QS-OCR (acuan) & Tesseract 4.0-beta pada TIF asli, \texttt{-{}-oem 1 -{}-psm 3} &
+    tidak tersedia \\ \hline
+    Tesseract & versi 5 pada JPG, konfigurasi sama dengan QS-OCR & per kata \\ \hline
+    EasyOCR & versi 1.7.2, model bahasa Inggris, GPU & per baris \\ \hline
+    PaddleOCR & versi 3.7.0, PP-OCRv5 \textit{mobile}, CPU, tanpa koreksi orientasi &
+    per baris \\ \hline
+  \end{tabularx}
+  \sumber{Rancangan kelompok.}
+\end{table}
+
+Empat keputusan desain menyertai konfigurasi tersebut:
+\begin{enumerate}
+  \item \textbf{Semua mesin membaca citra JPG yang sama}, termasuk Tesseract yang
+  dijalankan ulang. Selisih antara QS-OCR dan Tesseract-JPG karena itu mengukur efek
+  gabungan format citra dan versi Tesseract.
+  \item \textbf{Urutan baca mesin berbasis kotak direkonstruksi}: baris dari atas ke
+  bawah, kata dari kiri ke kanan. Karena CNN~1D peka urutan, perbedaan urutan baca dicatat
+  sebagai bagian dari efek mesin.
+  \item \textbf{Teks dan kotak posisi setiap halaman disimpan}, sehingga tahap lanjutan
+  tidak memerlukan OCR ulang.
+  \item \textbf{Versi pustaka dan nama model dikunci serta dicatat.} PaddleOCR versi
+  terbaru, misalnya, diam-diam mengganti model bawaannya ke PP-OCRv6, yang sekitar tiga
+  kali lebih lambat di CPU pada uji kelayakan.
+\end{enumerate}
+
+Keras-OCR disarankan dosen, tetapi belum dimasukkan. Alasannya dijelaskan pada risiko R3
+(Subbab~\ref{sec:risiko}).
+
+\section{Proksi Kualitas OCR}\label{sec:proksi}
+
+Tobacco3482 tidak memiliki transkripsi acuan, sehingga \textit{character error rate}
+tidak dapat dihitung. Tiga proksi berikut menggambarkan keluaran OCR tanpa menilai
+benar-salahnya.
+
+\begin{enumerate}
+  \item \textbf{Kata per halaman dan persentase halaman kosong.} Proksi ini menangkap
+  mesin yang melewatkan blok teks.
+  \item \textbf{Laju OOV.} Untuk dokumen $d$, laju OOV adalah bagian kata alfabetik dengan
+  panjang minimal empat huruf yang tidak terdapat dalam daftar kata bahasa Inggris $V$
+  \parencite{wordfreq}:
+  \begin{equation}\label{eq:oov}
+    \mathrm{OOV}(d) = \frac{\left|\{w \in d : |w| \geq 4,\; w \notin V\}\right|}
+                           {\left|\{w \in d : |w| \geq 4\}\right|}
+  \end{equation}
+  Salah baca yang kebetulan berupa kata yang ada, misalnya \texttt{tbe} untuk
+  \texttt{the}, tidak terhitung. Karena itu nilai ini adalah \emph{batas bawah} galat.
+  \item \textbf{Kesepakatan antar-mesin.} Kesepakatan dua mesin diukur dengan indeks
+  Jaccard atas himpunan kata ($A$ dan $B$) yang keduanya baca:
+  \begin{equation}\label{eq:jaccard}
+    J(A, B) = \frac{|A \cap B|}{|A \cup B|}
+  \end{equation}
+  Urutan kata sengaja diabaikan, karena mesin berbeda urutan baca walaupun kata yang
+  dibaca sama.
+\end{enumerate}
+
+\section{Representasi Teks dan Citra}\label{sec:representasi}
+
+Dua representasi teks diuji.
+
+\textbf{FastText dan CNN~1D.} Ini pipeline Fase~1 tanpa perubahan. Setiap kata dipetakan
+ke vektor FastText 300 dimensi (Persamaan~\ref{eq:fasttext}). Sekuens dibatasi 500 kata,
+lalu diproses CNN~1D empat lapis.
+
+\textbf{BERT-base.} Model ini di-\textit{fine-tune}, seperti pada
+\textcite{kashyap2026}, dengan masukan maksimum 512 token. Pelatihan memakai
+\textit{mixed precision} dan akumulasi gradien supaya muat di GPU 4~GB. Bila tetap tidak
+muat, model diganti DistilBERT, dan penggantian itu dicatat sebagai deviasi.
+
+Teks masuk ke kedua representasi \textbf{tanpa} praproses gaya Kashyap, yaitu tanpa
+membuang angka dan \textit{stopword}. Tujuannya agar efek embedding tidak tercampur efek
+praproses.
+
+Cabang citra memakai MobileNetV2 berbobot awal ImageNet, dengan masukan
+$384\times384$ dan rasio aspek di-\textit{warp}. Cabang ini identik dengan Fase~1, dan
+\textit{checkpoint}-nya dipakai ulang.
+
+\section{Strategi Fusion yang Diuji}\label{sec:fusion}
+
+Dua strategi fusion diuji.
+\begin{enumerate}
+  \item \textbf{Rata-rata logit} (Persamaan~\ref{eq:logit}), yaitu aturan
+  \textcite{kashyap2026}. Strategi ini tidak memerlukan pelatihan ulang, sehingga dapat
+  diterapkan pada \emph{semua} kondisi.
+  \item \textbf{Fusion tingkat fitur yang sudah diperbaiki}:
+  \begin{equation}\label{eq:fusionfix}
+    \hat{y} = \arg\max_c \; \mathrm{MLP}\!\left([\,\mathrm{LN}(\mathbf{v}_t) \,;\,
+    \mathrm{LN}(\mathbf{v}_v)\,]\right)_c
+  \end{equation}
+  Cabang teks diinisialisasi dari model teks yang sudah terlatih. Biayanya sekitar empat
+  jam per run, sehingga strategi ini hanya diterapkan pada kondisi OCR terbaik dan
+  terburuk.
+\end{enumerate}
+
+\section{Desain Eksperimen dan Hipotesis}\label{sec:desain}
+
+Matriks eksperimen disajikan pada Tabel~\ref{tab:desain}.
+
+\begin{table}[H]
+  \centering
+  \caption{Matriks eksperimen}
+  \label{tab:desain}
+  \fontsize{10}{12}\selectfont
+  \begin{tabularx}{\textwidth}{|l|>{\raggedright\arraybackslash}X|c|}
+    \hline
+    \textbf{Kelompok} & \textbf{Kondisi} & \textbf{Jumlah run} \\ \hline
+    Cabang teks & 4 kondisi OCR $\times$ 2 embedding $\times$ 3 seed & 24 \\ \hline
+    Rata-rata logit & setiap model teks di atas + cabang citra Fase~1 &
+    24 (tanpa pelatihan) \\ \hline
+    Fusion fitur & kondisi OCR terbaik dan terburuk, FastText, seed 42 &
+    2 (+4 bila waktu cukup) \\ \hline
+    Uji \textit{missing modality} & setiap model fusion & tanpa pelatihan \\ \hline
+  \end{tabularx}
+  \sumber{Rancangan kelompok.}
+\end{table}
+
+\textbf{Pemeriksaan kewarasan.} Sel QS-OCR $\times$ FastText harus mereproduksi CNN~1D
+Fase~1 ($0{,}7266 \pm 0{,}0059$). Bila tidak, ada yang rusak dalam pipeline, dan
+eksperimen dihentikan sampai penyebabnya ditemukan.
+
+Hipotesis dirumuskan \emph{sebelum} eksekusi, dan akan dilaporkan apa adanya, termasuk
+bila keliru. Pada Fase~1, hipotesis ketahanan kami terbukti keliru, dan temuan itu justru
+menjadi temuan utama.
+
+\begin{enumerate}[label=H\arabic*.,leftmargin=1.2cm,labelwidth=1.2cm]
+  \item \textbf{(RM1)} Perbedaan akurasi cabang teks antar-mesin OCR bersifat nyata,
+  yaitu melampaui simpangan antar-seed ($\pm$0,006). Mesin modern belum tentu unggul.
+  Tobacco3482 berisi pindaian cetak hitam putih, yaitu kondisi tempat Tesseract paling
+  kuat. Selain itu, CNN~1D peka urutan baca, yang berbeda antar-mesin.
+  \item \textbf{(RM2)} BERT memperkecil selisih antar-mesin dibandingkan FastText.
+  Argumen tandingannya: model bahasa standar juga melemah pada teks OCR
+  \parencite{michail2025}, dan batas 512 token memotong dokumen panjang.
+  \item \textbf{(RM3)} Pada fusion fitur, $\Delta_\text{teks}$ membesar seiring akurasi
+  cabang teks. Rata-rata logit menjamin $\Delta_\text{teks} > 0$ secara konstruksi,
+  tetapi OA-nya dapat turun bila cabang teks lemah.
+\end{enumerate}
+
+\section{Evaluasi dan Uji Statistik}\label{sec:evaluasi}
+
+Setiap model dievaluasi dengan lima ukuran: OA, macro F1 (Persamaan~\ref{eq:macrof1}),
+F1 per kelas, dan oracle, ditambah $\Delta_\text{teks}$ serta $\Delta_\text{citra}$
+(Persamaan~\ref{eq:delta}) untuk setiap model fusion.
+
+Perbandingan dua kondisi memakai uji McNemar (Persamaan~\ref{eq:mcnemar}) pada data uji
+yang sama, per seed. Uji binomial eksak dipakai bila $b + c < 25$. Ada enam pasangan
+mesin OCR per jenis embedding, sehingga ambang signifikansinya dikoreksi menjadi
+$0{,}05/6$. Sebuah perbedaan dinyatakan konsisten bila signifikan dan arahnya sama di
+ketiga seed. Semua angka dilaporkan sebagai rata-rata $\pm$ simpangan baku tiga seed.

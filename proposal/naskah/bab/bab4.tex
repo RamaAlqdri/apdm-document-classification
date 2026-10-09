@@ -1,0 +1,142 @@
+\chapter{Rencana Pelaksanaan}\label{bab:rencana}
+
+\section{Jadwal}\label{sec:jadwal}
+
+Implementasi Fase~2 dimulai \textbf{setelah proposal ini disetujui}. Setiap tahap
+diakhiri dengan catatan hasil dan pemeriksaan sebelum lanjut ke tahap berikutnya.
+Jadwalnya disajikan pada Tabel~\ref{tab:jadwal}.
+
+\begin{table}[H]
+  \centering
+  \caption{Jadwal pelaksanaan Fase~2}
+  \label{tab:jadwal}
+  \fontsize{10}{12}\selectfont
+  \begin{tabularx}{\textwidth}{|c|l|>{\raggedright\arraybackslash}X|}
+    \hline
+    \textbf{Minggu} & \textbf{Kegiatan} & \textbf{Keluaran dan kriteria selesai} \\ \hline
+    1 & OCR multi-mesin & Teks dan kotak dari tiga mesin untuk 3.482 halaman; audit
+    resolusi citra; tabel proksi kualitas (Subbab~\ref{sec:proksi}); versi pustaka
+    tercatat \\ \hline
+    2 & Cabang teks: FastText & 12 model; sel acuan mereproduksi Fase~1; uji McNemar
+    antar-mesin \\ \hline
+    3 & Cabang teks: BERT & 12 model; uji interaksi mesin OCR $\times$ embedding \\ \hline
+    4 & Fusion & Rata-rata logit untuk 24 sel; fusion fitur untuk dua kondisi;
+    $\Delta_\text{teks}$ dan $\Delta_\text{citra}$ setiap model \\ \hline
+    5 & Analisis dan laporan & Jawaban RM1--RM3 beserta jejaknya ke angka sumber;
+    tabel grid; grafik $\Delta_\text{teks}$ terhadap akurasi cabang teks \\ \hline
+    6 & Rancangan tahap lanjutan & Rancangan teks sebagai objek beserta referensinya
+    (Subbab~\ref{sec:lanjutan}) \\ \hline
+  \end{tabularx}
+  \sumber{Rancangan kelompok.}
+\end{table}
+
+\section{Kebutuhan Komputasi}\label{sec:komputasi}
+
+Seluruh komputasi dijalankan pada laptop dengan spesifikasi RTX 3050 (4~GB VRAM), Intel
+Core i7 generasi 11, dan RAM 24~GB. Perkiraan waktunya disajikan pada
+Tabel~\ref{tab:komputasi}.
+
+Angka bertanda $^\ast$ berasal dari eksekusi nyata Fase~1. Angka OCR berasal dari uji
+kelayakan pada satu halaman sintetis, dan akan diukur ulang pada 20 halaman pertama
+sebelum proses penuh dijalankan. Angka BERT masih berupa perkiraan.
+
+\begin{table}[H]
+  \centering
+  \caption{Perkiraan waktu komputasi}
+  \label{tab:komputasi}
+  \fontsize{10}{12}\selectfont
+  \begin{tabularx}{\textwidth}{|>{\raggedright\arraybackslash}X|l|l|}
+    \hline
+    \textbf{Pekerjaan} & \textbf{Satuan} & \textbf{Total} \\ \hline
+    OCR Tesseract (CPU) & $\pm$0,3 detik/halaman & $\pm$0,3 jam \\ \hline
+    OCR PaddleOCR (CPU) & $\pm$2 detik/halaman & $\pm$2 jam \\ \hline
+    OCR EasyOCR (GPU) & diukur saat uji coba & $\pm$1 jam \\ \hline
+    Ekstraksi fitur FastText & sekali muat model (15~GB RAM) & $<$1 jam \\ \hline
+    CNN 1D & 4,7 menit/run$^\ast$ & $\pm$1 jam (12 run) \\ \hline
+    BERT-base & perkiraan 10--20 menit/run & 2--4 jam (12 run) \\ \hline
+    Rata-rata logit dan uji \textit{missing modality} & tanpa pelatihan & hitungan menit \\ \hline
+    Fusion fitur & 4,04 jam/run$^\ast$ & $\pm$8 jam (2 run) \\ \hline
+    \textbf{Total} & & \textbf{$\pm$15--20 jam} \\ \hline
+  \end{tabularx}
+  \sumber{Eksekusi Fase~1 dan uji kelayakan kelompok.}
+\end{table}
+
+\section{Risiko dan Mitigasi}\label{sec:risiko}
+
+Risiko yang sudah teridentifikasi dan mitigasinya disajikan pada Tabel~\ref{tab:risiko}.
+
+\begin{table}[H]
+  \centering
+  \caption{Risiko dan mitigasi}
+  \label{tab:risiko}
+  \fontsize{10}{12}\selectfont
+  \begin{tabularx}{\textwidth}{|c|>{\raggedright\arraybackslash}p{5.2cm}|>{\raggedright\arraybackslash}X|}
+    \hline
+    & \textbf{Risiko} & \textbf{Mitigasi} \\ \hline
+    R1 & PaddleOCR membawa \texttt{opencv-contrib-python}, yang bentrok dengan opencv milik
+    EasyOCR dan menggeser versi numpy & PaddleOCR dijalankan di
+    \textit{virtual environment} terpisah ($\pm$1~GB), sehingga lingkungan utama tidak
+    tersentuh \\ \hline
+    R2 & Tesseract di Windows bukan paket pip & Dipasang lewat \texttt{winget}, dengan
+    langkah manual sebagai cadangan \\ \hline
+    R3 & Keras-OCR membutuhkan TensorFlow dengan API Keras~2, yang tidak tersedia untuk
+    Python 3.12. Dependensinya, \texttt{imgaug}, juga tidak cocok dengan numpy versi baru &
+    Dijalankan di lingkungan Python 3.11 tersendiri bila diwajibkan. Bila tidak, tiga
+    mesin sudah cukup untuk menjawab RM1--RM3 \\ \hline
+    R4 & BERT-base tidak muat di GPU 4~GB & \textit{Mixed precision}, akumulasi gradien,
+    atau DistilBERT (dicatat sebagai deviasi) \\ \hline
+    R5 & Menolkan masukan menghasilkan input di luar distribusi, sehingga $\Delta$ dapat
+    melebih-lebihkan ketergantungan. Pada Fase~1, model yang diperbaiki jatuh ke 0,1223
+    tanpa teks & $\Delta$ dilaporkan bersama \textit{linear probe}, dan ditafsirkan
+    sebagai ukuran ketergantungan, bukan sumbangan informasi \\ \hline
+    R6 & Perbedaan antar-mesin lebih kecil daripada derau antar-seed & Itu tetap merupakan
+    jawaban RM1: temuan negatif yang terukur, disertai uji statistik \\ \hline
+  \end{tabularx}
+  \sumber{Analisis kelompok.}
+\end{table}
+
+\textbf{Uji kelayakan yang telah dilakukan.} Ketiga mesin OCR telah dijalankan pada satu
+halaman memo sintetis, dan ketiganya membaca seluruh baris dengan benar. Pengujian ini
+juga mengungkap risiko R1 dan R3 serta penggantian model bawaan PaddleOCR, semuanya
+\emph{sebelum} dataset disentuh.
+
+\section{Luaran dan Kriteria Keberhasilan}\label{sec:luaran}
+
+Luaran penelitian ini adalah:
+\begin{enumerate}
+  \item teks dan kotak posisi teks Tobacco3482 dari tiga mesin OCR, beserta proksi
+  kualitasnya;
+  \item grid akurasi cabang teks untuk empat kondisi OCR $\times$ dua embedding $\times$
+  tiga seed, beserta uji McNemar;
+  \item nilai $\Delta_\text{teks}$ dan $\Delta_\text{citra}$ untuk setiap model fusion;
+  \item laporan yang menyatakan setiap hipotesis terdukung atau tidak, dengan rujukan ke
+  angka sumbernya.
+\end{enumerate}
+
+Keberhasilan diukur dari kelengkapan dan ketelitian jawaban, \emph{bukan} dari arah
+hasilnya. Bila mesin OCR ternyata tidak berpengaruh, itu jawaban yang sah dan
+informatif: artinya, celah pelaporan kualitas OCR yang diidentifikasi
+\textcite{mironczuk2026} tidak berdampak pada dataset ini.
+
+\section{Tahap Lanjutan: Teks sebagai Objek}\label{sec:lanjutan}
+
+Sesuai arahan dosen pengampu, tahap berikutnya memperlakukan teks bukan hanya sebagai
+rangkaian kata, tetapi sebagai \textbf{objek berposisi} pada halaman. Bahannya sudah
+tersedia dari langkah OCR, karena setiap mesin menyimpan kotak teksnya. Ada tiga kandidat
+representasi:
+\begin{enumerate}
+  \item fitur posisi dua dimensi di samping embedding kata;
+  \item peta kotak teks sebagai citra, yaitu setiap kotak digambar pada kanvas seukuran
+  halaman;
+  \item graf yang simpulnya kotak teks dan sisinya kedekatan spasial.
+\end{enumerate}
+
+Satu kontrol bersifat wajib. Kode ID arsip pada Tobacco3482 adalah objek teks berposisi
+konsisten, dan fitur dari kode ID saja sudah memberi $\pm$60\% akurasi
+\parencite{larson2025}. Model berbasis posisi dapat belajar jalan pintas ini alih-alih
+belajar tata letak dokumen. Karena itu setiap model akan diuji dengan dan tanpa kotak
+kode ID.
+
+Granularitas kotak juga berbeda antar-mesin: Tesseract per kata, sedangkan EasyOCR dan
+PaddleOCR per baris. Rancangan rinci beserta referensi (minimal tahun 2025) untuk tahap
+ini akan diajukan tersendiri setelah analisis Fase~2 selesai.

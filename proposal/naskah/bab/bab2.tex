@@ -1,0 +1,251 @@
+\chapter{Landasan Kepustakaan}\label{bab:landasan}
+
+\section{Kajian Pustaka}\label{sec:kajian-pustaka}
+
+\subsection{Fusion Teks dan Citra pada Tobacco3482}
+
+\textcite{audebert2020} merancang jaringan dua cabang yang dapat dilatih
+\textit{end-to-end}:
+\begin{itemize}
+  \item cabang citra: MobileNetV2 dengan masukan $384\times384$;
+  \item cabang teks: FastText dan CNN~1D atas teks hasil Tesseract~4;
+  \item fusion: konkatenasi vektor fitur kedua cabang.
+\end{itemize}
+Pada Tobacco3482, fusion mencapai akurasi 87,8\%, di atas baseline citra (84,5\%) dan
+baseline teks (73,8\%). Hasilnya dirata-ratakan atas tiga run tanpa simpangan baku.
+Penulis juga melaporkan bahwa penjumlahan fitur berada di bawah baseline citra, tetapi
+tanpa menyertakan angkanya. Di bagian penutup, penulis menyebut embedding yang tahan derau
+OCR sebagai arah penelitian lanjutan. Paper inilah yang direplikasi pada studi
+pendahuluan kami (Subbab~\ref{sec:studi-pendahuluan}).
+
+\textcite{kashyap2026} adalah penerus langsung pendekatan tersebut dan menjadi
+\textbf{referensi utama} penelitian ini. Ada empat perbedaan dari Audebert:
+\begin{itemize}
+  \item cabang citra memakai EfficientNetB3 dengan masukan $300\times300$;
+  \item cabang teks memakai BERT-base;
+  \item fusion dilakukan di tingkat keputusan, berupa rata-rata logit tanpa bobot;
+  \item kedua cabang di-\textit{fine-tune} pada $\pm$320.000 dokumen RVL-CDIP, lalu
+  Tobacco3482 dipakai hanya sebagai data uji.
+\end{itemize}
+Akurasi yang dilaporkan 93,06\% pada RVL-CDIP dan 92,00\% pada Tobacco3482.
+
+Pembacaan teks lengkap paper tersebut menghasilkan tiga catatan:
+\begin{enumerate}
+  \item Mesin OCR-nya hanya disebut \enquote{mesin OCR komersial}, tanpa nama.
+  \item Angka Tobacco3482 tidak konsisten dengan protokolnya sendiri. Kelas Note dan
+  Report tidak ada di RVL-CDIP, sehingga akurasi maksimum pada 10 kelas hanya 86,6\%.
+  Perhitungannya ada di Lampiran~\ref{lam:kashyap}.
+  \item Hasil dilaporkan dari satu run tanpa uji statistik.
+\end{enumerate}
+Penulis sendiri menyebut pembobotan modalitas adaptif dan kondisi degradasi OCR yang
+parah sebagai arah lanjutan. Keduanya bersinggungan langsung dengan penelitian ini.
+
+\subsection{Gambaran Bidang: Meta-analisis Fusion untuk Klasifikasi Dokumen}
+
+\textcite{mironczuk2026} menganalisis 139 studi primer fusion multimodal dan multiview
+untuk klasifikasi dokumen. Fusion multimodal menaikkan akurasi rata-rata 5,28 poin
+($p = 0{,}0016$). Namun efeknya terhadap F1 tidak signifikan secara statistik.
+
+Tiga temuan lain dari review ini relevan langsung untuk penelitian ini:
+\begin{enumerate}
+  \item Hanya 11,8\% studi multimodal yang memakai uji statistik.
+  \item Kualitas data, termasuk galat OCR, diakui sebagai sumber heterogenitas yang
+  \emph{tidak dapat dikontrol} dalam meta-analisis, karena studi primer tidak
+  melaporkannya.
+  \item Penulis menganjurkan pelaporan baseline unimodal, F1 untuk data timpang, dan
+  ablasi lengkap untuk setiap modalitas yang ditambahkan.
+\end{enumerate}
+
+\subsection{Perbandingan Mesin OCR dan Dampaknya pada Tugas Lanjutan}
+
+\textcite{francis2025} membandingkan tujuh mesin OCR, termasuk Tesseract, EasyOCR,
+PaddleOCR, dan Keras-OCR, pada citra campuran: dokumen cetak, layar, struk, dan ekspresi
+matematika. PaddleOCR mencatat akurasi tertinggi (0,7136), diikuti EasyOCR (0,6953),
+Tesseract (0,6868), dan Keras-OCR (0,6784). Selisihnya kecil, sekitar 3,5 poin. Yang
+diukur di sana adalah ketepatan OCR itu sendiri, bukan dampaknya pada tugas yang
+memakai teks hasil OCR.
+
+Dampak semacam itu diukur oleh \textcite{zhang2025} untuk sistem
+\textit{retrieval-augmented generation}. Mereka menyusun tolok ukur OHRBench dari 8.561
+citra dokumen. Galat OCR dipilah menjadi derau semantik (kata salah baca) dan derau
+format (struktur tabel atau rumus rusak). Keduanya terbukti menurunkan kinerja tugas
+lanjutan. Untuk klasifikasi dokumen, pengukuran serupa belum kami temukan.
+
+\subsection{Ketahanan Embedding terhadap Derau OCR}
+
+\textcite{michail2025} menunjukkan bahwa model embedding standar melemah pada teks hasil
+OCR, karena derau OCR jarang muncul dalam data pelatihannya. Ketahanannya dapat
+dipulihkan dengan cara yang murah: \textit{fine-tuning} memakai teks yang diberi derau
+karakter buatan dan \textit{loss} kontrastif, tanpa data berlabel dari domain sasaran.
+Temuan ini mendasari sumbu embedding dalam penelitian ini. FastText menangani derau OCR
+secara struktural melalui \textit{subword}, sedangkan BERT menanganinya melalui
+tokenisasi WordPiece dan konteks kalimat.
+
+\subsection{Jalan Pintas pada Tobacco3482}
+
+\textcite{larson2025} menunjukkan bahwa dokumen RVL-CDIP dan Tobacco3482 bercap
+\textbf{kode ID} arsip. Model sederhana yang hanya memakai fitur dari kode ID itu sudah
+mencapai $\pm$60\% akurasi di Tobacco3482. Pada RVL-CDIP, classifier mutakhir kehilangan
+11 poin akurasi setelah kode ID dihapus.
+
+Kode ID ini terlihat pada contoh dokumen di Gambar~\ref{fig:contoh-pasangan}, misalnya
+\texttt{00625137} dan \texttt{CTR CONTRACTS 023247}. Temuan ini menjadi kontrol wajib
+pada tahap lanjutan yang memperlakukan teks sebagai objek berposisi
+(Subbab~\ref{sec:lanjutan}).
+
+\subsection{Posisi Penelitian}
+
+Tabel~\ref{tab:posisi} memetakan studi-studi di atas terhadap lima aspek yang menjadi
+fokus penelitian ini.
+
+\begin{table}[H]
+  \centering
+  \caption{Posisi penelitian terhadap studi terkait}
+  \label{tab:posisi}
+  \fontsize{10}{12}\selectfont
+  \begin{tabularx}{\textwidth}{|>{\raggedright\arraybackslash}X|c|c|c|c|c|}
+    \hline
+    \textbf{Studi} & \textbf{\makecell{Mesin OCR\\disebut}} &
+    \textbf{\makecell{$>1$\\mesin OCR}} & \textbf{\makecell{Variasi\\embedding}} &
+    \textbf{\makecell{Uji missing\\modality}} & \textbf{\makecell{Uji\\statistik}} \\ \hline
+    \textcite{audebert2020} & \checkmark & -- & MLP vs CNN & -- & -- \\ \hline
+    \textcite{kashyap2026} & -- & -- & -- & -- & -- \\ \hline
+    \textcite{francis2025} & \checkmark & \checkmark\ (7) &
+    \multicolumn{3}{c|}{tanpa tugas klasifikasi} \\ \hline
+    \textbf{Penelitian ini} & \checkmark & \checkmark\ (3) & FastText, BERT &
+    \checkmark & \checkmark \\ \hline
+  \end{tabularx}
+  \sumber{Dirangkum dari studi yang dirujuk.}
+\end{table}
+
+\section{Dasar Teori}\label{sec:dasar-teori}
+
+\subsection{Optical Character Recognition}
+
+OCR modern umumnya bekerja dalam dua tahap: \textbf{deteksi} wilayah teks pada citra,
+lalu \textbf{pengenalan} karakter di dalam setiap wilayah. Ketiga mesin yang diuji
+berbeda pada kedua tahap tersebut.
+
+\textbf{Tesseract} \parencite{smith2007} memulai dengan analisis tata letak halaman untuk
+menemukan blok, baris, dan kata, lalu mengenali teksnya. Sejak versi 4, pengenalannya
+memakai jaringan LSTM yang membaca setiap baris sebagai sekuens. Konfigurasi
+\texttt{-{}-psm 3} berarti segmentasi halaman otomatis penuh tanpa deteksi orientasi.
+Konfigurasi inilah yang dipakai QS-OCR \parencite{qsocr}. Keluarannya mengikuti urutan baca
+Tesseract sendiri, yaitu blok, paragraf, baris, lalu kata.
+
+\textbf{EasyOCR} \parencite{easyocr} mendeteksi teks dengan CRAFT \parencite{baek2019}. CRAFT
+memprediksi wilayah setiap karakter dan keterkaitan antar-karakter, lalu menggabungkannya
+menjadi kotak kata atau baris. Pengenalannya memakai CRNN \parencite{shi2017}, yang terdiri
+atas tiga bagian:
+\begin{itemize}
+  \item ekstraktor fitur konvolusi;
+  \item LSTM dua arah untuk pelabelan sekuens;
+  \item dekoder \textit{connectionist temporal classification} (CTC).
+\end{itemize}
+
+\textbf{PaddleOCR} \parencite{paddleocr} menyusun pipeline dari modul-modul terpisah:
+klasifikasi orientasi dokumen, koreksi distorsi, deteksi baris teks, klasifikasi
+orientasi baris, dan pengenalan teks. Modul orientasi dan koreksi distorsi bersifat
+opsional. Penelitian ini memakai pasangan model deteksi dan pengenalan PP-OCRv5
+\textit{mobile}.
+
+Mesin berbasis kotak seperti EasyOCR dan PaddleOCR tidak menjamin urutan baca. Urutan
+itu harus direkonstruksi dari posisi kotak (Subbab~\ref{sec:metode-ocr}).
+
+\subsection{Representasi Kata}
+
+\textbf{FastText} \parencite{bojanowski2017} merepresentasikan kata $w$ sebagai jumlah
+vektor seluruh \textit{n-gram} karakternya:
+\begin{equation}\label{eq:fasttext}
+  \mathbf{u}_w = \sum_{g \in \mathcal{G}_w} \mathbf{z}_g
+\end{equation}
+dengan $\mathcal{G}_w$ himpunan \textit{n-gram} karakter kata $w$ beserta kata itu
+sendiri, dan $\mathbf{z}_g$ vektor untuk \textit{n-gram} $g$. Karena itu, kata yang rusak
+akibat OCR, misalnya \texttt{Tospacco}, tetap mendapat vektor yang dekat dengan kata
+aslinya, karena keduanya berbagi banyak \textit{n-gram}.
+
+\textbf{BERT} \parencite{devlin2019} adalah encoder Transformer dua arah yang dilatih awal
+dengan tugas \textit{masked language modelling}. Teks dipecah menjadi sub-kata dengan
+tokenisasi WordPiece, dan vektor setiap token bergantung pada konteks kalimatnya.
+Panjang masukan dibatasi 512 token. Untuk klasifikasi, representasi token khusus
+\texttt{[CLS]} dilewatkan ke lapisan klasifikasi, dan seluruh model di-\textit{fine-tune}.
+
+\subsection{Arsitektur Konvolusi}
+
+\textbf{CNN~1D untuk teks} \parencite{kim2014} menggeser filter konvolusi di sepanjang
+sekuens vektor kata, lalu meringkasnya dengan \textit{max-pooling} terhadap waktu. Filter
+dengan lebar $k$ berfungsi sebagai pendeteksi frasa sepanjang $k$ kata. Model ini peka
+terhadap \textbf{urutan} kata, berbeda dari rata-rata vektor kata.
+
+\textbf{MobileNetV2} \parencite{sandler2018} adalah CNN citra berbiaya rendah. Blok
+penyusunnya adalah \textit{inverted residual} dengan \textit{linear bottleneck}: kanal
+diekspansi dengan konvolusi $1\times1$, difilter dengan konvolusi \textit{depthwise}
+$3\times3$, lalu diproyeksikan kembali tanpa aktivasi non-linear.
+
+\subsection{Strategi Fusion}
+
+Fusion dapat dilakukan pada tingkat fitur atau tingkat keputusan
+\parencite{baltrusaitis2019}. Misalkan $\mathbf{v}_t, \mathbf{v}_v \in \mathbb{R}^{d}$
+adalah vektor fitur cabang teks dan citra, dan $\mathbf{z}_t, \mathbf{z}_v \in
+\mathbb{R}^{C}$ adalah logit keduanya untuk $C$ kelas.
+
+\textbf{Fusion tingkat fitur} menggabungkan vektor fitur lalu mengklasifikasikannya
+bersama. Pada konkatenasi \parencite{audebert2020}:
+\begin{equation}\label{eq:concat}
+  \hat{y} = \arg\max_c \; \mathrm{MLP}\!\left([\,\mathbf{v}_t \,;\, \mathbf{v}_v\,]\right)_c
+\end{equation}
+
+\textbf{Fusion tingkat keputusan} menggabungkan keluaran setiap cabang. Pada rata-rata
+logit tanpa bobot \parencite{kashyap2026}:
+\begin{equation}\label{eq:logit}
+  \hat{y} = \arg\max_c \; \tfrac{1}{2}\left(z_{t,c} + z_{v,c}\right)
+\end{equation}
+Fusion tingkat keputusan menjamin kedua cabang ikut menentukan hasil. Akibatnya, cabang
+yang lemah tetap memengaruhi keputusan.
+
+Pada fusion tingkat fitur, cabang dengan skala fitur jauh lebih besar dapat mendominasi.
+Masalah ini dapat diatasi dengan \textbf{Layer Normalization} \parencite{ba2016}, yang
+menormalkan setiap vektor fitur terhadap rata-rata $\mu$ dan simpangan baku $\sigma$
+komponennya sendiri:
+\begin{equation}\label{eq:layernorm}
+  \mathrm{LN}(\mathbf{v}) = \boldsymbol{\gamma} \odot \frac{\mathbf{v} - \mu}{\sigma +
+  \epsilon} + \boldsymbol{\beta}
+\end{equation}
+dengan $\boldsymbol{\gamma}$ dan $\boldsymbol{\beta}$ parameter yang dipelajari. LN
+bekerja per sampel, sehingga tidak bergantung pada ukuran \textit{batch}.
+
+\subsection{Metrik Evaluasi}
+
+\textbf{Overall accuracy} (OA) adalah proporsi dokumen uji yang diklasifikasikan dengan
+benar. Kelas Tobacco3482 timpang, dengan rasio kelas terbesar berbanding terkecil
+5,2:1, sehingga OA cenderung didominasi kelas besar. Karena itu \textbf{macro F1} juga
+dilaporkan:
+\begin{equation}\label{eq:macrof1}
+  \mathrm{F1}_c = \frac{2\, P_c R_c}{P_c + R_c}, \qquad
+  \text{macro F1} = \frac{1}{C} \sum_{c=1}^{C} \mathrm{F1}_c
+\end{equation}
+dengan $P_c$ dan $R_c$ presisi dan \textit{recall} kelas $c$.
+
+\textbf{Oracle} adalah batas atas teoretis fusion: sebuah dokumen dihitung benar bila
+cabang teks \emph{atau} cabang citra mengklasifikasikannya dengan benar
+\parencite{audebert2020}. Selisih antara oracle dan baseline terbaik adalah potensi yang
+dapat dipanen fusion.
+
+\textbf{Uji \textit{missing modality}} mengukur ketergantungan model gabungan pada setiap
+modalitas. Caranya, masukan satu modalitas dinolkan saat inferensi:
+\begin{equation}\label{eq:delta}
+  \Delta_\text{teks} = \mathrm{OA}_\text{utuh} - \mathrm{OA}_\text{teks dinolkan}
+\end{equation}
+$\Delta_\text{citra}$ didefinisikan secara analog. $\Delta_\text{teks}$ yang mendekati nol
+berarti model tidak memakai teks, berapa pun akurasinya.
+
+\textbf{Uji McNemar} \parencite{mcnemar1947} membandingkan dua classifier pada data uji
+yang sama. Uji ini dianjurkan untuk perbandingan algoritme pembelajaran oleh
+\textcite{dietterich1998}. Bila $b$ adalah jumlah dokumen yang hanya benar pada classifier
+pertama dan $c$ jumlah dokumen yang hanya benar pada classifier kedua:
+\begin{equation}\label{eq:mcnemar}
+  \chi^2 = \frac{(|b - c| - 1)^2}{b + c}
+\end{equation}
+Statistik ini berdistribusi $\chi^2$ dengan satu derajat bebas. Bila $b + c$ kecil,
+dipakai uji binomial eksak. Untuk $m$ perbandingan sekaligus, ambang signifikansi
+dikoreksi menjadi $\alpha/m$ (koreksi Bonferroni, \cite{dunn1961}).

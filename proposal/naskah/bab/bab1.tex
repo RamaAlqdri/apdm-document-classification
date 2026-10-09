@@ -1,0 +1,112 @@
+\chapter{Pendahuluan}\label{bab:pendahuluan}
+
+\section{Latar Belakang}\label{sec:latar-belakang}
+
+Dokumen hasil pindai menyimpan informasi pada dua lapis sekaligus. Lapis pertama adalah
+\textbf{tata letak}: posisi blok, kerapatan tulisan, tabel, kop surat, dan tanda tangan.
+Lapis kedua adalah \textbf{isi tekstual}: kata-kata seperti \textit{Dear Sir},
+\textit{Memorandum}, atau \textit{Curriculum Vitae} yang langsung menandai jenis dokumen.
+Lapis pertama terlihat langsung pada citra. Lapis kedua tersembunyi di dalam piksel dan
+harus dikeluarkan lebih dulu melalui \textit{optical character recognition} (OCR).
+Karena teksnya diturunkan dari citra, \textbf{mutu modalitas teks dibatasi oleh mutu
+OCR-nya}.
+
+Pada laporan Progress~1, kelompok kami mengusulkan replikasi model dua cabang
+\textcite{audebert2020}. Model ini menggabungkan MobileNetV2 untuk citra halaman dengan
+FastText dan CNN~1D untuk teks hasil Tesseract. Replikasi diuji pada dataset Tobacco3482,
+dan Progress~1 mengajukan tiga pertanyaan:
+\begin{enumerate*}[label=(\alph*)]
+  \item seberapa besar akurasi naik bila kedua modalitas digabung;
+  \item strategi penggabungan mana yang bekerja; dan
+  \item apakah model gabungan sungguh memakai kedua sumber.
+\end{enumerate*}
+
+Sejak Progress~1, replikasi tersebut telah dijalankan penuh, dan ketiga pertanyaan itu
+telah terjawab (Subbab~\ref{sec:studi-pendahuluan}). Jawaban pertanyaan (c) yang paling
+menentukan arah penelitian ini. Secara angka, replikasi berhasil: model gabungan
+mencapai akurasi 0,834, di atas baseline citra (0,809) dan baseline teks (0,727). Namun
+ketika seluruh masukan teks dinolkan saat inferensi, akurasinya hanya turun
+\textbf{0,0015}. Model gabungan itu ternyata \textbf{diam-diam unimodal}: kenaikan
+akurasinya tidak berasal dari teks. Padahal komplementaritas kedua modalitas jelas ada,
+karena 8,9\% dokumen uji hanya dapat diklasifikasikan dengan benar melalui teks.
+
+Temuan ini menyingkap kelemahan cara bidang ini melaporkan hasil. Studi fusion teks--citra
+umumnya hanya melaporkan akurasi gabungan. Padahal, seperti ditunjukkan replikasi kami,
+akurasi gabungan yang tinggi tidak membuktikan bahwa kedua modalitas benar-benar dipakai.
+
+Studi terkini mewarisi kelemahan yang sama dan menambah satu kelemahan lain.
+\textcite{kashyap2026} menggabungkan EfficientNetB3 dan BERT, dan melaporkan akurasi
+92,00\% pada Tobacco3482. Akan tetapi, mesin OCR yang menghasilkan teksnya hanya disebut
+\enquote{mesin OCR komersial}, tanpa nama. Akibatnya, keunggulan cabang teks mereka tidak
+dapat dipisahkan dari mesin OCR yang tidak diketahui itu.
+
+Di tingkat bidang, meta-analisis atas 139 studi oleh \textcite{mironczuk2026} menemukan
+bahwa fusion multimodal menaikkan akurasi rata-rata 5,28 poin. Namun meta-analisis itu
+\emph{tidak dapat} mengontrol kualitas OCR, karena studi primer jarang melaporkannya.
+Hanya 11,8\% studi multimodal yang memakai uji statistik. Perbandingan mesin OCR yang ada,
+misalnya \textcite{francis2025}, mengukur ketepatan OCR itu sendiri, bukan dampaknya pada
+tugas lanjutan. Padahal galat OCR terbukti merambat ke tugas berikutnya
+\parencite{zhang2025}.
+
+Tanggapan dosen pengampu atas Progress~1 mengarahkan penelitian ini ke celah tersebut.
+Arahan itu meliputi eksplorasi mesin OCR selain Tesseract (EasyOCR, PaddleOCR,
+Keras-OCR), eksplorasi pada sisi embedding, perumusan celah penelitian yang eksplisit,
+dan referensi utama yang terbit paling awal tahun 2025. Riwayat lengkap pemilihan
+referensi dan tanggapan dosen dicatat pada Lampiran~\ref{lam:riwayat}.
+
+Penelitian ini karena itu menjadikan \textbf{mesin OCR} dan \textbf{embedding teks}
+sebagai variabel. Pengaruh keduanya diukur bukan hanya terhadap akurasi, tetapi juga
+terhadap \emph{seberapa jauh model gabungan benar-benar memakai} modalitas teks.
+
+\section{Rumusan Masalah}\label{sec:rumusan-masalah}
+
+\begin{enumerate}[label=RM\arabic*.,leftmargin=1.2cm,labelwidth=1.2cm]
+  \item Seberapa besar pilihan mesin OCR (Tesseract, EasyOCR, PaddleOCR) mengubah akurasi
+  cabang teks pada klasifikasi dokumen Tobacco3482?
+  \item Apakah embedding kontekstual (BERT) memperkecil selisih antar-mesin OCR
+  dibandingkan embedding subword statis (FastText)? Dengan kata lain, adakah interaksi
+  antara mesin OCR dan jenis embedding?
+  \item Apakah cabang teks yang lebih kuat membuat model gabungan lebih
+  \emph{memakai} modalitas teks? Apakah aturan fusion rata-rata logit lebih tahan
+  terhadap cabang yang timpang dibandingkan fusion tingkat fitur?
+\end{enumerate}
+
+\section{Tujuan Penelitian}\label{sec:tujuan}
+
+\begin{enumerate}[label=T\arabic*.,leftmargin=1.2cm,labelwidth=1.2cm]
+  \item Mengukur pengaruh mesin OCR terhadap akurasi dan macro F1 cabang teks, disertai
+  uji statistik antar-mesin.
+  \item Mengukur interaksi mesin OCR dan jenis embedding melalui desain faktorial.
+  \item Mengukur pemanfaatan modalitas teks pada model gabungan melalui uji
+  \textit{missing modality}, serta membandingkan aturan rata-rata logit
+  \parencite{kashyap2026} dengan fusion tingkat fitur.
+\end{enumerate}
+
+\section{Manfaat Penelitian}\label{sec:manfaat}
+
+\begin{enumerate}
+  \item \textbf{Manfaat akademik.} Penelitian ini menyediakan protokol evaluasi fusion
+  yang melampaui akurasi gabungan: uji \textit{missing modality}, beberapa seed, dan uji
+  statistik. Protokol ini menjawab kekurangan pelaporan yang diidentifikasi
+  \textcite{mironczuk2026}.
+  \item \textbf{Manfaat praktis.} Penelitian ini memberi dasar empiris untuk memilih mesin
+  OCR open-source pada sistem klasifikasi dokumen. Dasar ini diukur dari dampaknya pada
+  klasifikasi, bukan dari ketepatan OCR semata.
+  \item \textbf{Bahan tahap lanjutan.} Kotak posisi teks dari setiap mesin OCR disimpan
+  sejak awal sebagai bahan tahap berikutnya, yaitu teks sebagai objek
+  (Subbab~\ref{sec:lanjutan}).
+\end{enumerate}
+
+\section{Batasan Masalah}\label{sec:batasan}
+
+\begin{enumerate}
+  \item Dataset yang dipakai hanya Tobacco3482 (3.482 dokumen, 10 kelas). RVL-CDIP
+  \parencite{harley2015} tidak dipakai karena ukurannya ($\pm$400.000 dokumen) di luar kemampuan perangkat yang
+  tersedia. Akibatnya, angka penelitian ini \textbf{tidak sebanding langsung} dengan
+  \textcite{kashyap2026}, yang melatih modelnya pada RVL-CDIP.
+  \item Kualitas OCR diukur melalui proksi. Tobacco3482 tidak memiliki transkripsi acuan,
+  sehingga \textit{character error rate} tidak dapat dihitung.
+  \item Cabang citra dibuat tetap (MobileNetV2) di semua kondisi, supaya perbedaan hasil
+  hanya berasal dari sisi teks.
+  \item Seluruh komputasi dijalankan pada satu laptop dengan GPU 4~GB VRAM.
+\end{enumerate}
