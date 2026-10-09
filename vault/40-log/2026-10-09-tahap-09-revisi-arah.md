@@ -70,3 +70,21 @@ tetap tidak memenuhi syarat, jadi referensi utama tetap diganti.
 - PDF Larson 2025 perlu diunduh manual dari
   https://dl.acm.org/doi/10.1145/3704268.3748683.
 - Tahap 10 butuh keputusan instalasi: Tesseract di Windows, `paddlepaddle-gpu` >500 MB.
+
+## Tambahan: proposal diperluas
+
+Atas permintaan pengguna, fokus sampai dosen menyetujui adalah **perencanaan saja**, dan
+keluarannya cukup `proposal/proposal.pdf`. Proposal 3 halaman diperluas menjadi 12
+halaman:
+
+- riwayat pemilihan jurnal (alasan memilih Audebert, hasil Fase 1, temuan cabang teks
+  tidak terpakai beserta diagnosis dan perbaikannya);
+- tanggapan dosen dan proses pencarian referensi baru;
+- alasan memilih [[kashyap-2026-ringkasan]];
+- tabel posisi penelitian, hipotesis H1–H3, metodologi lengkap dengan rumus McNemar dan
+  proksi OOV;
+- rencana implementasi 6 minggu, perkiraan komputasi, dan tabel risiko;
+- lampiran catatan kritis atas Kashyap.
+
+Kode Tahap 10 (commit `7df43ed`) sudah ada tapi belum di-push. Statusnya menunggu
+keputusan pengguna.
