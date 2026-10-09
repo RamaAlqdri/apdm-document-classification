@@ -1,8 +1,8 @@
-\chapter{Landasan Kepustakaan}\label{bab:landasan}
+\section{Tinjauan Pustaka}\label{sec:tinjauan}
 
-\section{Kajian Pustaka}\label{sec:kajian-pustaka}
+\subsection{Kajian Pustaka}\label{sec:kajian-pustaka}
 
-\subsection{Fusion Teks dan Citra pada Tobacco3482}
+\subsubsection{Fusion Teks dan Citra pada Tobacco3482}
 
 \textcite{audebert2020} merancang jaringan dua cabang yang dapat dilatih
 \textit{end-to-end}:
@@ -13,10 +13,10 @@
 \end{itemize}
 Pada Tobacco3482, fusion mencapai akurasi 87,8\%, di atas baseline citra (84,5\%) dan
 baseline teks (73,8\%). Hasilnya dirata-ratakan atas tiga run tanpa simpangan baku.
-Penulis juga melaporkan bahwa penjumlahan fitur berada di bawah baseline citra, tetapi
-tanpa menyertakan angkanya. Di bagian penutup, penulis menyebut embedding yang tahan derau
-OCR sebagai arah penelitian lanjutan. Paper inilah yang direplikasi pada studi
-pendahuluan kami (Subbab~\ref{sec:studi-pendahuluan}).
+Penulis juga melaporkan oracle, yaitu batas atas teoretis fusion, sebesar 92,1\%. Artinya
+fusion baru memanen 3,3 dari 7,6 poin potensi di atas baseline citra. Penjumlahan fitur
+dilaporkan berada di bawah baseline citra, tetapi tanpa angka. Di bagian penutup, penulis
+menyebut embedding yang tahan derau OCR sebagai arah penelitian lanjutan.
 
 \textcite{kashyap2026} adalah penerus langsung pendekatan tersebut dan menjadi
 \textbf{referensi utama} penelitian ini. Ada empat perbedaan dari Audebert:
@@ -29,18 +29,24 @@ pendahuluan kami (Subbab~\ref{sec:studi-pendahuluan}).
 \end{itemize}
 Akurasi yang dilaporkan 93,06\% pada RVL-CDIP dan 92,00\% pada Tobacco3482.
 
-Pembacaan teks lengkap paper tersebut menghasilkan tiga catatan:
+Pembacaan teks lengkap paper tersebut menghasilkan empat catatan:
 \begin{enumerate}
-  \item Mesin OCR-nya hanya disebut \enquote{mesin OCR komersial}, tanpa nama.
-  \item Angka Tobacco3482 tidak konsisten dengan protokolnya sendiri. Kelas Note dan
-  Report tidak ada di RVL-CDIP, sehingga akurasi maksimum pada 10 kelas hanya 86,6\%.
-  Perhitungannya ada di Lampiran~\ref{lam:kashyap}.
-  \item Hasil dilaporkan dari satu run tanpa uji statistik.
+  \item \textbf{Mesin OCR-nya hanya disebut \enquote{mesin OCR komersial}}, tanpa nama,
+  sehingga cabang teksnya tidak dapat direproduksi. Keunggulan BERT pun tidak dapat
+  dipisahkan dari efek mesin OCR yang tidak diketahui itu.
+  \item \textbf{Angka Tobacco3482 tidak konsisten dengan protokolnya sendiri.} Kelas Note
+  (201 dokumen) dan Report (265 dokumen) tidak ada di 16 kelas RVL-CDIP, sehingga tidak
+  mungkin diprediksi benar. Bila seluruh 3.482 dokumen dievaluasi, akurasi maksimumnya
+  hanya $3016/3482 = 86{,}6\%$. Tabel per kelas paper memang hanya memuat 8 kelas.
+  \item \textbf{Perbandingan dengan Audebert tidak setara.} Angka 92,00\% (dilatih pada
+  RVL-CDIP) disandingkan dengan 87,8\% Audebert (dilatih pada 800 dokumen Tobacco3482)
+  tanpa menyebut perbedaan protokolnya.
+  \item \textbf{Hasil dilaporkan dari satu run}, tanpa uji statistik.
 \end{enumerate}
 Penulis sendiri menyebut pembobotan modalitas adaptif dan kondisi degradasi OCR yang
 parah sebagai arah lanjutan. Keduanya bersinggungan langsung dengan penelitian ini.
 
-\subsection{Gambaran Bidang: Meta-analisis Fusion untuk Klasifikasi Dokumen}
+\subsubsection{Gambaran Bidang: Meta-analisis Fusion untuk Klasifikasi Dokumen}
 
 \textcite{mironczuk2026} menganalisis 139 studi primer fusion multimodal dan multiview
 untuk klasifikasi dokumen. Fusion multimodal menaikkan akurasi rata-rata 5,28 poin
@@ -56,7 +62,7 @@ Tiga temuan lain dari review ini relevan langsung untuk penelitian ini:
   ablasi lengkap untuk setiap modalitas yang ditambahkan.
 \end{enumerate}
 
-\subsection{Perbandingan Mesin OCR dan Dampaknya pada Tugas Lanjutan}
+\subsubsection{Perbandingan Mesin OCR dan Dampaknya pada Tugas Lanjutan}
 
 \textcite{francis2025} membandingkan tujuh mesin OCR, termasuk Tesseract, EasyOCR,
 PaddleOCR, dan Keras-OCR, pada citra campuran: dokumen cetak, layar, struk, dan ekspresi
@@ -71,7 +77,7 @@ citra dokumen. Galat OCR dipilah menjadi derau semantik (kata salah baca) dan de
 format (struktur tabel atau rumus rusak). Keduanya terbukti menurunkan kinerja tugas
 lanjutan. Untuk klasifikasi dokumen, pengukuran serupa belum kami temukan.
 
-\subsection{Ketahanan Embedding terhadap Derau OCR}
+\subsubsection{Ketahanan Embedding terhadap Derau OCR}
 
 \textcite{michail2025} menunjukkan bahwa model embedding standar melemah pada teks hasil
 OCR, karena derau OCR jarang muncul dalam data pelatihannya. Ketahanannya dapat
@@ -81,19 +87,17 @@ Temuan ini mendasari sumbu embedding dalam penelitian ini. FastText menangani de
 secara struktural melalui \textit{subword}, sedangkan BERT menanganinya melalui
 tokenisasi WordPiece dan konteks kalimat.
 
-\subsection{Jalan Pintas pada Tobacco3482}
+\subsubsection{Jalan Pintas pada Tobacco3482}
 
 \textcite{larson2025} menunjukkan bahwa dokumen RVL-CDIP dan Tobacco3482 bercap
 \textbf{kode ID} arsip. Model sederhana yang hanya memakai fitur dari kode ID itu sudah
 mencapai $\pm$60\% akurasi di Tobacco3482. Pada RVL-CDIP, classifier mutakhir kehilangan
 11 poin akurasi setelah kode ID dihapus.
 
-Kode ID ini terlihat pada contoh dokumen di Gambar~\ref{fig:contoh-pasangan}, misalnya
-\texttt{00625137} dan \texttt{CTR CONTRACTS 023247}. Temuan ini menjadi kontrol wajib
-pada tahap lanjutan yang memperlakukan teks sebagai objek berposisi
-(Subbab~\ref{sec:lanjutan}).
+Temuan ini menjadi kontrol wajib pada tahap lanjutan yang memperlakukan teks sebagai
+objek berposisi (Subbagian~\ref{sec:lanjutan}).
 
-\subsection{Posisi Penelitian}
+\subsubsection{Posisi Rencana Penelitian}\label{sec:posisi}
 
 Tabel~\ref{tab:posisi} memetakan studi-studi di atas terhadap lima aspek yang menjadi
 fokus penelitian ini.
@@ -112,15 +116,14 @@ fokus penelitian ini.
     \textcite{kashyap2026} & -- & -- & -- & -- & -- \\ \hline
     \textcite{francis2025} & \checkmark & \checkmark\ (7) &
     \multicolumn{3}{c|}{tanpa tugas klasifikasi} \\ \hline
-    \textbf{Penelitian ini} & \checkmark & \checkmark\ (3) & FastText, BERT &
+    \textbf{Rencana ini} & \checkmark & \checkmark\ (3) & FastText, BERT &
     \checkmark & \checkmark \\ \hline
   \end{tabularx}
-  \sumber{Dirangkum dari studi yang dirujuk.}
 \end{table}
 
-\section{Dasar Teori}\label{sec:dasar-teori}
+\subsection{Dasar Teori}\label{sec:dasar-teori}
 
-\subsection{Optical Character Recognition}
+\subsubsection{Optical Character Recognition}
 
 OCR modern umumnya bekerja dalam dua tahap: \textbf{deteksi} wilayah teks pada citra,
 lalu \textbf{pengenalan} karakter di dalam setiap wilayah. Ketiga mesin yang diuji
@@ -150,9 +153,9 @@ opsional. Penelitian ini memakai pasangan model deteksi dan pengenalan PP-OCRv5
 \textit{mobile}.
 
 Mesin berbasis kotak seperti EasyOCR dan PaddleOCR tidak menjamin urutan baca. Urutan
-itu harus direkonstruksi dari posisi kotak (Subbab~\ref{sec:metode-ocr}).
+itu harus direkonstruksi dari posisi kotak (Subbagian~\ref{sec:metode-ocr}).
 
-\subsection{Representasi Kata}
+\subsubsection{Representasi Kata}
 
 \textbf{FastText} \parencite{bojanowski2017} merepresentasikan kata $w$ sebagai jumlah
 vektor seluruh \textit{n-gram} karakternya:
@@ -170,7 +173,7 @@ tokenisasi WordPiece, dan vektor setiap token bergantung pada konteks kalimatnya
 Panjang masukan dibatasi 512 token. Untuk klasifikasi, representasi token khusus
 \texttt{[CLS]} dilewatkan ke lapisan klasifikasi, dan seluruh model di-\textit{fine-tune}.
 
-\subsection{Arsitektur Konvolusi}
+\subsubsection{Arsitektur Konvolusi}
 
 \textbf{CNN~1D untuk teks} \parencite{kim2014} menggeser filter konvolusi di sepanjang
 sekuens vektor kata, lalu meringkasnya dengan \textit{max-pooling} terhadap waktu. Filter
@@ -182,7 +185,7 @@ penyusunnya adalah \textit{inverted residual} dengan \textit{linear bottleneck}:
 diekspansi dengan konvolusi $1\times1$, difilter dengan konvolusi \textit{depthwise}
 $3\times3$, lalu diproyeksikan kembali tanpa aktivasi non-linear.
 
-\subsection{Strategi Fusion}
+\subsubsection{Strategi Fusion}
 
 Fusion dapat dilakukan pada tingkat fitur atau tingkat keputusan
 \parencite{baltrusaitis2019}. Misalkan $\mathbf{v}_t, \mathbf{v}_v \in \mathbb{R}^{d}$
@@ -214,7 +217,7 @@ komponennya sendiri:
 dengan $\boldsymbol{\gamma}$ dan $\boldsymbol{\beta}$ parameter yang dipelajari. LN
 bekerja per sampel, sehingga tidak bergantung pada ukuran \textit{batch}.
 
-\subsection{Metrik Evaluasi}
+\subsubsection{Metrik Evaluasi}
 
 \textbf{Overall accuracy} (OA) adalah proporsi dokumen uji yang diklasifikasikan dengan
 benar. Kelas Tobacco3482 timpang, dengan rasio kelas terbesar berbanding terkecil

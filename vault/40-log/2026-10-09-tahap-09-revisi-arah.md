@@ -108,3 +108,22 @@ Atas permintaan pengguna, proposal ditulis ulang memakai template di
 - **Holm diganti Bonferroni** (Dunn 1961), karena entri Holm 1979 tidak bisa
   diverifikasi lewat Crossref.
 - **Pemeriksaan template:** 0 overfull, 0 rujukan menggantung, 0 penanda merah.
+
+## Tambahan 2026-10-10: disederhanakan menjadi laporan rencana
+
+Pengguna meminta dua hal: **tidak ada hasil eksekusi apa pun** di dokumen ini, karena
+statusnya masih rencana, dan bentuknya **laporan tugas biasa**, bukan naskah formal.
+
+- **Dihapus:** kata "proposal" di sampul; daftar isi, tabel, gambar, dan lampiran;
+  halaman BAB; studi pendahuluan beserta seluruh angka dan gambar hasil run; dan angka
+  waktu komputasi hasil pengukuran.
+- **Celah penelitian kini bersandar pada literatur saja:** Kashyap (OCR tanpa nama,
+  hanya akurasi gabungan), Mirończuk (kualitas OCR tak terkontrol, sinergi lintas
+  modalitas sulit dicapai), Francis (perbandingan hanya di tingkat OCR), dan Zhang (galat
+  OCR merambat).
+- **Fusion fitur dengan LayerNorm** dibenarkan secara teoretis (menyamakan skala cabang),
+  bukan lewat temuan run.
+- **Pemeriksaan kewarasan** memakai angka paper Audebert (0,738).
+
+Hasilnya 19 halaman dengan bagian bernomor 1–4 dan daftar referensi. Pemeriksaannya:
+0 overfull, 0 rujukan menggantung.
