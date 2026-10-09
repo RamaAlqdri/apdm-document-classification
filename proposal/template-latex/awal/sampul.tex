@@ -1,0 +1,28 @@
+% Sampul [spek D]. Tanpa nomor halaman, tetapi terhitung sebagai halaman i.
+% Jarak vertikal disetel terhadap Template Tesis V2.pdf hal-1; lihat _verifikasi/v2/.
+% Judul panjang akan menambah baris dan menggeser blok atas ke bawah,
+% sama seperti di Word; blok institusi tetap tertambat di bawah.
+\begin{titlepage}
+\thispagestyle{empty}
+\setlength{\parskip}{0pt}
+\centering
+\vspace*{-0.57cm}  % V2: garis dasar judul 4,04 cm dari tepi atas
+{\bfseries\ukuran{16}\judul\par}   % V2: 16 pt tebal, huruf judul (Title Case), bukan kapital
+\vspace{0.89cm}
+{\bfseries\ukuran{14}\jenisnaskah\par}              % AcademicLevel 14 pt tebal
+\vspace{2.55cm}
+{\ukuran{14}Disusun oleh:\par
+ \penulis\par
+ NIM: \nim\par}
+\vspace{2.72cm}  % V2: logo 5 cm, tepi atas 14,71 cm
+\includegraphics[width=5cm]{logo-ub}\par
+\vfill
+{\ukuran{14}\programstudi\par
+ \departemen\par
+ \fakultas\par
+ \universitas\par
+ \kota\par
+ \tahun\par}
+\vspace{0.16cm}  % V2: garis dasar tahun 26,54 cm dari tepi atas
+\end{titlepage}
+\setcounter{page}{2}

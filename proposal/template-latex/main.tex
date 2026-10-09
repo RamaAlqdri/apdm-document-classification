@@ -1,0 +1,51 @@
+% Template naskah akademik FILKOM Universitas Brawijaya.
+% Berkas ini hanya merangkai bagian-bagian; SELURUH format ada di gaya/ubtesis.sty.
+% Kompilasi: latexmk main.tex   (pdfLaTeX + biber)
+\documentclass[12pt,a4paper,oneside]{report}
+\usepackage{gaya/ubtesis}
+\addbibresource{referensi.bib}
+
+% ------------------------------------------------------------- data sampul
+% Ganti seluruh isi di bawah ini. Hanya bagian inilah yang wajib disunting
+% sebelum naskah dapat dikompilasi dengan identitas yang benar.
+\newcommand\judul{Judul Naskah Ditulis dengan Huruf Kapital di Awal Setiap Kata
+  dan Boleh Melampaui Satu Baris}
+\newcommand\jenisnaskah{PROPOSAL TESIS}   % atau TESIS, SKRIPSI, PROPOSAL SKRIPSI
+\newcommand\penulis{Nama Lengkap Penulis}
+\newcommand\nim{000000000000000}
+\newcommand\programstudi{PROGRAM STUDI ...}
+\newcommand\departemen{DEPARTEMEN ...}
+\newcommand\fakultas{FAKULTAS ILMU KOMPUTER}
+\newcommand\universitas{UNIVERSITAS BRAWIJAYA}
+\newcommand\kota{MALANG}
+\newcommand\tahun{20XX}
+\newcommand\pembimbing{[NAMA PEMBIMBING]}
+
+\begin{document}
+% ------------------------------------------------------------- halaman awal
+% Margin atas 3,5 cm dan nomor halaman angka Romawi kecil.
+\margininduk
+\pagenumbering{roman}
+\input{awal/sampul}
+\daftarisi
+\daftartabel
+\daftargambar
+\daftarlampiran         % terisi otomatis dari \appendix; hapus bila tanpa lampiran
+
+% ------------------------------------------------------------- isi
+% Margin atas kembali 3 cm dan nomor halaman angka Arab.
+\marginisi
+\clearpage
+\pagenumbering{arabic}
+\input{bab/bab1}
+% \input{bab/bab2}
+% \input{bab/bab3}
+
+% ------------------------------------------------------------- akhir
+\daftarreferensi
+
+% Setiap \chapter sesudah \appendix menjadi "LAMPIRAN A ..." dan otomatis
+% tercatat di DAFTAR LAMPIRAN. Hapus blok ini bila naskah tanpa lampiran.
+\appendix
+\input{lampiran/lampiran-a}
+\end{document}

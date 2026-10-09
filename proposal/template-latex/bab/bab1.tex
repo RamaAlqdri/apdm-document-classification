@@ -1,0 +1,52 @@
+% Satu berkas per bab. \chapter menghasilkan "BAB I" lalu judulnya di baris berikut.
+\chapter{Pendahuluan}\label{bab:pendahuluan}
+
+\section{Latar Belakang}\label{sec:latar-belakang}
+
+Paragraf pertama setiap bab dan subbab tidak perlu perlakuan khusus; indentasi 0,75~cm
+sudah diatur gaya. Rujukan silang ditulis \texttt{Bab~\textbackslash ref\{bab:pendahuluan\}}
+sehingga menghasilkan Bab~\ref{bab:pendahuluan}.
+
+Sitasi memakai biblatex gaya \emph{authoryear}: \parencite{contoh2020} untuk sitasi dalam
+kurung, dan \textcite{contoh2020} bila nama penulis menjadi bagian kalimat.
+
+Istilah asing dicetak miring, misalnya \textit{deep learning}. Tanda yang masih harus
+dilengkapi ditandai agar mudah dicari: \todo{lengkapi angka ini},
+\rujukandiperlukan{klaim ini}, dan \konfirmasi{tanyakan ke pembimbing}.
+
+\section{Rumusan Masalah}\label{sec:rumusan-masalah}
+
+\begin{enumerate}[label=RM\arabic*.,leftmargin=1.2cm,labelwidth=1.2cm]
+  \item Pertanyaan penelitian pertama.
+  \item Pertanyaan penelitian kedua.
+\end{enumerate}
+
+\section{Contoh Tabel}\label{sec:contoh-tabel}
+
+Keterangan tabel diletakkan di atas tabel, keterangan gambar di bawah gambar.
+
+\begin{table}[H]
+  \centering
+  \caption{Keterangan tabel ditulis di atas}
+  \label{tab:contoh}
+  \begin{tabular}{|l|l|}
+    \hline
+    \textbf{Kolom pertama} & \textbf{Kolom kedua} \\ \hline
+    Isi baris pertama      & Isi baris pertama    \\ \hline
+    Isi baris kedua        & Isi baris kedua      \\ \hline
+  \end{tabular}
+  \sumber{Penulis, \tahun.}
+\end{table}
+
+Untuk tabel yang melampaui satu halaman, pakai \texttt{xltabular} dan perintah
+\texttt{\textbackslash lanjutan\{n\}} pada baris penanda sambungan.
+
+\section{Contoh Persamaan}\label{sec:contoh-persamaan}
+
+Persamaan bernomor otomatis mengikuti nomor bab.
+
+\begin{equation}\label{eq:contoh}
+  y = \sum_{i=1}^{n} w_i x_i + b
+\end{equation}
+
+Persamaan~\ref{eq:contoh} dirujuk seperti ini.
