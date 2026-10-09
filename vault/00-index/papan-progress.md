@@ -86,6 +86,7 @@ log tidak jadi catatan yatim di graf Obsidian:
 - [[2026-09-30-pengisian-hasil]]
 - [[2026-09-30-tahap-08-sintesis]]
 - [[2026-10-09-tahap-09-revisi-arah]]
+- [[2026-10-09-tahap-10-ocr-multi-mesin]]
 
 ## Log terakhir
 

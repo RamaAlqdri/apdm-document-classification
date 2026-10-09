@@ -33,6 +33,7 @@ NOTEBOOKS = [
     ("07", "07_uji_lanjutan", "uji lanjutan: missing modality pada sum + concat tanpa early stopping"),
     ("08", "08_diagnostik_cabang_teks", "diagnostik: kolaps fitur vs head yang mengabaikan"),
     ("09", "09_uji_perbaikan", "perbaikan: LayerNorm per cabang + init cabang teks dari CNN1D"),
+    ("10", "10_ocr_multi_mesin", "Fase 2: OCR ulang dengan Tesseract, EasyOCR, PaddleOCR"),
 ]
 
 # Hasil yang mahal dan tidak boleh hilang karena run ulang yang tidak sengaja.
@@ -110,9 +111,10 @@ def periksa_prasyarat() -> list[str]:
 
 
 def jalankan_self_check() -> bool:
-    """The ten module self-checks. Cheap, and they run without any dataset."""
+    """The module self-checks. Cheap, and they run without any dataset."""
     modul = ["config", "data", "splits", "text_features", "datasets", "ablation",
-             "models.text_models", "models.image_model", "models.fusion", "train"]
+             "models.text_models", "models.image_model", "models.fusion", "train",
+             "ocr"]
     print("\nMenjalankan self-check modul\n")
     gagal = []
     for m in modul:
@@ -164,7 +166,7 @@ def main() -> int:
     # jam. Notebook 07 memakai nama sendiri (...-noES..., uji_lanjutan.csv) sehingga
     # aman dan tidak dijaga di sini.
     ada = [f for f in HASIL_PENTING if (ROOT / f).exists()]
-    if ada and args.dari not in ("07", "08", "09") and not args.timpa:
+    if ada and args.dari not in ("07", "08", "09", "10") and not args.timpa:
         print(f"\n{'=' * 70}")
         print("BERHENTI: hasil run sebelumnya sudah ada di repo ini.")
         print(f"{'=' * 70}\n")

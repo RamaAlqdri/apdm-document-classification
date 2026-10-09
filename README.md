@@ -31,7 +31,7 @@ pernah dieksekusi** — sel kodenya diperiksa sintaksnya saja.
 
 Notebook itu memasang dependency, memeriksa GPU dan memasang ulang PyTorch versi
 CUDA kalau perlu, menerima token Kaggle langsung di dalam notebook, menjalankan
-sepuluh self-check modul, lalu mengeksekusi notebook 01-06 berurutan. Model spaCy dan
+sebelas self-check modul, lalu mengeksekusi notebook 01-06 berurutan. Model spaCy dan
 FastText diunduh sendiri. Micro-batch dipilih dari kapasitas VRAM, mixed precision
 dari jenis device, jumlah worker dari sistem operasi.
 

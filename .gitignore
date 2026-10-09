@@ -14,3 +14,4 @@ __pycache__/
 # ikut ter-commit. Notebook 00 juga menghapusnya setelah dipindahkan.
 kaggle.json
 **/kaggle.json
+.venv-paddle/

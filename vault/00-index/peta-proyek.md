@@ -103,7 +103,8 @@ setiap sel Fase 2. Prompt lengkap per tahap ada di [[rencana-prompt]].
 
 - [x] **09** — Revisi landasan: referensi, gap, proposal → [[kashyap-2026-ringkasan]],
       [[mironczuk-2026-review-fusion]], [[2026-10-09-tahap-09-revisi-arah]]
-- [ ] **10** — Ekstraksi OCR multi-mesin (+ simpan kotak teks)
+- [ ] **10** — Ekstraksi OCR multi-mesin (+ simpan kotak teks) → [[13-ocr-multi-mesin]].
+      Kode siap dan diverifikasi ([[2026-10-09-tahap-10-ocr-multi-mesin]]), belum dijalankan
 - [ ] **11** — Grid teks OCR × embedding (FastText, BERT)
 - [ ] **12** — Fusion per kondisi OCR + rata-rata logit gaya Kashyap
 - [ ] **13** — Sintesis Fase 2

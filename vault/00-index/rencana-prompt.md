@@ -702,7 +702,7 @@ persetujuan sebelum implementasi.
 - [x] Tahap 7 — Ablasi (ablasi 4 dilewati)
 - [x] Tahap 8 — Sintesis akhir (plus 3 eksperimen lanjutan di luar rencana)
 - [x] Tahap 9 — Revisi landasan: referensi ≥2025, gap, proposal (2026-10-09)
-- [ ] Tahap 10 — Ekstraksi OCR multi-mesin
+- [ ] Tahap 10 — Ekstraksi OCR multi-mesin (kode siap 2026-10-09, belum dijalankan)
 - [ ] Tahap 11 — Grid teks OCR × embedding
 - [ ] Tahap 12 — Fusion per kondisi OCR + rata-rata logit
 - [ ] Tahap 13 — Sintesis Fase 2

@@ -18,7 +18,7 @@ Semua catatan di `vault/30-eksperimen/` dan `vault/50-hasil/` saat ini berstatus
 Itu saja. Notebook itu memasang dependency lewat `%pip`, memeriksa GPU dan memasang
 ulang PyTorch versi CUDA kalau yang terpasang versi CPU, menerima token Kaggle
 langsung di dalam notebook (lewat `getpass`, jadi tidak tersimpan di output),
-menjalankan sepuluh self-check, lalu mengeksekusi notebook 01-06 berurutan.
+menjalankan sebelas self-check, lalu mengeksekusi notebook 01-06 berurutan.
 
 Satu-satunya pilihan yang perlu Anda buat ada di sel terakhir: `CEPAT = True`
 (± 1 jam, untuk menguji pipeline) atau `False` (setelan paper penuh).
@@ -74,10 +74,26 @@ artefak sendiri dan checkpoint lama hanya dibaca:
 | 07 | `FUSION-concat-noES_*`, `uji_lanjutan.csv`, `figures/08_*` | checkpoint 05 |
 | 08 | `diagnostik_cabang_teks.csv`, `figures/09_*` | checkpoint 03, 05, 07 |
 | 09 | `FUSION-fix_*`, `uji_perbaikan*.csv`, `figures/10_*` | `CNN1D_seed42.pt` |
+| 10 | `data/interim/ocr/`, `reports/ocr_*`, `figures/ocr_*` | `manifest.csv`, citra JPG |
 
 ```bash
-python run_all.py --dari 07     # atau 08, atau 09
+python run_all.py --dari 07     # atau 08, 09, 10
 ```
+
+### Notebook 10 (Fase 2): OCR multi-mesin
+
+Paling mudah dibuka langsung dan di-Run All. Tiga hal yang berbeda dari notebook lain:
+
+- **Memasang sendiri yang dibutuhkannya.** `pytesseract`, `easyocr`, `wordfreq` masuk ke
+  lingkungan utama dengan numpy dan torch dikunci. Tesseract dipasang lewat winget
+  (muncul jendela izin administrator — klik *Yes*). PaddleOCR dipasang di
+  `.venv-paddle/` yang terpisah, ± 1 GB, karena dependensinya bentrok dengan opencv
+  milik EasyOCR dan dengan pin numpy.
+- **Mengukur kecepatan dulu.** 20 halaman per mesin, lalu perkiraan total dicetak
+  sebelum proses penuh. Set `JALANKAN_PENUH = False` kalau hanya ingin melihat
+  perkiraannya.
+- **Boleh diputus.** Hasil disimpan per halaman; Run All lagi melanjutkan dari halaman
+  terakhir.
 
 Dua hal yang tetap butuh Anda:
 
@@ -227,7 +243,7 @@ Buat API token di kaggle.com → Settings → API → Create New Token. Simpan
 
 ## 4. Verifikasi sebelum menyentuh data
 
-Sepuluh modul punya self-check yang berjalan **tanpa dataset**. Jalankan semuanya
+Sebelas modul punya self-check yang berjalan **tanpa dataset**. Jalankan semuanya
 dulu — kalau ada yang gagal di sini, tidak ada gunanya mengunduh 3 GB:
 
 ```bash
