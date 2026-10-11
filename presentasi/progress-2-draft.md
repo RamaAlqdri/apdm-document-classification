@@ -4,7 +4,7 @@ Gabungan laporan rencana (`proposal/proposal.pdf`) dan laporan EDA
 (`proposal/laporan-eda.pdf`). Gayanya disamakan dengan Progress 1 (Canva, 16:9). Gambar
 siap tempel ada di `presentasi/gambar/`.
 
-Rencana penelitian tidak memuat hasil eksperimen. Angka di slide 8–11 berasal dari EDA,
+Rencana penelitian tidak memuat hasil eksperimen. Angka di slide 5–8 berasal dari EDA,
 bukan dari model.
 
 ---
@@ -23,19 +23,7 @@ Disusun oleh:
 
 ---
 
-## 02 — Tindak Lanjut Masukan Progress 1
-
-| Masukan | Tindak lanjut |
-|---|---|
-| Eksplorasi OCR: EasyOCR, PaddleOCR, Keras-OCR | Mesin OCR dijadikan **variabel** |
-| Eksplorasi embedding | FastText vs **BERT** |
-| Gap belum ditentukan | Dirumuskan (slide 4) |
-| Teks sebagai objek | Kotak posisi teks disimpan untuk tahap lanjutan |
-| Referensi minimal 2025 | Referensi utama: **Kashyap et al. (2026)** |
-
----
-
-## 03 — Referensi Utama Baru
+## 02 — Referensi Utama Baru
 
 **Kashyap, Mittal & Singh (2026)**, *International Journal of Intelligent Systems*.
 Fusion EfficientNetB3 + BERT, akurasi 92% pada Tobacco3482.
@@ -50,7 +38,7 @@ al. (2025), Larson et al. (2025).
 
 ---
 
-## 04 — Celah Penelitian
+## 03 — Celah Penelitian
 
 > Studi fusion teks–citra memperlakukan **mesin OCR sebagai konstanta** dan hanya
 > melaporkan akurasi gabungan.
@@ -62,15 +50,7 @@ al. (2025), Larson et al. (2025).
 
 ---
 
-## 05 — Rumusan Masalah
-
-1. Seberapa besar **pilihan mesin OCR** mengubah akurasi cabang teks?
-2. Apakah **BERT** memperkecil selisih antar-mesin OCR dibanding FastText?
-3. Apakah cabang teks yang lebih kuat membuat model gabungan **lebih memakai teks**?
-
----
-
-## 06 — Rancangan Metode
+## 04 — Rancangan Metode
 
 🖼 `gambar/kerangka.png`
 
@@ -81,7 +61,7 @@ al. (2025), Larson et al. (2025).
 
 ---
 
-## 07 — Dataset Terkurasi
+## 05 — Dataset Terkurasi
 
 | Bagian | Jumlah per seed (42 / 43 / 44) |
 |---|---|
@@ -97,7 +77,7 @@ al. (2025), Larson et al. (2025).
 
 ---
 
-## 08 — EDA: Citra vs Teks
+## 06 — EDA: Citra vs Teks
 
 🖼 `gambar/eda_tsne_citra_teks.png`
 
@@ -112,7 +92,7 @@ Kedua modalitas sudah informatif sebelum pelatihan, dan pola pengelompokan kelas
 
 ---
 
-## 09 — EDA: Kedua Modalitas Saling Melengkapi
+## 07 — EDA: Kedua Modalitas Saling Melengkapi
 
 🖼 `gambar/eda_komplementaritas.png`
 
@@ -123,7 +103,7 @@ Ini kelas-kelas tempat fusion diharapkan paling menolong.
 
 ---
 
-## 10 — EDA: Modalitas Hilang dan Bising
+## 08 — EDA: Modalitas Hilang dan Bising
 
 🖼 `gambar/eda_contoh_teks_bermasalah.png`
 
@@ -131,17 +111,5 @@ Ini kelas-kelas tempat fusion diharapkan paling menolong.
 - **Iklan terputar 90°** → Tesseract (`--psm 3`) gagal membaca teksnya
 - **Kode ID arsip** (Larson et al., 2025) sebagai jalan pintas: lemah di teks OCR (0,278
   vs mayoritas 0,178), tetapi tetap dikontrol
-
----
-
-## 11 — Rencana Berikutnya
-
-| Minggu | Kegiatan |
-|---|---|
-| 1 | OCR ulang dengan 3 mesin |
-| 2–3 | Cabang teks: FastText dan BERT (24 model) |
-| 4 | Fusion dan uji missing modality |
-| 5 | Analisis dan laporan |
-| 6 | Rancangan "teks sebagai objek" |
 
 **Terima kasih**
