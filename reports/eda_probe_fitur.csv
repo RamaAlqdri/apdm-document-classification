@@ -1,0 +1,3 @@
+fitur,oa_probe,macro_f1_probe,kelas_mayoritas
+citra: MobileNetV2 pretrained,0.7293,0.7099,0.1782
+teks: rata-rata FastText,0.6685,0.6491,0.1782

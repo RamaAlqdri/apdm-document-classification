@@ -1,0 +1,46 @@
+{
+ "n_dokumen": 3482,
+ "rasio_kelas": 5.17,
+ "ambang": {
+  "teks_pendek_maks_kata": 23.0,
+  "oov_tinggi_min": 0.369,
+  "resolusi_rendah_maks_dpi": 203.294,
+  "buram_maks_ketajaman": 788.36
+ },
+ "n_tertandai": {
+  "flag_teks_kosong": 37,
+  "flag_teks_pendek": 163,
+  "flag_oov_tinggi": 172,
+  "flag_resolusi_rendah": 68,
+  "flag_buram": 175,
+  "flag_duplikat": 9
+ },
+ "pasangan_kandidat_citra": 12,
+ "pasangan_duplikat": 12,
+ "pasangan_bocor": {
+  "42": 1,
+  "43": 5,
+  "44": 4
+ },
+ "probe": {
+  "citra: MobileNetV2 pretrained": {
+   "oa_probe": 0.7293,
+   "macro_f1_probe": 0.7099
+  },
+  "teks: rata-rata FastText": {
+   "oa_probe": 0.6685,
+   "macro_f1_probe": 0.6491
+  }
+ },
+ "kelas_mayoritas": 0.1782,
+ "jalan_pintas": {
+  "3 digit awal kode ID di teks OCR": {
+   "oa": 0.2782,
+   "macro_f1": 0.1438
+  },
+  "3 karakter awal ID berkas": {
+   "oa": 0.472,
+   "macro_f1": 0.2757
+  }
+ }
+}
