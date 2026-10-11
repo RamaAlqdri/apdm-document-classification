@@ -1,0 +1,16 @@
+# Berkas antara LaTeX
+*.aux
+*.bbl
+*.bcf
+*.blg
+*.fdb_latexmk
+*.fls
+*.lof
+*.log
+*.lop
+*.lot
+*.out
+*.run.xml
+*.synctex.gz
+*.toc
+main.pdf

@@ -31,3 +31,15 @@ menandai hampir semua halaman fixture sebagai duplikat. Rinciannya dan perbaikan
 di [[14-kurasi-dan-eda]].
 
 Laporan singkat EDA baru ditulis setelah notebook dijalankan di laptop TUF.
+
+## Tambahan: hasil dan laporan
+
+Notebook 11 dijalankan di TUF tanpa galat, dan hasilnya di-push pengguna (`b0ecf32`).
+Laporan singkat temuan EDA (10 halaman, format sama dengan laporan rencana) ada di
+`proposal/laporan-eda/` dengan PDF `proposal/laporan-eda.pdf`. Angka dan temuannya tercatat
+di [[14-kurasi-dan-eda]].
+
+Tiga hal yang ditulis dengan peringatan, bukan sebagai kesimpulan:
+- penanda ketajaman rendah tercampur kepadatan tinta;
+- duplikat Advertisement mungkin hanya halaman tanpa teks yang mirip;
+- jalan pintas kode ID belum dapat dinyatakan tidak ada.

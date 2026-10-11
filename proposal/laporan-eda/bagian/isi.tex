@@ -1,0 +1,345 @@
+\section{Pendahuluan}\label{sec:pendahuluan}
+
+Laporan ini merangkum hasil kurasi dataset dan \textit{exploratory data analysis} (EDA)
+atas Tobacco3482 \parencite{kumar2014}. Dataset ini terdiri atas dua modalitas:
+
+\begin{itemize}
+  \item \textbf{citra halaman}, berupa versi JPG dari Kaggle \parencite{kaggletobacco};
+  \item \textbf{teks OCR} dari QS-OCR \parencite{qsocr}, hasil Tesseract
+  \parencite{smith2007}.
+\end{itemize}
+
+Seluruh angka berasal dari eksekusi notebook \texttt{11\_eda.ipynb}. Notebook itu tidak
+melatih model; fitur diambil dari model yang dibekukan.
+
+Analisis yang memakai label hanya memakai bagian latih seed~42 (800 dokumen). Analisis
+ini mencakup kata khas per kelas, kemiripan antar-kelas, dan classifier kode ID. Data uji
+hanya dipakai untuk mengukur akurasi \textit{probe}. Dengan cara ini EDA tidak
+\enquote{mengintip} data uji yang nanti dipakai eksperimen.
+
+Perbandingan antar-mesin OCR belum termasuk di sini. Bagian itu menyusul setelah OCR
+multi-mesin dijalankan.
+
+\section{Dataset dan Kurasi}\label{sec:kurasi}
+
+\subsection{Pembagian Data}
+
+Ke-3.482 pasangan citra--teks lengkap; tidak ada citra atau teks yang hilang. Kelasnya
+timpang, dengan rasio kelas terbesar (Memo, 620) berbanding terkecil (Resume, 120)
+sebesar 5,17.
+
+Pembagian data mengikuti \textcite{audebert2020}: 800 dokumen latih dan sisanya uji.
+Setiap pembagian terstratifikasi per kelas, untuk tiga seed (42, 43, 44). Komposisinya
+identik di ketiga seed (Tabel~\ref{tab:split}); yang berbeda hanya dokumen yang terpilih.
+
+\begin{table}[H]
+  \centering
+  \caption{Jumlah dokumen per kelas pada setiap bagian (sama untuk seed 42, 43, 44)}
+  \label{tab:split}
+  \fontsize{10}{12}\selectfont
+  \begin{tabular}{|l|c|c|c|c|c|c|c|c|c|c|c|}
+    \hline
+    & \rotatebox{90}{Advertisement} & \rotatebox{90}{Email} & \rotatebox{90}{Form} &
+    \rotatebox{90}{Letter} & \rotatebox{90}{Memo} & \rotatebox{90}{News} &
+    \rotatebox{90}{Note} & \rotatebox{90}{Report} & \rotatebox{90}{Resume} &
+    \rotatebox{90}{Scientific} & \textbf{Total} \\ \hline
+    Train & 48 & 124 & 89 & 117 & 128 & 39 & 41 & 55 & 25 & 54 & 720 \\ \hline
+    Val   & 5 & 14 & 10 & 13 & 14 & 4 & 5 & 6 & 3 & 6 & 80 \\ \hline
+    Test  & 177 & 461 & 332 & 437 & 478 & 145 & 155 & 204 & 92 & 201 & 2.682 \\ \hline
+  \end{tabular}
+\end{table}
+
+\subsection{Aturan Kurasi}
+
+Kurasi dilakukan dengan \textbf{menandai} dokumen, bukan membuangnya. Derau OCR adalah
+objek penelitian, sehingga dokumen yang bising tetap dipakai dan hanya diberi penanda.
+
+Ambang setiap penanda diambil dari ekor distribusi: 5\% terbawah, atau 5\% teratas untuk
+OOV. Ambang ini tidak ditetapkan sebelum melihat data. Hasilnya disajikan pada
+Tabel~\ref{tab:penanda}.
+
+\begin{table}[H]
+  \centering
+  \caption{Penanda kurasi, ambang yang diperoleh dari data, dan jumlah dokumen tertandai}
+  \label{tab:penanda}
+  \fontsize{10}{12}\selectfont
+  \begin{tabularx}{\textwidth}{|l|>{\raggedright\arraybackslash}X|r|}
+    \hline
+    \textbf{Penanda} & \textbf{Aturan (ambang dari data)} & \textbf{Dokumen} \\ \hline
+    Teks kosong & tidak ada kata alfabetik sama sekali & 37 \\ \hline
+    Teks pendek & $\leq$ 23 kata alfabetik (di antara yang tidak kosong) & 163 \\ \hline
+    OOV tinggi & OOV $\geq$ 0,369 & 172 \\ \hline
+    Resolusi rendah & perkiraan $<$ 203 dpi & 68 \\ \hline
+    Ketajaman rendah & variansi Laplacian $<$ 788 & 175 \\ \hline
+    Duplikat & korelasi \textit{thumbnail} $\geq$ 0,98 dan teks mirip & 9 \\ \hline
+  \end{tabularx}
+\end{table}
+
+Duplikat diperiksa dalam dua tahap. Tahap pertama mencari pasangan halaman yang
+\textit{thumbnail}-nya sangat mirip. Tahap kedua mengonfirmasi pasangan itu lewat
+kemiripan teks OCR-nya. Dua tahap diperlukan karena halaman dokumen sebagian besar putih:
+kemiripan citra saja akan menyamakan formulir yang isinya berbeda tetapi templatnya sama.
+
+Hasilnya 12 pasangan yang melibatkan 9 dokumen. Pasangan yang melintasi bagian latih dan
+uji, yaitu kebocoran data, ada 1 pada seed~42, 5 pada seed~43, dan 4 pada seed~44.
+
+Ada satu catatan. Enam dari sembilan dokumen duplikat berasal dari kelas Advertisement,
+kelas yang juga paling banyak teks kosongnya. Pasangan yang \emph{keduanya} tanpa teks
+dikonfirmasi otomatis, karena tidak ada teks untuk dibandingkan. Karena itu duplikat ini
+perlu diperiksa secara visual sebelum dipakai untuk mengubah pembagian data.
+
+Hasil kurasi disimpan sebagai \texttt{manifest\_kurasi.csv}. Isinya satu baris per
+dokumen: label, kolom pembagian untuk ketiga seed, seluruh statistik dan penanda, serta
+penanda kebocoran. Berkas citra dan teks sendiri tidak disalin, karena lisensi
+Tobacco3482 tidak memperbolehkan redistribusi.
+
+\section{Modalitas Citra}\label{sec:citra}
+
+\subsection{Statistik Halaman}
+
+Citra JPG dari Kaggle beresolusi tinggi:
+\begin{itemize}
+  \item lebar median 1.728 piksel, sekitar 203 dpi untuk kertas \textit{letter};
+  \item kuartil atas 2.544 piksel, sekitar 299 dpi;
+  \item rentangnya 96 sampai 414 dpi.
+\end{itemize}
+
+Statistiknya per kelas ditunjukkan Gambar~\ref{fig:citra}.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{eda_statistik_citra}
+  \caption{Statistik citra per kelas: perkiraan DPI, kontras, rasio tinta, dan
+  ketajaman (skala log)}
+  \label{fig:citra}
+\end{figure}
+
+Gambar~\ref{fig:citra} memperlihatkan tiga hal.
+\begin{enumerate}
+  \item \textbf{Resolusi tidak seragam antar-kelas.} Pada Email dan Resume, median dan
+  kedua kuartilnya sama-sama 203 dpi. Kelas lain umumnya menyebar antara 203 dan 300 dpi.
+  Resolusi asli memang hilang setelah citra diubah ke $384\times384$, tetapi pola ini
+  menunjukkan bahwa kelas-kelas tersebut dipindai dengan cara berbeda. Ini sumber potensi
+  bias.
+  \item \textbf{Advertisement jauh lebih gelap.} Kontras dan rasio tintanya paling
+  tinggi, karena halaman iklan didominasi gambar, bukan tulisan.
+  \item \textbf{Email dan Note paling jarang tintanya}, sehingga ketajamannya juga paling
+  rendah. Ukuran ketajaman (variansi Laplacian) bergantung pada jumlah tepi. Halaman yang
+  hanya berisi sedikit tulisan otomatis mendapat skor rendah walaupun tidak kabur.
+  Karena itu penanda \enquote{ketajaman rendah} harus dibaca sebagai \enquote{sedikit
+  tulisan atau kabur}, bukan semata \enquote{kabur}.
+\end{enumerate}
+
+\subsection{Fitur CNN}
+
+Fitur 1.280 dimensi diambil dari MobileNetV2 berbobot ImageNet tanpa
+\textit{fine-tune} \parencite{sandler2018}. Regresi logistik di atas fitur beku ini
+(\textit{linear probe}) mencapai \textbf{OA 0,7293} dan macro F1 0,7099. Sebagai
+pembanding, menebak kelas mayoritas hanya mencapai 0,1782. Jadi tata letak halaman sudah
+sangat informatif bahkan tanpa pelatihan khusus dokumen.
+
+Pada proyeksi t-SNE (Gambar~\ref{fig:tsne}, kiri), Email, Advertisement, Form, News,
+Resume, dan Scientific membentuk kelompok yang jelas. Letter, Memo, dan Report bercampur
+di tengah. Ketiganya adalah dokumen ketikan berparagraf yang tata letaknya mirip.
+
+\section{Modalitas Teks}\label{sec:teks}
+
+\subsection{Statistik Teks}
+
+\begin{itemize}
+  \item \textbf{Panjang:} median 174 kata per dokumen, rata-rata 224, maksimum 1.579.
+  \item \textbf{Teks kosong:} 37 dokumen tidak menghasilkan satu pun kata alfabetik.
+  \item \textbf{OOV:} median 5,5\%, rata-rata 9,8\%. OOV di sini adalah bagian kata
+  alfabetik minimal empat huruf yang tidak ada dalam daftar kata bahasa Inggris
+  \texttt{wordfreq} \parencite{wordfreq}.
+\end{itemize}
+
+Daftar kata itu longgar: salah baca yang kebetulan berupa kata yang ada, misalnya
+\texttt{tbe} untuk \texttt{the}, tidak terhitung. Jadi angka OOV ini adalah \emph{batas
+bawah} galat OCR. Audebert et al.\ melaporkan sekitar 26\%, tetapi dengan kamus yang
+lebih ketat, sehingga kedua angka tidak dapat dibandingkan langsung.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{eda_statistik_teks}
+  \caption{Jumlah kata dan OOV per dokumen menurut kelas}
+  \label{fig:teks}
+\end{figure}
+
+\subsection{Kata Khas per Kelas}
+
+Kata dengan bobot TF-IDF tertinggi per kelas (Tabel~\ref{tab:tfidf}) menunjukkan bahwa
+teks OCR membawa penanda kelas yang kuat. Contohnya:
+\begin{itemize}
+  \item peringatan \textit{surgeon general} pada Advertisement;
+  \item kepala surel pada Email;
+  \item istilah akademik pada Resume dan Scientific.
+\end{itemize}
+
+Kelas Note berbeda. Daftarnya berisi potongan kata seperti \texttt{ore}, \texttt{ous},
+dan \texttt{vay}, yang menandakan teks hasil OCR dari tulisan tangan atau catatan pendek
+yang rusak.
+
+\begin{table}[H]
+  \centering
+  \caption{Kata TF-IDF tertinggi per kelas (dihitung dari bagian latih seed 42)}
+  \label{tab:tfidf}
+  \fontsize{10}{12}\selectfont
+  \begin{tabularx}{\textwidth}{|l|>{\raggedright\arraybackslash}X|}
+    \hline
+    \textbf{Kelas} & \textbf{Kata khas} \\ \hline
+    Advertisement & warning, surgeon, cigarette, general, advertisement, smoking, tar, nicotine \\ \hline
+    Email & sent, subject, message, original, wednesday, date, thanks, meeting \\ \hline
+    Form & date, fax, number, pages, form, total, transmission, telephone \\ \hline
+    Letter & tobacco, dear, research, new, sincerely, york, product, council \\ \hline
+    Memo & correspondence, attached, memorandum, inter, office, subject, date \\ \hline
+    News & said, smoking, health, smoke, tobacco, smokers, cancer, industry \\ \hline
+    Note & desk, information, james, ore, web, ous, christine, ran, vay, site \\ \hline
+    Report & tobacco, smoking, cigarette, products, smokers, study, test, research \\ \hline
+    Resume & university, research, biology, assistant, professor, medicine, publications \\ \hline
+    Scientific & cell, cells, research, results, study, induced, university, data \\ \hline
+  \end{tabularx}
+\end{table}
+
+\subsection{Fitur Embedding Teks}
+
+Setiap dokumen direpresentasikan sebagai rata-rata vektor FastText kata-katanya
+\parencite{bojanowski2017}. \textit{Linear probe} di atas representasi ini mencapai
+\textbf{OA 0,6685} dan macro F1 0,6491. Angka ini lebih rendah daripada citra (0,7293),
+tetapi jauh di atas kelas mayoritas.
+
+Pada t-SNE (Gambar~\ref{fig:tsne}, kanan), Resume dan Email membentuk kelompok yang
+sangat jelas, Scientific mengelompok di bagian atas, dan Form di sisi kanan. Pola
+pengelompokannya berbeda dari citra. Perbedaan inilah yang menjadi dasar harapan bahwa
+kedua modalitas saling melengkapi.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{eda_tsne_citra_teks}
+  \caption{Proyeksi t-SNE fitur citra (kiri) dan fitur teks (kanan), diwarnai menurut
+  kelas}
+  \label{fig:tsne}
+\end{figure}
+
+\section{Komplementaritas Kedua Modalitas}\label{sec:komplementaritas}
+
+Gambar~\ref{fig:komplementaritas} membandingkan F1 \textit{probe} per kelas antara teks
+dan citra.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.8\textwidth]{eda_komplementaritas}
+  \caption{Selisih F1 \textit{probe} teks dikurangi citra per kelas}
+  \label{fig:komplementaritas}
+\end{figure}
+
+\begin{itemize}
+  \item \textbf{Teks lebih unggul} pada Resume (+0,237), Scientific (+0,076), dan Email
+  (+0,018). Resume adalah contoh terkuat: tata letaknya beragam, tetapi kosakatanya
+  sangat khas.
+  \item \textbf{Citra lebih unggul} pada Advertisement ($-$0,297) dan Note ($-$0,289).
+  Keduanya adalah kelas yang teksnya paling sering hilang atau rusak
+  (Subbagian~\ref{sec:bising}).
+  \item \textbf{Selisihnya kecil} ($<$ 0,11) untuk Letter, Form, News, Report, dan Memo.
+\end{itemize}
+
+Ini \textit{probe} pada fitur beku dengan 800 dokumen latih, bukan model akhir. Namun
+arahnya memberi gambaran awal di kelas mana modalitas teks diharapkan menyumbang paling
+banyak.
+
+\section{Modalitas Hilang dan Bising}\label{sec:bising}
+
+Persentase dokumen tertandai per kelas disajikan pada Tabel~\ref{tab:penanda-kelas}.
+
+\begin{table}[H]
+  \centering
+  \caption{Persentase dokumen tertandai per kelas}
+  \label{tab:penanda-kelas}
+  \fontsize{10}{12}\selectfont
+  \begin{tabular}{|l|c|c|c|c|c|c|}
+    \hline
+    \textbf{Kelas} & \makecell{\textbf{Teks}\\\textbf{kosong}} &
+    \makecell{\textbf{Teks}\\\textbf{pendek}} & \makecell{\textbf{OOV}\\\textbf{tinggi}} &
+    \makecell{\textbf{Resolusi}\\\textbf{rendah}} &
+    \makecell{\textbf{Ketajaman}\\\textbf{rendah}} & \textbf{Duplikat} \\ \hline
+    Advertisement & 3,5 & 17,4 & 13,0 & 3,9 & 2,2 & 2,6 \\ \hline
+    Email & 0,0 & 4,2 & 0,2 & 0,0 & 19,9 & 0,3 \\ \hline
+    Form & 0,0 & 1,4 & 10,7 & 0,0 & 0,0 & 0,0 \\ \hline
+    Letter & 0,0 & 0,2 & 0,2 & 0,0 & 0,0 & 0,0 \\ \hline
+    Memo & 0,0 & 0,2 & 0,6 & 6,5 & 0,0 & 0,0 \\ \hline
+    News & 0,0 & 2,1 & 8,0 & 3,7 & 0,5 & 0,5 \\ \hline
+    Note & 14,4 & 41,3 & 30,8 & 2,0 & 24,9 & 0,0 \\ \hline
+    Report & 0,0 & 0,0 & 1,5 & 1,9 & 0,0 & 0,0 \\ \hline
+    Resume & 0,0 & 0,0 & 0,0 & 1,7 & 0,0 & 0,0 \\ \hline
+    Scientific & 0,0 & 1,1 & 3,4 & 0,4 & 0,0 & 0,0 \\ \hline
+    \textbf{Semua} & 1,1 & 4,7 & 4,9 & 2,0 & 5,0 & 0,3 \\ \hline
+  \end{tabular}
+\end{table}
+
+\textbf{Modalitas teks paling bermasalah pada Note.} Sebanyak 14,4\% dokumennya tanpa
+teks sama sekali, 41,3\% teksnya pendek, dan 30,8\% OOV-nya tinggi. Note sering berupa
+catatan tulisan tangan, yang memang di luar kemampuan OCR cetak.
+
+Advertisement menyusul, dengan 17,4\% teks pendek dan 13,0\% OOV tinggi. Form juga
+banyak ber-OOV tinggi (10,7\%), karena isinya angka, kode, dan singkatan.
+
+\textbf{Mengapa iklan kehilangan teksnya.} Gambar~\ref{fig:contoh} memperlihatkan
+dokumen yang teksnya paling bermasalah. Beberapa iklan dipindai dalam posisi
+\textbf{terputar 90°}. Tesseract pada konfigurasi QS-OCR (\texttt{-{}-psm 3}) tidak
+mendeteksi orientasi, sehingga teks pada halaman terputar tidak terbaca. Temuan ini
+relevan untuk perbandingan mesin OCR berikutnya: mesin dengan koreksi orientasi dapat
+berbeda jauh justru pada kelas ini.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{eda_contoh_teks_bermasalah}
+  \caption{Contoh dokumen dengan modalitas teks paling bermasalah}
+  \label{fig:contoh}
+\end{figure}
+
+\textbf{Dokumen yang hanya satu modalitasnya bermasalah} adalah tempat fusion seharusnya
+paling menolong. Teks bermasalah dengan citra baik paling banyak ditemukan pada Note
+(101 dokumen), Advertisement (62), dan Form (48). Citra bermasalah dengan teks baik
+paling banyak pada Email (94) dan Memo (38).
+
+Angka Email perlu dibaca hati-hati. Seluruhnya berasal dari penanda ketajaman
+rendah, yang pada Email lebih mencerminkan sedikitnya tulisan daripada citra yang kabur
+(Subbagian~\ref{sec:citra}).
+
+\section{Jalan Pintas Kode ID Arsip}\label{sec:kode-id}
+
+\textcite{larson2025} menemukan bahwa kode ID arsip yang tercetak di halaman Tobacco3482
+sudah cukup untuk memprediksi kelas sekitar 60\%. Kode semacam itu ikut terbaca OCR.
+Dengan deteksi heuristik (deret minimal enam digit), kode ID ditemukan dalam teks OCR
+pada 20\% (Memo) sampai 56\% (Email) dokumen.
+
+Ada dua uji jalan pintas, keduanya memakai classifier yang hanya diberi tiga digit awal
+kode:
+\begin{itemize}
+  \item \textbf{dari kode ID dalam teks OCR:} OA 0,2782, hanya 10 poin di atas kelas
+  mayoritas (0,1782);
+  \item \textbf{dari tiga karakter awal ID berkas:} OA \textbf{0,4720}.
+\end{itemize}
+
+Jadi sistem penomoran arsip memang membawa informasi kelas. Model penelitian ini tidak
+melihat nama berkas, sehingga jalan pintas kedua tidak berlaku untuk model kita. Jalan
+pintas pertama tampak lemah, tetapi heuristik di sini lebih kasar daripada anotasi
+manual Larson et al., sehingga belum dapat dinyatakan tidak ada. Kontrol kode ID tetap
+diperlukan, terutama pada tahap yang memakai posisi teks.
+
+\section{Implikasi untuk Eksperimen}\label{sec:implikasi}
+
+\begin{enumerate}
+  \item \textbf{Pembagian data dipertahankan.} Hanya 1 sampai 5 pasangan duplikat
+  melintasi latih dan uji per seed. Pasangan ini akan diperiksa visual dulu, lalu
+  dilaporkan atau dikeluarkan dari data uji, bukan dengan membuat pembagian baru.
+  \item \textbf{Kelas yang diharapkan paling diuntungkan teks adalah Resume, Scientific,
+  dan Email.} Bila model gabungan tidak membaik di kelas-kelas ini, itu tanda bahwa cabang
+  teks tidak dipakai.
+  \item \textbf{Note dan Advertisement adalah titik lemah teks.} Keduanya juga kelas
+  tempat mesin OCR lain, terutama yang mengoreksi orientasi, paling mungkin membuat
+  perbedaan. Hasil per kelas harus dilaporkan, tidak hanya akurasi total.
+  \item \textbf{Penanda kurasi dapat dipakai untuk analisis per kelompok,} misalnya
+  akurasi model pada dokumen bertanda teks bermasalah dibandingkan dokumen lain.
+  \item \textbf{Bias resolusi antar-kelas} dicatat sebagai keterbatasan dataset.
+\end{enumerate}

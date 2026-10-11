@@ -3,13 +3,15 @@ judul: Kurasi dataset dan EDA per modalitas
 tipe: eksperimen
 tahap: "10"
 tanggal: 2026-10-11
-status: belum-dijalankan
+status: selesai
 tags:
   - tipe/eksperimen
   - tahap/10
   - modal/teks
   - modal/citra
   - komponen/evaluasi
+  - temuan/positif
+  - temuan/anomali
 terkait:
   - "[[00-audit-data]]"
   - "[[larson-2025-id-codes]]"
@@ -23,11 +25,12 @@ model:: MobileNetV2 pretrained (tanpa fine-tune) + rata-rata FastText
 dataset:: Tobacco3482 + QS-OCR, 3.482 dokumen
 split:: seed 42 untuk analisis berlabel; seed 42/43/44 di manifest
 seed:: 42
-oa:: -
-macro_f1:: -
-durasi::
+oa:: 0.7293 (probe citra) / 0.6685 (probe teks)
+macro_f1:: 0.7099 / 0.6491
+durasi:: ± 10 menit (ekstraksi CNN 301 dtk di CUDA)
 
-> **BELUM DIJALANKAN.** Notebook: `notebooks/11_eda.ipynb`, modul: `src/eda.py`.
+> **DIJALANKAN 2026-10-11** di laptop TUF lewat `notebooks/11_eda.ipynb` (modul `src/eda.py`).
+> Laporan singkatnya: `proposal/laporan-eda.pdf`.
 > Diminta dosen sebagai luaran tambahan: dataset terkurasi, notebook EDA, dan laporan
 > singkat temuan EDA.
 
@@ -65,6 +68,44 @@ sini.
 
 ## Hasil
 
-> Diisi dari eksekusi nyata di laptop compute.
+| Pengukuran | Nilai |
+|---|---|
+| Pasangan lengkap | 3482/3482, rasio kelas 5,17 |
+| Split per seed | 720 train / 80 val / 2682 test, komposisi identik di 42/43/44 |
+| Ambang dari data | teks pendek ≤ 23 kata, OOV ≥ 0,369, DPI < 203, ketajaman < 788 |
+| Tertandai | teks kosong 37, pendek 163, OOV tinggi 172, resolusi rendah 68, ketajaman rendah 175, duplikat 9 dokumen (12 pasangan) |
+| Bocor latih–uji | 1 / 5 / 4 pasangan (seed 42 / 43 / 44) |
+| Probe citra (MobileNetV2 beku) | OA 0,7293, macro F1 0,7099 |
+| Probe teks (rata-rata FastText) | OA 0,6685, macro F1 0,6491 |
+| Kelas mayoritas | 0,1782 |
+| Jalan pintas kode ID dari teks OCR | OA 0,2782 |
+| Jalan pintas 3 karakter ID berkas | OA 0,4720 |
+| Teks: kata per dokumen | median 174, rata-rata 224; OOV median 5,5%, rata-rata 9,8% |
+
+F1 probe teks − citra per kelas: Resume +0,237, Scientific +0,076, Email +0,018; Advertisement
+−0,297 dan Note −0,289 (citra jauh lebih unggul).
 
 ## Temuan
+
+**#temuan/positif — komplementaritas terukur sebelum pelatihan apa pun.** Teks unggul pada
+Resume, Scientific, dan Email; citra unggul pada Advertisement dan Note. Pengelompokan t-SNE
+kedua modalitas juga berbeda.
+
+**#temuan/anomali — iklan terputar menghapus teks.** Dokumen dengan teks paling bermasalah
+adalah iklan yang dipindai terputar 90°. Konfigurasi `--psm 3` tidak mendeteksi orientasi.
+Ini relevan untuk [[13-ocr-multi-mesin]], karena mesin yang mengoreksi orientasi bisa paling
+berbeda justru di sini.
+
+**#temuan/anomali — penanda "ketajaman rendah" tercampur kepadatan tinta.** Email dan Note
+paling jarang tintanya, sehingga variansi Laplacian-nya rendah walaupun tidak kabur. Ke-94
+Email yang "citranya bermasalah" seluruhnya berasal dari penanda ini. Penanda ini tidak
+boleh dibaca sebagai "kabur".
+
+**Bias resolusi:** median dan kuartil DPI Email dan Resume sama-sama 203.
+
+**Duplikat:** 6 dari 9 dokumen duplikat adalah Advertisement. Pasangan yang keduanya tanpa
+teks terkonfirmasi otomatis, jadi duplikat ini perlu dicek visual sebelum split diubah.
+
+**Kode ID:** prefiks ID berkas memprediksi kelas 47%, tetapi model kita tidak melihat nama
+berkas. Kode ID di teks OCR hanya memberi +10 poin di atas mayoritas, padahal deteksinya
+heuristik. Lihat [[larson-2025-id-codes]].

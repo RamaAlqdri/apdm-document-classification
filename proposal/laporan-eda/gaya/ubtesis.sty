@@ -1,0 +1,345 @@
+% ubtesis.sty — format proposal tesis FILKOM UB, direplikasi dari
+% template/Template Skripsi.docx.
+%
+% Rujukan "[spek X]" menunjuk bagian template/spesifikasi-template.md.
+% Baris bertanda "KEPUTUSAN" tidak berasal dari template, melainkan dari
+% keputusan di spek Bagian L; ubah di sini bila prodi meminta lain.
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{gaya/ubtesis}[2026/09/21 Format proposal tesis FILKOM UB]
+
+% ---------------------------------------------------------------- huruf
+% [spek B.1] Template memakai Calibri. Calibri tidak ada di Overleaf, jadi
+% dipakai Carlito: klon Calibri yang identik secara metrik (TeX Live standar).
+% Matematika: template merender persamaan dengan Equation Editor bergaya
+% Times Italic [spek B.1, PDF hal-15] -> newtxmath.
+\RequirePackage[T1]{fontenc}
+% newtxmath memuat amsmath; opsi fleqn (persamaan rata kiri, spek C) harus
+% diteruskan sebelum itu.
+\PassOptionsToPackage{fleqn}{amsmath}
+\RequirePackage{newtxmath}
+\RequirePackage[sfdefault,lining]{carlito}
+\RequirePackage{textcomp}
+% bahasa utama indonesian (terakhir); english dimuat untuk pemenggalan kata
+% judul referensi berbahasa Inggris.
+\RequirePackage[english,indonesian]{babel}
+\RequirePackage{csquotes}
+% csquotes belum punya gaya Indonesia; template memakai tanda kutip ganda lengkung.
+\DeclareQuoteStyle{indonesian}{\textquotedblleft}{\textquotedblright}{\textquoteleft}{\textquoteright}
+% Word tidak menjorokkan tanda baca ke margin dan tidak meregangkan huruf;
+% keduanya dimatikan agar tepi kanan tepat 3 cm seperti template.
+\RequirePackage[protrusion=false,expansion=false]{microtype}
+
+% [spek B.2] badan teks 12 pt, satu spasi. Satu spasi Word untuk Calibri
+% = 1,22 x ukuran huruf -> 12/14,65.
+\renewcommand\normalsize{\@setfontsize\normalsize{12}{14.65}%
+  \abovedisplayskip 6pt \belowdisplayskip 6pt
+  \abovedisplayshortskip 3pt \belowdisplayshortskip 6pt}
+\normalsize
+\newcommand\ukuran[1]{\fontsize{#1}{\fpeval{1.22*#1}}\selectfont}
+
+% ---------------------------------------------------------------- halaman
+% [spek A; V2 A.2] A4; kiri 4, kanan 3, atas 3, bawah 3 cm.
+% [V2] Nomor halaman, diukur pada Template Tesis V2.pdf (dan sama pada
+% Template Skripsi.pdf): garis dasar 2,51 cm dari tepi bawah di bagian isi,
+% 1,78 cm di halaman awal. footskip disetel terhadap kedua angka itu.
+% (Sebelum V2: 1,80 cm untuk keduanya, keputusan K7. Kembalikan dengan
+% footskip=1.20cm di baris berikut bila diminta.)
+\RequirePackage[a4paper,left=4cm,right=3cm,top=3cm,bottom=3cm,
+  footskip=0.49cm,headheight=0pt,headsep=0pt]{geometry}
+% [spek A, K2; V2 terukur sama] halaman awal (sampul s.d. daftar lampiran)
+% margin atas 3,5 cm.
+\newcommand\margininduk{\newgeometry{left=4cm,right=3cm,top=3.5cm,bottom=3cm,
+  footskip=1.20cm,headheight=0pt,headsep=0pt}}
+\newcommand\marginisi{\restoregeometry}
+
+% [spek A] tanpa header; nomor halaman tengah bawah, 10 pt (gaya Footer),
+% juga pada halaman pembuka bab.
+\RequirePackage{fancyhdr}
+\fancypagestyle{plain}{\fancyhf{}%
+  \fancyfoot[C]{\fontsize{10}{12}\selectfont\thepage}%
+  \renewcommand{\headrulewidth}{0pt}\renewcommand{\footrulewidth}{0pt}}
+\pagestyle{plain}
+
+% ---------------------------------------------------------------- paragraf
+% [spek B.2; V2] justify; baris pertama menjorok 0,75 cm (V2 terukur; template
+% lama 0,60 cm), termasuk paragraf pertama setelah judul; 6 pt setelah paragraf.
+\RequirePackage{indentfirst}
+\setlength{\parindent}{0.75cm}
+\setlength{\parskip}{6pt plus 1pt}
+% [spek B.2; V2 A.5] judul tidak boleh menggantung; cegah widow/orphan.
+\widowpenalty=10000 \clubpenalty=10000
+% Judul subbab tidak tertinggal di dasar halaman: bila tersisa kurang dari
+% judul + 3 baris, pindah ke halaman berikutnya.
+\RequirePackage{needspace}
+% [spek] template tidak memenggal kata (settings.xml tanpa autoHyphenation;
+% 0 baris berakhiran penggalan di 29 halaman PDF). Tanda hubung yang memang
+% ditulis (mis. non-linear) tetap boleh menjadi titik patah baris.
+% Hapus dua baris ini bila ingin pemenggalan otomatis LaTeX.
+\hyphenpenalty=10000
+\emergencystretch=3em
+% Tanpa pemenggalan, perataan kanan-kiri butuh toleransi lebih longgar (seperti
+% Word) agar tidak ada baris yang menabrak margin kanan.
+\tolerance=3000
+% Word memakai spasi yang sama setelah titik dan antarkata.
+\frenchspacing
+\raggedbottom
+
+% ---------------------------------------------------------------- judul
+\RequirePackage{titlesec}
+\setcounter{secnumdepth}{3}   % [spek C] sampai X.X.X.X
+\setcounter{tocdepth}{2}      % [spek B.2] daftar isi memuat 3 tingkat
+
+% [spek C] "BAB 1 PENDAHULUAN" satu baris, 16 pt tebal KAPITAL tengah,
+% ganti halaman, 0 pt sebelum / 18 pt sesudah.
+\newcommand\labelbab{BAB}
+\titleformat{\chapter}[block]{\centering\bfseries\ukuran{16}}
+  {\labelbab\ \thechapter}{0.3em}{\MakeUppercase}
+\titleformat{name=\chapter,numberless}[block]{\centering\bfseries\ukuran{16}}
+  {}{0pt}{\MakeUppercase}
+% jarak disetel terhadap PDF template: garis dasar judul 0,69 cm di bawah
+% margin atas; judul ke baris pertama 1,16 cm (lihat _verifikasi/).
+\titlespacing*{\chapter}{0pt}{-22.5pt}{11pt}   % V2: garis dasar judul 3,53 cm dari tepi atas
+% [spek B.2] 1.1: 14 pt tebal, kiri, 12 pt sebelum / 6 pt sesudah.
+\titleformat{\section}[hang]{\bfseries\ukuran{14}}{\thesection}{0.3em}{}
+\titlespacing*{\section}{0pt}{5.5pt}{1pt}   % V2: teks ke judul 1,01 cm; judul ke baris pertama 0,75 cm
+% [spek B.2, K1] 1.1.1: 13 pt tebal (bukan 14 pt LAMP-A), gantung 1,26 cm.
+\titleformat{\subsection}[hang]{\bfseries\ukuran{13}}
+  {\makebox[1.26cm][l]{\thesubsection}}{0pt}{}
+\titlespacing*{\subsection}{0pt}{5.5pt}{0pt}   % V2: judul ke baris pertama 0,73 cm
+% [spek B.2] 1.1.1.1: 12 pt tebal miring, gantung 1,30 cm.
+\titleformat{\subsubsection}[hang]{\bfseries\itshape\ukuran{12}}
+  {\makebox[1.30cm][l]{\thesubsubsection}}{0pt}{}
+\titlespacing*{\subsubsection}{0pt}{5.5pt}{-3pt}
+\preto\section{\Needspace{4\baselineskip}}
+\preto\subsection{\Needspace{4\baselineskip}}
+\preto\subsubsection{\Needspace{4\baselineskip}}
+
+% ---------------------------------------------------------------- daftar isi
+% [spek B.2] entri 12 pt tidak tebal, titik penuntun, indentasi 0/1,2/1,8 cm.
+\RequirePackage{titletoc}
+% titik penuntun rapat, nomor halaman menempel di batas kanan teks (seperti tab
+% kanan Word), bukan di kolom margin terpisah.
+\contentsmargin{0pt}
+\newcommand\labelbabtoc{BAB}
+\titlecontents{chapter}[0pt]{}
+  {\labelbabtoc\ \thecontentslabel\ \MakeUppercase}{\MakeUppercase}
+  {\titlerule*[3.2pt]{.}\thecontentspage}
+\titlecontents{section}[1.2cm]{}{\thecontentslabel\ }{}
+  {\titlerule*[3.2pt]{.}\thecontentspage}
+\titlecontents{subsection}[1.8cm]{}{\thecontentslabel\ }{}
+  {\titlerule*[3.2pt]{.}\thecontentspage}
+% [spek B.2] daftar tabel/gambar: "Tabel 2.1 Judul .... 10", tanpa indentasi.
+\titlecontents{figure}[0pt]{}{\figurename\ \thecontentslabel\ }{}
+  {\titlerule*[3.2pt]{.}\thecontentspage}
+\titlecontents{table}[0pt]{}{\tablename\ \thecontentslabel\ }{}
+  {\titlerule*[3.2pt]{.}\thecontentspage}
+
+% [spek D] judul halaman awal tidak bernomor dan ikut tercatat di daftar isi,
+% seperti di template (DAFTAR ISI mencatat dirinya sendiri).
+\newcommand\babtanpanomor[1]{\chapter*{#1}\addcontentsline{toc}{chapter}{#1}}
+\addto\captionsindonesian{%
+  \renewcommand\contentsname{Daftar Isi}%
+  \renewcommand\listfigurename{Daftar Gambar}%
+  \renewcommand\listtablename{Daftar Tabel}%
+  \renewcommand\figurename{Gambar}%
+  \renewcommand\tablename{Tabel}%
+  \renewcommand\bibname{Daftar Referensi}}   % [spek F] bukan "Daftar Pustaka"
+% -3 pt: entri pertama 1,14 cm di bawah judul, seperti template.
+\newcommand\daftarisi{\clearpage\babtanpanomor{\contentsname}\vspace{-3pt}\@starttoc{toc}}
+\newcommand\daftartabel{\clearpage\babtanpanomor{\listtablename}\vspace{-3pt}\@starttoc{lot}}
+\newcommand\daftargambar{\clearpage\babtanpanomor{\listfigurename}\vspace{-3pt}\@starttoc{lof}}
+
+% [spek G; V2] lampiran: "LAMPIRAN A JUDUL", subbab A.1. DAFTAR LAMPIRAN (lop)
+% terisi otomatis: setelah \appendix, setiap \chapter{...} ikut tercatat di lop.
+\newcommand\daftarlampiran{\clearpage\babtanpanomor{Daftar Lampiran}\vspace{-3pt}\@starttoc{lop}}
+\newif\ifub@lampiran
+\def\ub@toc{toc}\def\ub@chapter{chapter}
+% Dipasang di \AtBeginDocument karena hyperref (dimuat sesudahnya) mengganti
+% \addcontentsline.
+\newcommand\ub@acl[3]{\ub@addcontentsline{#1}{#2}{#3}%
+  \ifub@lampiran\def\ub@a{#1}\def\ub@b{#2}%
+    \ifx\ub@a\ub@toc\ifx\ub@b\ub@chapter\ub@addcontentsline{lop}{chapter}{#3}\fi\fi\fi}
+\AtBeginDocument{\let\ub@addcontentsline\addcontentsline
+  \let\addcontentsline\ub@acl}
+\appto\appendix{%
+  \ub@lampirantrue
+  \renewcommand\labelbab{LAMPIRAN}%
+  \addtocontents{toc}{\protect\renewcommand\protect\labelbabtoc{LAMPIRAN}}%
+  \addtocontents{lop}{\protect\renewcommand\protect\labelbabtoc{LAMPIRAN}}}
+% Nama lama tetap berfungsi.
+\newcommand\mulailampiran{\appendix}
+\newcommand\lampiran[1]{\chapter{#1}}
+
+% ---------------------------------------------------------------- caption
+% [spek C] "Tabel 2.1 Judul": tebal seluruhnya, tengah, 12 pt, pemisah spasi,
+% tanpa titik akhir; tabel di ATAS, gambar di BAWAH; nomor per bab.
+\RequirePackage{caption}
+\captionsetup{font={normalsize,bf},labelfont=bf,labelsep=space,
+  justification=centering,singlelinecheck=false,skip=6pt}
+\captionsetup[table]{position=top}
+\captionsetup[figure]{position=bottom}
+% [spek C] baris sumber di bawah tabel/gambar: "Sumber: Penulis (Tahun)".
+\newcommand\sumber[1]{\par\vspace{2pt}{\normalsize Sumber: #1}\par}
+
+% ---------------------------------------------------------------- tabel
+% [V2] isi tabel 12 pt (Tabel 2.1 dan 3.3 V2 terukur 12 pt; sebelumnya 11 pt, K6).
+% Tabel lebar boleh memperkecil hurufnya sendiri. Garis penuh (grid).
+\RequirePackage{array,tabularx,longtable,multirow}
+\RequirePackage{float}      % [H] untuk Gambar 3.1 (V2: sebelum Subbab 3.1)
+\RequirePackage{xltabular}   % tabularx yang dapat berlanjut ke halaman berikutnya (Tabel 2.1)
+\RequirePackage{pdflscape}
+\RequirePackage{etoolbox}
+\AtBeginEnvironment{table}{\normalsize}
+% longtable mewarisi ukuran di sekitarnya, jadi \fontsize{..} yang ditulis tepat
+% sebelum \begin{longtable} tetap berlaku (dulu tertimpa kait 11 pt).
+\renewcommand{\arraystretch}{1.15}
+% [spek C] tabel terpenggal: "Tabel 2.2 (lanjutan)" di halaman berikutnya.
+% Pakai di \endhead longtable: \lanjutan{<jumlah kolom>}.
+\newcommand\lanjutan[1]{\multicolumn{#1}{c}{\normalsize\bfseries
+  \tablename\ \thetable\ (lanjutan)}\\[4pt]}
+\RequirePackage{booktabs}  % tersedia, tetapi gaya template adalah grid penuh
+
+% Penempatan float: Word menaruh tabel/gambar mengalir di dalam teks. Supaya
+% mendekati itu, float boleh mengisi sebagian besar halaman teks, dan halaman
+% yang hanya berisi float dimulai dari ATAS (bawaan LaTeX: di tengah).
+\renewcommand\topfraction{0.9}\renewcommand\bottomfraction{0.8}
+\renewcommand\textfraction{0.1}\renewcommand\floatpagefraction{0.8}
+\setcounter{topnumber}{3}\setcounter{bottomnumber}{2}\setcounter{totalnumber}{4}
+\setlength\@fptop{0pt}\setlength\@fpsep{12pt}\setlength\@fpbot{0pt plus 1fil}
+\setlength\textfloatsep{12pt plus 2pt minus 2pt}
+\setlength\intextsep{12pt plus 2pt minus 2pt}
+
+% ---------------------------------------------------------------- persamaan
+% [spek C, K3; V2] persamaan rata kiri, nomor (2.10) di batas kanan, pemisah
+% titik. Indentasi 0,38 cm (V2 terukur, persamaan 2.2-2.5); template lama 1,06 cm.
+\RequirePackage{amsmath}   % fleqn sudah diteruskan di bagian huruf
+% amssymb tidak dimuat: newtxmath sudah menyediakan simbolnya (bentrok \Bbbk).
+\setlength{\mathindent}{0.38cm}
+\renewcommand\theequation{\thechapter.\arabic{equation}}
+
+% ---------------------------------------------------------------- daftar
+% [spek B.2] "1." / bullet, gantung 0,60 cm, 6 pt antar-butir.
+\RequirePackage[inline]{enumitem}   % inline: enumerate* untuk daftar sebaris
+\setlist{leftmargin=0.6cm,labelindent=0pt,labelwidth=0.6cm,labelsep=0pt,
+  align=left,topsep=0pt,partopsep=0pt,itemsep=0pt,parsep=6pt}
+\setlist[enumerate,1]{label=\arabic*.}
+\setlist[itemize,1]{label=\textbullet}
+
+% ---------------------------------------------------------------- lain-lain
+\RequirePackage{graphicx}
+\graphicspath{{gambar/}}
+\RequirePackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,fit,calc,shapes.geometric}
+\RequirePackage{siunitx}
+\sisetup{output-decimal-marker={,},group-separator={.},group-minimum-digits=4}
+\RequirePackage{xcolor}
+% KEPUTUSAN [spek L.2] catatan kaki dihindari; bila dipakai: 10 pt.
+\renewcommand\footnotesize{\fontsize{10}{12}\selectfont}
+% Penanda pekerjaan manual (D3-D5): tampil merah di PDF.
+\newcommand\todo[1]{\textcolor{red}{[#1]}}
+\newcommand\rujukandiperlukan[1]{\textcolor{red}{[RUJUKAN DIPERLUKAN: #1]}}
+\newcommand\konfirmasi[1]{\textcolor{red}{[KONFIRMASI: #1]}}   % isian yang harus dicek mahasiswa
+
+% ---------------------------------------------------------------- sitasi
+% [spek F] Harvard (varian Anglia Ruskin, dilokalkan).
+% biblatex tidak punya indonesian.lbx: bahasa indonesian dipetakan ke
+% british.lbx (urutan tanggal hari-bulan-tahun, seperti bahasa Indonesia), lalu seluruh istilahnya ditimpa ke bahasa Indonesia di bawah.
+\RequirePackage[backend=biber,style=authoryear,
+  autolang=hyphen,maxcitenames=3,mincitenames=1,maxbibnames=99,
+  giveninits=true,uniquename=false,uniquelist=false,dashed=false,
+  date=long,urldate=long,sortcites=true]{biblatex}
+
+% Pemenggalan kata per entri: setiap entri dianggap berbahasa Inggris kecuali
+% diberi langid = {indonesian} di referensi.bib. Istilah bibliografi tetap
+% bahasa Indonesia (autolang=hyphen hanya mengganti pola pemenggalan).
+\DeclareSourcemap{\maps[datatype=bibtex]{\map[overwrite=false]{%
+  \step[fieldset=langid,fieldvalue={english}]}}}
+
+% Istilah: "dan", "et al." (template, bukan "dkk."), "Dalam:", "Diakses",
+% "p." / "pp." (spek F, KEPUTUSAN K4 dan K5).
+\DeclareLanguageMapping{indonesian}{british}
+\DefineBibliographyStrings{indonesian}{%
+  and={dan}, andothers={et\addabbrvspace al\adddot}, in={Dalam},
+  urlseen={Diakses}, page={p\adddot}, pages={pp\adddot},
+  editor={ed\adddot}, editors={eds\adddot}, edition={ed\adddot},
+  january={Januari}, february={Februari}, march={Maret}, april={April},
+  may={Mei}, june={Juni}, july={Juli}, august={Agustus},
+  september={September}, october={Oktober}, november={November},
+  december={Desember}, nodate={t.t.}}
+% Tanggal "15 September 2026" (hari bulan tahun, tanpa ordinal).
+\DefineBibliographyExtras{indonesian}{%
+  \protected\def\mkbibdatelong#1#2#3{%
+    \iffieldundef{#3}{}{\stripzeros{\thefield{#3}}%
+      \iffieldundef{#2}{}{\nobreakspace}}%
+    \iffieldundef{#2}{}{\mkbibmonth{\thefield{#2}}%
+      \iffieldundef{#1}{}{\space}}%
+    \iffieldbibstring{#1}{\bibstring{\thefield{#1}}}{\stripzeros{\thefield{#1}}}}%
+  % [spek F] rentang halaman "pp.64-68" memakai tanda hubung biasa
+  \protected\def\bibrangedash{-}%
+  \protected\def\bibdaterangesep{-}}
+
+% Nama: "Cox, C., Brown, J.T. dan Tumpington, W.T." — semua dibalik,
+% inisial tanpa spasi, tanpa koma sebelum "dan".
+\DeclareNameAlias{sortname}{family-given}
+\DeclareNameAlias{author}{family-given}
+\DeclareNameAlias{editor}{family-given}
+\renewrobustcmd*{\bibinitdelim}{}
+\DeclareDelimFormat{finalnamedelim}{\addspace\bibstring{and}\space}
+
+% Sitasi dalam teks: (Brown, 2005); narasi: Brown (2005); (2015, p.45).
+\DeclareDelimFormat[parencite,cite]{nameyeardelim}{\addcomma\space}
+\renewcommand*{\ppspace}{}
+
+% Daftar: "Alif, A., 2013. Judul." — tahun tanpa kurung, didahului koma.
+\DeclareDelimFormat[bib,biblist]{nameyeardelim}{\addcomma\space}
+\renewbibmacro*{date+extradate}{%
+  \iffieldundef{labelyear}{}{\printtext{\printlabeldateextra}}}
+\DeclareFieldFormat{extradate}{\mknumalph{#1}}
+
+% Judul artikel/makalah/preprint TEGAK tanpa tanda kutip; judul karya mandiri
+% (buku, tesis, dataset) dan nama jurnal/prosiding MIRING.
+\DeclareFieldFormat[article,inproceedings,incollection]{title}{#1}
+\DeclareFieldFormat[misc]{title}{%
+  \iffieldequalstr{entrysubtype}{preprint}{#1}{\mkbibemph{#1}}}
+% Jurnal: "*Nama Jurnal*, 42(6), p.564." — tanpa "Dalam:".
+\renewbibmacro*{in:}{%
+  \ifentrytype{article}{}{\printtext{\bibstring{in}\intitlepunct}}}
+\renewbibmacro*{journal+issuetitle}{%
+  \usebibmacro{journal}%
+  \setunit*{\addcomma\space}\usebibmacro{volume+number+eid}%
+  \setunit{\addcomma\space}\printfield{issue}%
+  \newunit}
+\renewbibmacro*{volume+number+eid}{%
+  \printfield{volume}\printfield{number}%
+  \setunit{\addcomma\space}\printfield{eid}}
+\DeclareFieldFormat[article]{number}{\mkbibparens{#1}}
+\DeclareFieldFormat[article]{volume}{#1}
+\DeclareFieldFormat{pages}{\mkpageprefix[bookpagination][\mknormrange]{#1}}
+% Prosiding: "Dalam: *Judul prosiding*. Kota, tanggal. Kota: Penerbit."
+\renewbibmacro*{event+venue+date}{%
+  \printfield{venue}\setunit*{\addcomma\space}\printeventdate\newunit}
+
+% KEPUTUSAN [spek L.2 no. 2-4] DOI, URL, preprint, dataset:
+%   Tersedia di: <https://doi.org/...>          (DOI, tanpa tanggal akses)
+%   Tersedia di: <URL> [Diakses 15 September 2026]
+%   [preprint] SSRN. / [dataset] Penerbit.      (lewat field howpublished)
+\DeclareFieldFormat{doi}{Tersedia di\addcolon\space
+  \textless\url{https://doi.org/#1}\textgreater}
+\DeclareFieldFormat{url}{Tersedia di\addcolon\space\textless\url{#1}\textgreater}
+\DeclareFieldFormat{urldate}{\mkbibbrackets{\bibstring{urlseen}\space#1}}
+\ExecuteBibliographyOptions{doi=true,url=true,isbn=false,eprint=false}
+% URL tidak dicetak bila DOI ada (hindari dua tautan untuk satu karya).
+\AtEveryBibitem{\iffieldundef{doi}{}{\clearfield{url}\clearfield{urlyear}}}
+
+% [spek F] tata letak daftar: gantung 0,90 cm, 6 pt antar-entri, justify.
+\setlength{\bibhang}{0.9cm}
+\setlength{\bibitemsep}{6pt}
+\setlength{\bibparsep}{0pt}
+\defbibheading{referensi}[\bibname]{\babtanpanomor{#1}}
+\newcommand\daftarreferensi{\printbibliography[heading=referensi,title={Daftar Referensi}]}
+
+% hyperref terakhir; tautan hitam agar cetakan sama dengan template.
+\RequirePackage[hidelinks,bookmarksnumbered]{hyperref}
+\RequirePackage{xurl}
+\urlstyle{same}
+\endinput
