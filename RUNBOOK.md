@@ -18,7 +18,7 @@ Semua catatan di `vault/30-eksperimen/` dan `vault/50-hasil/` saat ini berstatus
 Itu saja. Notebook itu memasang dependency lewat `%pip`, memeriksa GPU dan memasang
 ulang PyTorch versi CUDA kalau yang terpasang versi CPU, menerima token Kaggle
 langsung di dalam notebook (lewat `getpass`, jadi tidak tersimpan di output),
-menjalankan sebelas self-check, lalu mengeksekusi notebook 01-06 berurutan.
+menjalankan dua belas self-check, lalu mengeksekusi notebook 01-06 berurutan.
 
 Satu-satunya pilihan yang perlu Anda buat ada di sel terakhir: `CEPAT = True`
 (± 1 jam, untuk menguji pipeline) atau `False` (setelan paper penuh).
@@ -75,9 +75,10 @@ artefak sendiri dan checkpoint lama hanya dibaca:
 | 08 | `diagnostik_cabang_teks.csv`, `figures/09_*` | checkpoint 03, 05, 07 |
 | 09 | `FUSION-fix_*`, `uji_perbaikan*.csv`, `figures/10_*` | `CNN1D_seed42.pt` |
 | 10 | `data/interim/ocr/`, `reports/ocr_*`, `figures/ocr_*` | `manifest.csv`, citra JPG |
+| 11 | `manifest_kurasi.csv`, `data/interim/eda_*`, `reports/eda_*`, `figures/eda_*` | `manifest.csv`, `split_seed*.json`, sekuens FastText |
 
 ```bash
-python run_all.py --dari 07     # atau 08, 09, 10
+python run_all.py --dari 07     # atau 08, 09, 10, 11
 ```
 
 ### Notebook 10 (Fase 2): OCR multi-mesin
@@ -243,7 +244,7 @@ Buat API token di kaggle.com → Settings → API → Create New Token. Simpan
 
 ## 4. Verifikasi sebelum menyentuh data
 
-Sebelas modul punya self-check yang berjalan **tanpa dataset**. Jalankan semuanya
+Dua belas modul punya self-check yang berjalan **tanpa dataset**. Jalankan semuanya
 dulu — kalau ada yang gagal di sini, tidak ada gunanya mengunduh 3 GB:
 
 ```bash
