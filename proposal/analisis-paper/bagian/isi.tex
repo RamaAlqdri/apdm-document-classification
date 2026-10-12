@@ -1,0 +1,623 @@
+% Analisis tujuh paper kandidat. Setiap paper dianalisis dengan delapan aspek yang sama
+% supaya bisa dibandingkan. Isi diambil dari teks lengkap paper (versi arXiv dibaca, versi
+% terbit yang dikutip); angka hasil disalin dari tabel paper masing-masing.
+
+\section{Pendahuluan}\label{sec:pendahuluan}
+
+Dokumen ini menganalisis tujuh paper kandidat untuk topik klasifikasi dokumen multimodal
+yang memadukan citra halaman dengan teks hasil OCR. Paper dipilih dengan dua kriteria:
+\begin{itemize}
+  \item terbit tahun 2022 atau sesudahnya;
+  \item terbit di konferensi atau jurnal yang disarankan.
+\end{itemize}
+Daftarnya pada Tabel~\ref{tab:kandidat}.
+
+\begin{table}[H]
+  \centering
+  \caption{Paper kandidat yang dianalisis}
+  \label{tab:kandidat}
+  \fontsize{10}{12}\selectfont
+  \begin{tabularx}{\textwidth}{|c|>{\raggedright\arraybackslash}X|l|c|}
+    \hline
+    \textbf{No} & \textbf{Paper} & \textbf{Venue} & \textbf{Tahun} \\ \hline
+    1 & LayoutLMv3 \parencite{huang2022layoutlmv3} & ACM MM & 2022 \\ \hline
+    2 & Donut \parencite{kim2022donut} & ECCV & 2022 \\ \hline
+    3 & UDOP \parencite{tang2023udop} & CVPR & 2023 \\ \hline
+    4 & DocFormerv2 \parencite{appalaraju2024docformerv2} & AAAI & 2024 \\ \hline
+    5 & DocLLM \parencite{wang2024docllm} & ACL & 2024 \\ \hline
+    6 & LiLT \parencite{wang2022lilt} & ACL & 2022 \\ \hline
+    7 & Review fusion klasifikasi dokumen \parencite{mironczuk2026} &
+        Information Fusion & 2026 \\ \hline
+  \end{tabularx}
+\end{table}
+
+Setiap paper dianalisis dengan delapan aspek yang sama:
+\begin{enumerate*}[label=(\arabic*)]
+  \item latar belakang,
+  \item dataset,
+  \item teknologi OCR,
+  \item pipeline,
+  \item model,
+  \item metode fusion,
+  \item hasil, dan
+  \item hambatan atau \textit{future work}.
+\end{enumerate*}
+
+Isinya diambil dari teks lengkap tiap paper. Yang dibaca adalah versi arXiv, tetapi yang
+dikutip adalah versi terbitnya. Angka hasil disalin dari tabel paper masing-masing. Bila
+sebuah aspek tidak disebutkan paper, hal itu ditulis \enquote{tidak disebutkan}, bukan
+ditebak.
+
+\section{Analisis per Paper}\label{sec:analisis}
+
+\subsection{LayoutLMv3 (ACM MM 2022)}\label{sec:layoutlmv3}
+
+\textbf{Latar belakang.} Model dokumen multimodal sebelumnya memakai tujuan pralatih yang
+berbeda untuk teks dan citra:
+\begin{itemize}
+  \item teks memakai \textit{masked language modeling} (MLM);
+  \item citra merekonstruksi piksel (DocFormer) atau meregresi fitur wilayah (SelfDoc).
+\end{itemize}
+Ketidakselarasan ini menyulitkan penyelarasan lintas-modalitas. Selain itu, cabang citra
+bergantung pada CNN atau Faster R-CNN yang berat dan butuh anotasi wilayah
+\parencite{huang2022layoutlmv3}.
+
+\textbf{Dataset.}
+\begin{itemize}
+  \item \textbf{Pralatih:} IIT-CDIP, 11 juta halaman.
+  \item \textbf{Klasifikasi:} RVL-CDIP (320.000/40.000/40.000 citra, 16 kelas).
+  \item \textbf{Ekstraksi formulir dan struk:} FUNSD dan CORD.
+  \item \textbf{Tanya-jawab dokumen:} DocVQA.
+  \item \textbf{Analisis tata letak:} PubLayNet.
+  \item \textbf{Lampiran:} EPHOIE (bahasa Mandarin).
+\end{itemize}
+
+\textbf{Teknologi OCR.}
+\begin{itemize}
+  \item Pralatih memakai \enquote{toolkit OCR siap pakai} yang tidak disebutkan namanya.
+  \item Untuk RVL-CDIP dan DocVQA, teks dan kotaknya diekstrak dengan \textbf{Microsoft Read
+  API} (layanan komersial).
+  \item Untuk CORD dipakai anotasi OCR resmi dataset.
+  \item Posisi tata letak dipakai di tingkat segmen: kata dalam satu segmen berbagi satu
+  kotak.
+\end{itemize}
+
+\textbf{Pipeline.}
+\begin{enumerate}
+  \item Citra diubah ke $224\times224$, dipecah menjadi 196 \textit{patch} $16\times16$,
+  lalu diproyeksikan linear.
+  \item Teks OCR ditokenisasi BPE, maksimum 512 token, dan diberi posisi 1D serta posisi
+  tata letak 2D (x, y, lebar, tinggi).
+  \item Kedua urutan disambung dan dimasukkan ke satu Transformer.
+  \item Untuk klasifikasi, keluaran token \texttt{[CLS]} masuk ke pengklasifikasi MLP.
+\end{enumerate}
+
+\textbf{Model.} Transformer \textit{encoder} yang diinisialisasi dari RoBERTa:
+\begin{itemize}
+  \item \textit{base}: 12 lapis, 133 juta parameter;
+  \item \textit{large}: 24 lapis, 368 juta parameter.
+\end{itemize}
+Pralatihnya memakai tiga tujuan:
+\begin{itemize}
+  \item MLM untuk teks;
+  \item \textit{masked image modeling} (MIM) untuk citra, dengan target token citra dari
+  tokenizer DiT;
+  \item \textit{word-patch alignment} (WPA): memprediksi apakah \textit{patch} citra dari
+  sebuah kata ikut di-\textit{mask}.
+\end{itemize}
+
+\textbf{Metode fusion.} Fusion awal dalam satu aliran (\textit{single-stream early fusion}).
+Token teks dan \textit{patch} citra disambung menjadi satu urutan, lalu saling memperhatikan
+lewat \textit{self-attention} di setiap lapis. Penyelarasan antar-modalitas dilatih lewat
+WPA.
+
+\textbf{Hasil.}
+\begin{itemize}
+  \item RVL-CDIP: akurasi 95,44\% (\textit{base}) dan 95,93\% (\textit{large}).
+  \item FUNSD: F1 90,29 dan 92,08. CORD: F1 96,56 dan 97,46.
+  \item DocVQA: ANLS 78,76 dan 83,37.
+  \item PubLayNet: mAP 95,1.
+\end{itemize}
+
+Ablasinya penting untuk topik kita. Pada pralatih 1 juta dokumen, model teks + tata letak
+\textbf{tanpa citra} sudah mencapai 95,33\% di RVL-CDIP. Menambahkan \textit{patch} citra
+tanpa MIM justru turun ke 95,00\%. Dengan MIM dan WPA, akurasinya baru naik ke 95,53\%.
+Jadi sumbangan citra untuk klasifikasi hanya sekitar 0,2 poin, dan baru muncul setelah ada
+tujuan pralatih khusus untuk citra.
+
+\textbf{Hambatan dan \textit{future work}.} Penulis berencana:
+\begin{itemize}
+  \item memperbesar skala model dan data pralatih;
+  \item mengeksplorasi \textit{few-shot} dan \textit{zero-shot learning}.
+\end{itemize}
+Hambatan yang tidak dibahas penulis:
+\begin{itemize}
+  \item model bergantung pada OCR komersial (Microsoft Read API);
+  \item pralatihnya sangat mahal: \textit{batch} 2.048 selama 500.000 langkah.
+\end{itemize}
+
+\subsection{Donut (ECCV 2022)}\label{sec:donut}
+
+\textbf{Latar belakang.} Model pemahaman dokumen menyerahkan pembacaan teks kepada mesin
+OCR siap pakai. Ketergantungan ini membawa tiga masalah \parencite{kim2022donut}:
+\begin{enumerate}
+  \item biaya komputasi OCR yang tinggi;
+  \item mesin OCR tidak fleksibel terhadap bahasa atau jenis dokumen baru;
+  \item \textbf{galat OCR merambat} ke tahap berikutnya.
+\end{enumerate}
+Donut menghapus OCR dari pipeline.
+
+\textbf{Dataset.}
+\begin{itemize}
+  \item \textbf{Pralatih:} IIT-CDIP (11 juta citra) ditambah dokumen sintetis SynthDoG,
+  0,5 juta per bahasa (Inggris, Mandarin, Jepang, Korea).
+  \item \textbf{Klasifikasi:} RVL-CDIP.
+  \item \textbf{Ekstraksi informasi:} CORD, Ticket, serta dua data industri internal
+  (kartu nama Jepang dan struk Korea).
+  \item \textbf{Tanya-jawab:} DocVQA.
+\end{itemize}
+
+\textbf{Teknologi OCR.}
+\begin{itemize}
+  \item \textbf{Saat inferensi tidak ada OCR.}
+  \item OCR hanya dipakai untuk membuat label teks pralatih IIT-CDIP, dengan CLOVA OCR API
+  (komersial).
+  \item Model pembanding berbasis OCR memakai MS OCR dan CLOVA OCR.
+  \item Lampiran A.1 membandingkan \textbf{empat mesin OCR}: MS OCR, CLOVA OCR, EasyOCR, dan
+  PaddleOCR versi \textit{mobile}.
+\end{itemize}
+
+\textbf{Pipeline.}
+\begin{enumerate}
+  \item Citra beresolusi $2560\times1920$ dimasukkan ke \textit{encoder} visual.
+  \item \textit{Decoder} teks menghasilkan urutan token yang diubah menjadi JSON.
+  \item Untuk klasifikasi, \textit{decoder} menuliskan \texttt{[START\_class][memo][END\_class]}.
+\end{enumerate}
+
+\textbf{Model.} 143 juta parameter:
+\begin{itemize}
+  \item \textit{encoder}: Swin Transformer-B;
+  \item \textit{decoder}: empat lapis pertama BART multibahasa.
+\end{itemize}
+Pralatihnya berupa tugas \enquote{membaca}, yaitu memprediksi kata berikutnya dari citra.
+Proses ini berjalan 200.000 langkah pada 64 GPU A100.
+
+\textbf{Metode fusion.} \textbf{Tidak ada fusion eksplisit}, karena masukannya hanya citra.
+Teks tidak diambil dari OCR, tetapi \enquote{dibaca} sendiri oleh model. Hubungan visual
+dan bahasa terjadi lewat \textit{cross-attention} \textit{decoder} ke keluaran
+\textit{encoder}.
+
+\textbf{Hasil.}
+\begin{itemize}
+  \item RVL-CDIP: akurasi \textbf{95,30\%}, setara LayoutLMv2 (95,25\%), dengan waktu
+  752~ms per dokumen berbanding 1.489~ms.
+  \item CORD: F1 84,1.
+  \item DocVQA: ANLS 67,5, masih di bawah LayoutLMv2 (78,1). Namun Donut lebih kuat pada
+  tulisan tangan (ANLS 72,1).
+\end{itemize}
+
+Temuan paling relevan untuk topik kita ada di Gambar~9 paper. Akurasi dan kecepatan model
+berbasis OCR (BERT dan LayoutLMv2) di CORD \textbf{sangat bervariasi tergantung mesin OCR
+yang dipakai}. CLOVA OCR memberi akurasi terbaik.
+
+\textbf{Hambatan dan \textit{future work}.}
+\begin{itemize}
+  \item Teks yang sangat kecil di halaman besar dapat terlewat karena batas resolusi
+  masukan.
+  \item Resolusi yang lebih tinggi menaikkan akurasi, tetapi biayanya membesar.
+  \item Penulis menyebut perbaikan tujuan pralatih sebagai arah lanjutan.
+\end{itemize}
+
+\subsection{UDOP (CVPR 2023)}\label{sec:udop}
+
+\textbf{Latar belakang.} Model sebelumnya memperlakukan citra dan teks dokumen sebagai dua
+masukan terpisah. Tata letak hanya diwakili \textit{embedding} posisi yang dangkal, dan
+setiap tugas butuh \textit{head} khusus. Padahal teks dokumen \enquote{tertanam} di citra
+dengan korespondensi satu-satu \parencite{tang2023udop}.
+
+\textbf{Dataset.}
+\begin{itemize}
+  \item \textbf{Pralatih:} IIT-CDIP (11 juta dokumen), ditambah 11 dataset berlabel
+  (1,8 juta contoh), termasuk RVL-CDIP, PubLayNet, DocVQA, dan lainnya.
+  \item \textbf{Evaluasi:} FUNSD, CORD, RVL-CDIP, dan tujuh dataset DUE-Benchmark.
+\end{itemize}
+
+\textbf{Teknologi OCR.}
+\begin{itemize}
+  \item IIT-CDIP dipakai beserta teks dan kotak hasil OCR yang tersedia, tanpa nama mesin.
+  \item Untuk semua tugas evaluasi, penulis memakai \textbf{anotasi OCR asli yang disediakan
+  dataset}.
+\end{itemize}
+
+\textbf{Pipeline.}
+\begin{enumerate}
+  \item Citra dipecah menjadi \textit{patch}.
+  \item \textit{Embedding} setiap token teks \textbf{dijumlahkan} dengan fitur
+  \textit{patch} citra tempat pusat kotak token itu berada (\textit{layout-induced
+  vision-text embedding}).
+  \item Kotak tata letak diubah menjadi token diskret, misalnya
+  \texttt{<50><100><250><300>}.
+  \item Semua tugas, termasuk klasifikasi, dirumuskan sebagai pembangkitan teks dengan
+  prompt, misalnya \enquote{Document Classification on RVLCDIP}.
+\end{enumerate}
+
+\textbf{Model.} \textit{Vision-Text-Layout Transformer} dengan 794 juta parameter:
+\begin{itemize}
+  \item \textit{encoder} dan \textit{decoder} teks-tata letak berbasis T5-large;
+  \item \textit{decoder} visual berbasis MAE-large.
+\end{itemize}
+Resolusi dinaikkan bertahap $224 \rightarrow 512 \rightarrow 1024$.
+
+\textbf{Metode fusion.} Fusion paling awal. Teks dan citra dijumlahkan sudah di tingkat
+\textit{embedding} masukan, berdasarkan letak spasialnya, lalu diproses satu
+\textit{encoder}. Varian pembanding UDOP-Dual memakai dua \textit{encoder} terpisah untuk
+teks dan citra (\textit{two-tower}).
+
+\textbf{Hasil.}
+\begin{itemize}
+  \item RVL-CDIP: akurasi \textbf{96,00\%}; varian UDOP-Dual 96,22\%.
+  \item FUNSD: F1 91,62. CORD: F1 97,58.
+  \item Peringkat pertama di DUE-Benchmark per November 2022.
+\end{itemize}
+
+Menghapus input citra hanya menurunkan DocVQA dari 84,7 ke 84,4, dan InfographicsVQA dari
+47,4 ke 45,0. Penulis menyimpulkan citra lebih penting pada data yang kaya visual daripada
+pada data yang didominasi teks.
+
+\textbf{Hambatan dan \textit{future work}.} Penulis menyebut dua hal:
+\begin{itemize}
+  \item kemampuan membangkitkan dokumen dapat disalahgunakan untuk pemalsuan;
+  \item penerapan pada bahasa non-Latin memerlukan modifikasi.
+\end{itemize}
+Hambatan praktis yang tidak dibahas penulis: ukuran model (794 juta parameter) dan
+pralatihnya sangat berat.
+
+\subsection{DocFormerv2 (AAAI 2024)}\label{sec:docformerv2}
+
+\textbf{Latar belakang.} Menderetkan teks OCR dari kiri ke kanan lalu memberikannya ke
+model bahasa tidak optimal. Makna isi dokumen bergantung pada tata letaknya, dan sebagian
+besar tugas butuh pemahaman \textbf{lokal}: hubungan sebuah teks dengan teks di
+sekitarnya. Model sebelumnya kebanyakan hanya \textit{encoder}
+\parencite{appalaraju2024docformerv2}.
+
+\textbf{Dataset.}
+\begin{itemize}
+  \item \textbf{Pralatih:} Industrial Document Library (IDL), 64 juta halaman.
+  \item \textbf{Evaluasi:} TabFact, WikiTableQuestions, DocVQA, InfographicsVQA, FUNSD, dan
+  CORD, ditambah tiga dataset \textit{scene-text} VQA (OCR-VQA, TextVQA, ST-VQA).
+  \item \textbf{RVL-CDIP tidak diuji}, sehingga tidak ada hasil klasifikasi dokumen.
+\end{itemize}
+
+\textbf{Teknologi OCR.} Teks dan kotak IDL diekstrak dengan OCR, tetapi \textbf{nama mesin
+OCR-nya tidak disebutkan}. Untuk evaluasi dipakai teks OCR yang disediakan dataset.
+
+\textbf{Pipeline.}
+\begin{enumerate}
+  \item Citra masuk lewat lapisan sederhana \texttt{linear(conv2x2(v))}, tanpa CNN atau
+  detektor objek.
+  \item Teks OCR ditokenisasi \textit{sentence-piece}.
+  \item Fitur spasial (x, y, tinggi, lebar) dijumlahkan ke \textit{embedding} teks.
+  \item Urutan teks dan citra disambung lalu masuk \textit{encoder}.
+  \item \textit{Decoder} membangkitkan jawaban.
+\end{enumerate}
+
+\textbf{Model.} Transformer \textit{encoder-decoder}, varian \textit{small},
+\textit{base}, dan \textit{large} (750 juta parameter). Pralatihnya dibuat asimetris:
+\begin{itemize}
+  \item dua tugas di \textit{encoder}: \textit{token-to-line} (jarak baris antar token) dan
+  \textit{token-to-grid} (letak token di kisi halaman $4\times4$);
+  \item satu tugas di \textit{decoder}: \textit{denoising language modeling}.
+\end{itemize}
+
+\textbf{Metode fusion.} Fusion awal dalam satu \textit{encoder}. Token visual dan token teks
+disambung pada dimensi urutan, dan setiap modalitas diberi \textit{embedding} penanda
+modalitas.
+
+\textbf{Hasil.}
+\begin{itemize}
+  \item DocVQA: ANLS 87,84 dan InfographicsVQA 48,8. Keduanya setelah pelatihan tambahan
+  dengan 850 ribu pasangan tanya-jawab dokumen.
+  \item FUNSD: F1 88,89. CORD: F1 97,7.
+  \item TabFact: 4,3 poin di atas model terbaik sebelumnya.
+\end{itemize}
+
+Dua ablasi relevan:
+\begin{itemize}
+  \item \textbf{Ketahanan terhadap galat OCR buatan di FUNSD.} Dengan 20\% karakter salah,
+  kinerja DocFormerv2 hanya turun 1,68\%, sedangkan model \textit{encoder}-saja turun
+  9,84\%.
+  \item Memakai Swinv2 sebagai \textit{encoder} citra justru 4,3\% lebih buruk di DocVQA
+  dibanding lapisan linear sederhana.
+\end{itemize}
+
+\textbf{Hambatan dan \textit{future work}.} Tidak disebutkan secara eksplisit. Dari analisis
+kami: klasifikasi dokumen tidak diuji, mesin OCR pralatih tidak disebutkan, dan
+pralatihnya memakai 64 juta halaman.
+
+\subsection{DocLLM (ACL 2024)}\label{sec:docllm}
+
+\textbf{Latar belakang.} Model bahasa besar (LLM) standar hanya menerima teks dan
+mengandaikan tata letak sederhana. LLM multimodal untuk dokumen bergantung pada
+\textit{encoder} citra yang mahal. DocLLM menambahkan informasi tata letak ke LLM
+\textbf{tanpa \textit{encoder} citra} sama sekali, hanya dari kotak teks OCR
+\parencite{wang2024docllm}.
+
+\textbf{Dataset.}
+\begin{itemize}
+  \item \textbf{Pralatih:} IIT-CDIP dan DocBank, total 16,7 juta halaman (3,8 miliar
+  token).
+  \item \textbf{\textit{Instruction tuning}:} 16 dataset untuk empat tugas, yaitu
+  tanya-jawab, inferensi bahasa alami, ekstraksi informasi, dan klasifikasi. Untuk
+  klasifikasi dipakai RVL-CDIP (di-\textit{downsample}) dan BizDocs.
+\end{itemize}
+
+\textbf{Teknologi OCR.} Teks dan kotak berasal dari OCR yang disediakan setiap dataset;
+mesinnya tidak disebutkan. Penulis secara eksplisit menyatakan bahwa \textbf{pilihan
+mesin OCR masih terbuka untuk dieksplorasi}, dan perbandingan praktis antar-mesin OCR
+dijadikan \textit{future work}. Mereka juga mencatat bahwa model keluarga LayoutLM yang
+memakai Microsoft Azure OCR mengungguli Tesseract di papan peringkat DocVQA.
+
+\textbf{Pipeline.}
+\begin{enumerate}
+  \item Setiap token teks OCR dipasangkan dengan kotaknya (kiri, atas, kanan, bawah).
+  \item Kotak di-\textit{encode} menjadi vektor spasial terpisah dari vektor teks.
+  \item Perhatian dihitung dengan mekanisme terurai (lihat bagian fusion).
+  \item Tugas diberikan sebagai instruksi, misalnya \enquote{What type of document is this?
+  Possible choices: \ldots}.
+\end{enumerate}
+
+\textbf{Model.} Dibangun di atas LLM yang sudah ada:
+\begin{itemize}
+  \item DocLLM-1B, berbasis Falcon-1B;
+  \item DocLLM-7B, berbasis Llama2-7B.
+\end{itemize}
+Pralatihnya memakai tujuan \textit{block infilling}: blok teks di-\textit{mask} lalu
+direkonstruksi dari konteks sebelum dan sesudahnya.
+
+\textbf{Metode fusion.} Tidak ada citra; yang dipadukan adalah teks dan tata letak.
+Caranya \textit{disentangled spatial attention}: skor perhatian dipecah menjadi teks--teks,
+teks--spasial, spasial--teks, dan spasial--spasial, masing-masing dengan bobot $\lambda$.
+Konfigurasi akhirnya hanya memakai teks--teks dan spasial--spasial.
+
+\textbf{Hasil.}
+\begin{itemize}
+  \item RVL-CDIP: akurasi \textbf{91,8\%} (7B) dan 90,9\% (1B), jauh di atas GPT-4 +
+  OCR \textit{zero-shot} (68,2\%).
+  \item Unggul di 14 dari 16 dataset dibanding model sebanding.
+\end{itemize}
+Catatan: angka RVL-CDIP ini memakai format pilihan ganda dengan data latih yang
+di-\textit{downsample}, sehingga tidak sebanding langsung dengan paper lain.
+
+\textbf{Hambatan dan \textit{future work}.}
+\begin{itemize}
+  \item Pada dataset yang belum pernah dilihat, akurasi klasifikasinya rendah: 31,1\% pada
+  BizDocs. Menurut penulis, ini karena model hanya dilatih dengan satu dataset
+  klasifikasi.
+  \item Penulis berencana menambahkan modalitas citra secara ringan.
+  \item Perbandingan antar-mesin OCR disebut sebagai pekerjaan lanjutan.
+\end{itemize}
+
+\subsection{LiLT (ACL 2022)}\label{sec:lilt}
+
+\textbf{Latar belakang.} Hampir semua model pemahaman dokumen terstruktur hanya untuk satu
+bahasa, biasanya Inggris. Satu-satunya model multibahasa (LayoutXLM) butuh pengumpulan
+data 53 bahasa yang mahal. LiLT memisahkan pengetahuan tata letak dari bahasa, sehingga
+tata letak yang dipelajari dari dokumen Inggris dapat dipakai untuk bahasa lain
+\parencite{wang2022lilt}.
+
+\textbf{Dataset.}
+\begin{itemize}
+  \item \textbf{Pralatih:} IIT-CDIP (11 juta citra).
+  \item \textbf{Evaluasi:} FUNSD, CORD, EPHOIE, RVL-CDIP, dan XFUND (delapan bahasa).
+\end{itemize}
+
+\textbf{Teknologi OCR.} Teks dan kotak IIT-CDIP diekstrak dengan \textbf{TextIn API}
+(komersial). Setiap token memakai kotak dari baris teks tempatnya berada, karena tidak
+semua mesin OCR memberikan kotak per token.
+
+\textbf{Pipeline.}
+\begin{enumerate}
+  \item Teks OCR diurutkan dari kiri-atas ke kanan-bawah, lalu ditokenisasi.
+  \item Kotak dinormalkan ke rentang 0--1000 menjadi urutan posisi 2D.
+  \item Aliran teks dan aliran tata letak diproses dua Transformer paralel.
+  \item Keluaran keduanya disambung untuk \textit{head} tugas.
+\end{enumerate}
+\textbf{Citra tidak dipakai.}
+
+\textbf{Model.} Transformer dua aliran:
+\begin{itemize}
+  \item aliran teks diinisialisasi dari model bahasa siap pakai (RoBERTa, XLM-R, InfoXLM);
+  \item aliran tata letak lebih kecil, hanya 6,1 juta parameter tambahan.
+\end{itemize}
+Pralatihnya memakai MVLM ditambah dua tugas baru: \textit{key point location} dan
+\textit{cross-modal alignment identification}.
+
+\textbf{Metode fusion.} \textit{Bi-directional attention complementation mechanism} (BiACM):
+skor perhatian aliran teks dan aliran tata letak saling dijumlahkan di setiap lapis, lalu
+fitur keduanya disambung di keluaran.
+
+Ablasinya relevan untuk pilihan fusion. Menyambung fitur teks dan tata letak \textbf{hanya
+di keluaran}, tanpa interaksi antar-aliran, \textbf{lebih buruk daripada aliran teks
+saja}. \textit{Co-attention} yang lebih \enquote{dalam} juga menurunkan kinerja.
+
+\textbf{Hasil.}
+\begin{itemize}
+  \item RVL-CDIP: akurasi \textbf{95,68\%} dengan RoBERTa Inggris.
+  \item FUNSD: F1 88,41. CORD: F1 96,07.
+  \item Unggul atas LayoutXLM di delapan bahasa XFUND, padahal hanya dipralatih dengan data
+  Inggris.
+\end{itemize}
+Satu catatan: paper LayoutLMv3 menyebut LiLT memakai fitur citra ResNeXt101-FPN saat
+\textit{fine-tuning} RVL-CDIP.
+
+\textbf{Hambatan dan \textit{future work}.} Penulis akan:
+\begin{itemize}
+  \item melanjutkan pola transfer dari satu bahasa ke banyak bahasa;
+  \item mengeksplorasi informasi visual yang tidak bergantung bahasa.
+\end{itemize}
+
+\subsection{Review Fusion untuk Klasifikasi Dokumen (Information Fusion 2026)}
+\label{sec:mironczuk}
+
+\textbf{Latar belakang.} Riset fusion untuk klasifikasi dokumen belum punya kerangka
+bersama. Belum ada pula sintesis kuantitatif tentang seberapa besar sebenarnya keuntungan
+fusion \parencite{mironczuk2026}.
+
+\textbf{Dataset.} Bukan dataset eksperimen, melainkan 139 studi primer. Studi itu dipilih
+dari 374 rekaman Scopus (pencarian 3 Januari 2025) dengan prosedur berbasis PRISMA.
+Kriterianya:
+\begin{itemize}
+  \item berbahasa Inggris;
+  \item membahas klasifikasi dokumen;
+  \item memakai teknik fusion;
+  \item telah ditinjau sejawat.
+\end{itemize}
+
+\textbf{Teknologi OCR.} Tidak dianalisis tersendiri. Penulis mengakui bahwa kualitas data,
+termasuk galat OCR, adalah tantangan penting. Namun kualitas OCR \textbf{tidak dapat
+dikontrol} dalam meta-analisis, karena studi primer jarang melaporkannya.
+
+\textbf{Pipeline.}
+\begin{enumerate}
+  \item Identifikasi, penyaringan, dan seleksi studi.
+  \item Sintesis kualitatif dan penyusunan taksonomi.
+  \item Meta-analisis efek acak (\textit{random-effects}) atas selisih kinerja
+  multimodal dibanding unimodal.
+\end{enumerate}
+
+\textbf{Model.} Kerangka formal representasi, pola, dan model, yang menghubungkan arsitektur
+pembelajaran mesin dengan teori fusion klasik (Bayesian, Dempster--Shafer).
+
+\textbf{Metode fusion.} Fusion dibagi menjadi tiga:
+\begin{itemize}
+  \item awal (\textit{early}), di tingkat representasi;
+  \item akhir (\textit{late}), di tingkat keputusan;
+  \item hibrida, gabungan keduanya.
+\end{itemize}
+Pada studi multimodal, pasangan teks--citra mendominasi (67,2\%).
+
+\textbf{Hasil.}
+\begin{itemize}
+  \item Fusion multimodal menaikkan akurasi rata-rata \textbf{5,28 poin} ($p = 0{,}0016$).
+  \item Efeknya terhadap F1 positif tetapi tidak signifikan.
+  \item Hanya \textbf{11,8\%} studi multimodal yang memakai uji statistik.
+  \item Keuntungan multimodal dapat mengecil bila sudah dipakai model bahasa pralatih yang
+  kuat.
+\end{itemize}
+
+\textbf{Hambatan dan \textit{future work}.}
+\begin{itemize}
+  \item \textbf{Hambatan review ini:} hanya satu basis data (Scopus), dan kualitas data
+  studi primer tidak terkontrol.
+  \item \textbf{Hambatan di lapangan:} kelangkaan data, beban komputasi, penyelarasan
+  lintas-modalitas, dan dokumen panjang.
+  \item \textbf{Arah lanjutan:} integrasi dengan LLM, pembelajaran representasi
+  kontrastif, penanganan data multimodal yang bising, dan validasi statistik yang lebih
+  ketat.
+\end{itemize}
+
+\section{Perbandingan}\label{sec:perbandingan}
+
+Tabel~\ref{tab:banding} merangkum aspek teknis keenam paper eksperimen. Tabel
+\ref{tab:hambatan} merangkum hambatan dan \textit{future work}-nya.
+
+\begin{table}[H]
+  \centering
+  \caption{Perbandingan teknis paper eksperimen}
+  \label{tab:banding}
+  \fontsize{9}{11}\selectfont
+  \begin{tabularx}{\textwidth}{|l|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|c|}
+    \hline
+    \textbf{Paper} & \textbf{OCR} & \textbf{Modalitas} & \textbf{Fusion} &
+    \textbf{RVL-CDIP} \\ \hline
+    LayoutLMv3 & Microsoft Read API & teks, tata letak, citra &
+    awal, satu aliran & 95,93\% \\ \hline
+    Donut & tidak ada (CLOVA OCR hanya untuk label pralatih) & citra &
+    tidak ada; teks dibaca model & 95,30\% \\ \hline
+    UDOP & bawaan dataset & teks, tata letak, citra &
+    sangat awal, dijumlahkan per \textit{patch} & 96,00\% \\ \hline
+    DocFormerv2 & tidak disebutkan & teks, tata letak, citra &
+    awal, satu \textit{encoder} & tidak diuji \\ \hline
+    DocLLM & bawaan dataset & teks, tata letak &
+    perhatian terurai teks--spasial & 91,8\%$^\ast$ \\ \hline
+    LiLT & TextIn API & teks, tata letak & dua aliran + BiACM & 95,68\% \\ \hline
+  \end{tabularx}
+  \sumber{Dirangkum dari paper masing-masing. $^\ast$Format pilihan ganda dengan data
+  latih di-\textit{downsample}; tidak sebanding langsung.}
+\end{table}
+
+\begin{table}[H]
+  \centering
+  \caption{Hambatan dan \textit{future work} setiap paper}
+  \label{tab:hambatan}
+  \fontsize{9}{11}\selectfont
+  \begin{tabularx}{\textwidth}{|l|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|}
+    \hline
+    \textbf{Paper} & \textbf{Hambatan} & \textbf{\textit{Future work} dari penulis} \\ \hline
+    LayoutLMv3 & bergantung OCR komersial; pralatih sangat mahal &
+    skala lebih besar; \textit{few-shot} dan \textit{zero-shot} \\ \hline
+    Donut & teks kecil terlewat; resolusi tinggi mahal; DocVQA masih kalah dari model
+    berbasis OCR & perbaikan tujuan pralatih \\ \hline
+    UDOP & model sangat besar (794 juta parameter); risiko pemalsuan dokumen &
+    adaptasi ke bahasa non-Latin \\ \hline
+    DocFormerv2 & klasifikasi tidak diuji; OCR tidak disebutkan & tidak disebutkan \\ \hline
+    DocLLM & klasifikasi lemah pada dataset baru & menambah citra secara ringan;
+    \textbf{membandingkan mesin OCR} \\ \hline
+    LiLT & citra tidak dipakai & transfer multibahasa; informasi visual \\ \hline
+    Mirończuk & satu basis data; kualitas OCR tidak terkontrol & integrasi LLM;
+    data bising; validasi statistik \\ \hline
+  \end{tabularx}
+\end{table}
+
+\section{Sintesis dan Celah Penelitian}\label{sec:sintesis}
+
+Dari ketujuh paper, ada empat pola yang terlihat.
+
+\textbf{1. Mesin OCR diperlakukan sebagai konstanta.} Lima paper eksperimen bergantung pada
+OCR, tetapi masing-masing memakai satu sumber saja:
+\begin{itemize}
+  \item Microsoft Read API (LayoutLMv3);
+  \item TextIn API (LiLT);
+  \item OCR bawaan dataset (UDOP, DocLLM);
+  \item mesin yang tidak disebutkan (DocFormerv2).
+\end{itemize}
+Hanya Donut yang membandingkan beberapa mesin OCR, itu pun di lampiran dan untuk ekstraksi
+informasi (CORD), bukan klasifikasi. Hasilnya kinerja sangat bergantung pada mesin OCR.
+DocLLM secara eksplisit menyebut perbandingan mesin OCR sebagai \textit{future work}.
+Mirończuk mencatat kualitas OCR tidak terkontrol di seluruh bidang.
+
+\textbf{2. Sumbangan modalitas citra untuk klasifikasi kecil.}
+\begin{itemize}
+  \item Ablasi LayoutLMv3: teks dan tata letak saja sudah 95,33\% di RVL-CDIP; citra hanya
+  menambah sekitar 0,2 poin.
+  \item UDOP: menghapus citra hanya menurunkan DocVQA 0,3 poin.
+  \item LiLT: tanpa citra sudah mencapai 95,68\%.
+  \item Mirończuk: keuntungan multimodal mengecil bila sudah dipakai model bahasa yang
+  kuat.
+\end{itemize}
+Tidak ada satu pun paper yang menguji apakah model gabungan \emph{benar-benar memakai}
+setiap modalitas, misalnya lewat uji \textit{missing modality} di tingkat model.
+
+\textbf{3. Cara fusion beragam.} Pilihannya meliputi fusion awal satu aliran (LayoutLMv3,
+DocFormerv2), penjumlahan per \textit{patch} (UDOP), dua aliran dengan berbagi perhatian
+(LiLT), perhatian terurai teks--spasial (DocLLM), sampai tanpa OCR sama sekali (Donut).
+Ablasi LiLT menunjukkan bahwa penggabungan hanya di akhir tanpa interaksi bisa lebih buruk
+daripada satu modalitas saja.
+
+\textbf{4. Semuanya bergantung pada pralatih skala besar.} Data pralatihnya berkisar 11 juta
+sampai 64 juta halaman, dengan puluhan GPU. Replikasi pralatih tidak realistis untuk
+perangkat kelompok (GPU 4~GB). Jalur yang realistis adalah \textit{fine-tuning} model
+\textit{base} yang dirilis publik pada data kecil seperti Tobacco3482, misalnya
+LayoutLMv3-\textit{base} (133 juta parameter) atau LiLT.
+
+\textbf{Celah yang terbuka.} Pola~1 dan~2 menunjuk ke pertanyaan yang belum dijawab paper
+mana pun:
+\begin{itemize}
+  \item seberapa besar pilihan mesin OCR open-source (Tesseract, EasyOCR, PaddleOCR)
+  memengaruhi model klasifikasi dokumen berbasis OCR;
+  \item apakah model gabungan benar-benar memanfaatkan modalitas teks yang dihasilkan OCR
+  tersebut.
+\end{itemize}
+Donut memberi bukti awal bahwa mesin OCR berpengaruh. DocLLM menyebut pertanyaan ini
+sebagai pekerjaan lanjutan. Mirończuk menunjukkan bahwa celah ini terjadi di seluruh
+bidang.
