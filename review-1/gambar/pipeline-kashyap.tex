@@ -1,0 +1,36 @@
+% Dua pipeline Kashyap et al. (2026), digambar ulang dari Gambar 1 dan Gambar 3 paper.
+% Dipakai bersama oleh laporan dan presentasi; butuh TikZ (positioning, arrows.meta).
+\resizebox{\linewidth}{!}{%
+\begin{tikzpicture}[
+  node distance=4mm and 6mm,
+  kotak/.style={draw, rounded corners=2pt, align=center, font=\small,
+                minimum height=10mm, inner sep=3pt},
+  citra/.style={kotak, fill=blue!10},
+  teks/.style={kotak, fill=orange!15},
+  fusi/.style={kotak, fill=green!15},
+  ret/.style={kotak, fill=violet!12},
+  panah/.style={-{Stealth[length=2mm]}, thick}]
+  % ---- Pendekatan 1: late fusion
+  \node[font=\small\bfseries, anchor=west] (j1) at (0,1.9) {Pendekatan 1 -- multimodal late fusion};
+  \node[kotak] (in) at (0.9,0) {Citra\\dokumen};
+  \node[citra, above right=1mm and 8mm of in] (pre) {Resize 300$\times$300\\norm.\ [0,1], RGB};
+  \node[citra, right=of pre] (eff) {EfficientNetB3\\fine-tune RVL-CDIP};
+  \node[citra, right=of eff] (lv) {logit visual\\16 kelas};
+  \node[teks, below right=1mm and 8mm of in] (ocr) {OCR komersial\\+ praproses teks};
+  \node[teks, right=of ocr] (bert) {BERT\textsubscript{base}\\fine-tune RVL-CDIP};
+  \node[teks, right=of bert] (lt) {logit teks\\16 kelas};
+  \node[fusi, right=10mm of $(lv)!0.5!(lt)$] (avg) {Rata-rata logit\\$(z_v+z_t)/2$};
+  \node[fusi, right=of avg] (y1) {argmax};
+  \draw[panah] (in) |- (pre); \draw[panah] (pre) -- (eff); \draw[panah] (eff) -- (lv);
+  \draw[panah] (in) |- (ocr); \draw[panah] (ocr) -- (bert); \draw[panah] (bert) -- (lt);
+  \draw[panah] (lv) -| (avg); \draw[panah] (lt) -| (avg); \draw[panah] (avg) -- (y1);
+  % ---- Pendekatan 2: SCSR
+  \node[font=\small\bfseries, anchor=west] (j2) at (0,-2.4) {Pendekatan 2 -- SCSR (teks saja)};
+  \node[teks] (ocr2) at (1.2,-3.6) {Teks OCR\\RVL-CDIP train};
+  \node[ret, right=of ocr2] (pair) {319.625 pasangan\\anchor--positif};
+  \node[ret, right=of pair] (bge) {bge-small-en\\MNRL + Matryoshka};
+  \node[ret, right=of bge] (idx) {chunk 512 kar.\\FAISS 1,03 jt $\times$ 384-d};
+  \node[ret, right=of idx] (knn) {top-10 kosinus\\voting mayoritas};
+  \draw[panah] (ocr2) -- (pair); \draw[panah] (pair) -- (bge);
+  \draw[panah] (bge) -- (idx); \draw[panah] (idx) -- (knn);
+\end{tikzpicture}}

@@ -1,0 +1,576 @@
+% Review dua paper. Setiap paper dibahas dengan sembilan poin wajib dari dosen, ditambah
+% empat poin rekomendasi (kontribusi, detail pelatihan, kelebihan, catatan kritis).
+% Semua angka disalin dari tabel/teks paper; tidak ada angka dari eksperimen kelompok.
+
+\section{Pendahuluan}\label{sec:pendahuluan}
+
+Laporan ini mereview dua paper tentang klasifikasi citra dokumen yang memadukan dua
+modalitas: citra halaman dan teks hasil OCR. Paper pertama adalah dasar replikasi proyek
+pada Fase~1, sedangkan paper kedua adalah referensi utama Fase~2. Identitas keduanya
+ada pada Tabel~\ref{tab:identitas}.
+
+\begin{table}[H]
+  \centering
+  \caption{Identitas paper yang direview}
+  \label{tab:identitas}
+  \fontsize{10}{12}\selectfont
+  \begin{tabularx}{\textwidth}{|l|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|}
+    \hline
+    & \textbf{Paper 1} & \textbf{Paper 2} \\ \hline
+    Judul & Multimodal Deep Networks for Text and Image-Based Document Classification
+          & Multimodal Fusion and Supervised Contrastive Learning for Robust Document Image Classification \\ \hline
+    Penulis & Audebert, Herold, Slimani, Vidal (Quicksign, Prancis)
+            & Kashyap, Mittal, Singh (Central University of Punjab, India) \\ \hline
+    Venue & ECML PKDD 2019 Workshops, CCIS 1167, Springer, hlm.\ 427--443
+          & International Journal of Intelligent Systems (Wiley), artikel 4241437, open access \\ \hline
+    Tahun & 2020 (workshop 2019) & 2026 (diterima 13 Juli 2026) \\ \hline
+    DOI & 10.1007/978-3-030-43823-4\_35 & 10.1155/int/4241437 \\ \hline
+    Sitasi & \textcite{audebert2020} & \textcite{kashyap2026} \\ \hline
+  \end{tabularx}
+\end{table}
+
+Setiap paper dibahas dengan sembilan poin wajib:
+\begin{enumerate*}[label=(\arabic*)]
+  \item latar belakang dan permasalahan,
+  \item dataset,
+  \item modalitas,
+  \item pipeline keseluruhan,
+  \item model per unimodal,
+  \item metode fusi,
+  \item metrik evaluasi,
+  \item hasil keseluruhan beserta hasil per unimodal, dan
+  \item \emph{future work}.
+\end{enumerate*}
+Kami menambahkan empat poin yang menurut kami perlu untuk review yang utuh:
+\begin{enumerate*}[label=(\arabic*), start=10]
+  \item kontribusi utama,
+  \item detail pelatihan dan lingkungan eksperimen,
+  \item kelebihan, dan
+  \item catatan kritis (kelemahan, inkonsistensi, ancaman validitas).
+\end{enumerate*}
+Bagian~\ref{sec:banding} membandingkan kedua paper, dan Bagian~\ref{sec:relevansi}
+menjelaskan apa yang kami ambil untuk proyek.
+
+% =====================================================================
+\section{Paper 1: Audebert et al.\ (2020)}\label{sec:audebert}
+
+\subsection{Latar Belakang dan Permasalahan}
+Banyak proses administrasi (pembukaan rekening, pajak, verifikasi identitas) kini
+menerima dokumen yang dipindai atau difoto pengguna. Dokumen ini tidak punya lapisan
+teks, sehingga pengecekan dan pengarsipannya masih dikerjakan operator manusia.
+Langkah pertama yang perlu diotomasi adalah mengenali jenis dokumen.
+
+Masalah yang diangkat: klasifikasi berbasis tampilan visual saja cukup untuk kelas
+yang kasar (paspor vs.\ data bank), tetapi tidak cukup untuk kelas yang halus. Dua
+formulir pajak bisa berbagi tata letak dan logo yang sama, sedangkan isinya berbeda.
+Informasi pembedanya ada di teks, padahal teks itu tidak tersedia dalam bentuk digital
+dan harus diambil lewat OCR yang hasilnya berderau. Pertanyaan penelitiannya: apakah
+teks OCR yang berderau tetap bisa menaikkan akurasi klasifikasi citra dokumen jika
+digabung dengan fitur visual, dengan biaya komputasi yang tetap rendah?
+
+\subsection{Dataset}
+\begin{itemize}
+  \item \textbf{Tobacco3482} \parencite{kumar2014}: 3.482 dokumen hitam-putih, 10 kelas
+        (\emph{advertisement, email, form, letter, memo, news, note, report, resume,
+        scientific}). Protokol: 800 dokumen untuk latih, sisanya untuk uji; hasil dirata-rata
+        dari 3 kali percobaan.
+  \item \textbf{RVL-CDIP} \parencite{harley2015}: 400.000 dokumen grayscale, 16 kelas,
+        25.000 per kelas. Pembagian standar 320.000 latih, 40.000 validasi, 40.000 uji.
+  \item \textbf{QS-OCR}: teks hasil Tesseract untuk kedua dataset di atas, dirilis penulis
+        di GitHub \texttt{Quicksign/ocrized-text-dataset}. Dataset inilah yang kami pakai
+        sebagai modalitas teks (QS-OCR-Small untuk Tobacco3482).
+\end{itemize}
+
+\subsection{Modalitas}
+Dua modalitas yang keduanya berasal dari satu citra halaman:
+\begin{enumerate*}[label=(\alph*)]
+  \item \textbf{citra} grayscale halaman dokumen, dan
+  \item \textbf{teks} yang diekstraksi dari citra yang sama dengan Tesseract OCR.
+\end{enumerate*}
+Teks bukan modalitas yang independen, melainkan turunan dari citra, sehingga kualitasnya
+dibatasi oleh kualitas OCR. Tata letak (posisi kata) tidak dipakai.
+
+\subsection{Pipeline Keseluruhan}
+Gambar~\ref{fig:pipeline-audebert} merangkum pipeline. Citra diproses oleh MobileNetV2,
+teks OCR diubah menjadi barisan vektor kata FastText lalu diproses CNN 1D. Kedua vektor
+fitur 128 dimensi digabung (konkatenasi) dan diklasifikasi oleh MLP. Seluruh jaringan
+dapat dilatih \emph{end-to-end}.
+
+\begin{figure}[H]
+  \centering
+  \input{../gambar/pipeline-audebert}
+  \caption{Pipeline Audebert et al.\ (digambar ulang dari Gambar~1 dan Bagian~3--4 paper)}
+  \label{fig:pipeline-audebert}
+\end{figure}
+
+\subsection{Model per Unimodal}
+\paragraph{Citra.} MobileNetV2 dipilih karena ringan (sekitar setara VGG-16 dalam
+akurasi, tetapi jauh lebih cepat). Citra di-\emph{resize} ke $384\times384$ (rasio
+aspek dikorbankan), kanal grayscale diduplikasi tiga kali agar bobot ImageNet bisa
+dipakai, lalu jaringan di-\emph{fine-tune}. Augmentasi (artefak JPEG, saturasi, kontras)
+tidak membantu, sehingga tidak dipakai.
+
+\paragraph{Teks.} Tesseract 4.0 (mesin LSTM, bahasa Inggris, segmentasi halaman penuh).
+Penulis menunjukkan derau OCR: rata-rata 136 kata ($\geq$4 huruf) per dokumen, hanya 118
+ada di kosakata GloVe dan 114 di kamus Enchant; sekitar 26\,\% korpus tidak ada di kamus
+bahasa Inggris. Karena itu dipilih embedding berbasis subkata, \textbf{FastText} (Common
+Crawl), yang tetap memberi vektor masuk akal untuk kata salah eja. Tokenisasi memakai
+SpaCy. Dua klasifikator dibandingkan:
+\begin{itemize}
+  \item MLP atas embedding dokumen (rata-rata berbobot ala Arora + PCA): 2048 neuron per
+        lapis, ReLU, Dropout, BatchNorm, lapis akhir 128-d;
+  \item \textbf{CNN 1D} atas barisan kata (dipilih): 4 lapis, kernel 12, 512 kanal, ReLU,
+        max-pooling stride 2, lalu max-pooling sepanjang waktu, Dropout, dan FC. Input
+        dipotong/di-\emph{padding} ke 500 kata.
+\end{itemize}
+
+\subsection{Metode Fusi}
+Fusi tingkat fitur (\emph{intermediate/feature-level}). Vektor teks 128-d (lapis
+sebelum softmax CNN 1D) dan vektor citra 1280-d hasil \emph{global average pooling} yang
+diproyeksikan ke 128-d oleh FC, lalu \textbf{dikonkatenasi} dan diumpankan ke MLP.
+Penulis juga mencoba \emph{adaptive averaging} (penjumlahan fitur); pada eksperimen awal
+cara ini kalah dari model citra saja, dan penulis menduga ruang fitur teks dan citra
+tidak bisa diselaraskan tanpa merusak daya pembedanya.
+
+\subsection{Metrik Evaluasi}
+\begin{itemize}
+  \item \emph{Overall accuracy} (OA);
+  \item F1 seimbang antarkelas (\emph{class-balanced} F1, yaitu macro-F1) dan F1 per kelas
+        untuk Tobacco3482;
+  \item \textbf{Oracle}: akurasi jika selalu dipilih prediksi yang benar dari salah satu
+        model unimodal, sebagai batas atas teoretis fusi;
+  \item Waktu proses (latensi per dokumen di CPU dan GPU).
+\end{itemize}
+
+\subsection{Hasil Keseluruhan}
+Tabel~\ref{tab:aud-tob} dan~\ref{tab:aud-rvl} menyalin hasil paper. Pada kedua dataset
+pola hasilnya sama: teks paling lemah, citra lebih kuat, fusi terbaik. Fusi menaikkan OA
+Tobacco3482 sebesar 3,3 poin di atas model citra (dari batas atas oracle 7,6 poin), dan
+RVL-CDIP sebesar 1,5 poin. Pada F1 per kelas, fusi hampir selalu menyamai atau melebihi
+unimodal terbaik; penurunan kecil hanya pada \emph{advertisement} (0,93 vs.\ 0,94).
+Kelas yang paling diuntungkan teks adalah \emph{resume} (teks 0,97 vs.\ citra 0,80).
+
+\begin{table}[H]
+  \centering
+  \caption{Hasil Audebert et al.\ pada Tobacco3482 (Tabel~3 paper): OA (\%), macro-F1, dan F1 per kelas}
+  \label{tab:aud-tob}
+  \fontsize{9}{11}\selectfont
+  \setlength\tabcolsep{3pt}
+  \begin{tabular}{|l|c|c|c|c|c|c|c|c|c|c|c|c|}
+    \hline
+    \textbf{Model} & \textbf{OA} & \textbf{F1} & Adv & Email & Form & Letter & Memo & News & Note & Report & Res & Sci \\ \hline
+    CNNs (Harley) & 79,9 & -- & \multicolumn{10}{c|}{--} \\ \hline
+    Teks   & 73,8 & 0,71 & 0,60 & 0,96 & 0,76 & 0,71 & 0,79 & 0,67 & 0,62 & 0,43 & 0,97 & 0,57 \\ \hline
+    Citra  & 84,5 & 0,82 & 0,94 & 0,96 & 0,85 & 0,83 & 0,90 & 0,89 & 0,83 & 0,61 & 0,80 & 0,62 \\ \hline
+    \textbf{Fusi} & \textbf{87,8} & \textbf{0,86} & 0,93 & 0,98 & 0,88 & 0,86 & 0,90 & 0,90 & 0,85 & 0,71 & 0,96 & 0,68 \\ \hline
+    Oracle & 92,1 & 0,91 & 0,94 & 0,99 & 0,94 & 0,92 & 0,93 & 0,93 & 0,89 & 0,81 & 0,97 & 0,79 \\ \hline
+  \end{tabular}
+\end{table}
+
+\begin{table}[H]
+  \centering
+  \caption{Hasil Audebert et al.\ pada RVL-CDIP (Tabel~2 paper): OA (\%)}
+  \label{tab:aud-rvl}
+  \fontsize{10}{12}\selectfont
+  \begin{tabular}{|c|c|c|c|c|c|}
+    \hline
+    \textbf{Citra} & \textbf{Teks} & \textbf{Fusi} & CNNs (Harley) & VGG-16 (Afzal) & AlexNet+SPP (Tensmeyer) \\ \hline
+    89,1 & 74,6 & \textbf{90,6} & 89,8 & 90,97 & 90,94 \\ \hline
+  \end{tabular}
+\end{table}
+
+Eksperimen pendahuluan pada Tobacco3482 (Tabel~1 paper): MLP dokumen 70,8\,\% / F1 0,69,
+CNN 1D 73,9\,\% / 0,71; MobileNetV2 84,5\,\% / 0,82, dengan augmentasi 83,9\,\% / 0,82.
+
+\paragraph{Waktu proses.} Di CPU Intel i7-8550U, Tesseract butuh $\approx$910~ms per
+halaman, inferensi model fusi $\approx$360~ms (130~ms teks, 230~ms citra), total
+$\approx$1,3~detik. Di GPU Titan X model fusi berjalan 110~ms. Sebagai pembanding,
+Xception butuh 630~ms dan LSTM setara butuh beberapa detik. Artinya, hambatan utama ada
+di OCR, bukan di jaringan.
+
+\subsection{Future Work}
+\begin{itemize}
+  \item Uji pada data dunia nyata (foto ponsel, rotasi, pencahayaan beragam); augmentasi
+        terutama rotasi menjadi wajib di sana.
+  \item Praproses tata letak/segmentasi halaman (mis.\ dhSegment) untuk menormalkan
+        orientasi dan memotong dokumen sebelum klasifikasi.
+  \item Koreksi ejaan parsial pasca-OCR (SymSpell) yang dikombinasikan dengan NER SpaCy agar
+        nama diri, singkatan, dan kode tidak ikut "dikoreksi".
+  \item Embedding yang khusus domain, berbasis karakter, atau tahan derau OCR.
+  \item Mengganti ekstraktor fitur (CNN lain, model NLP subkata yang dapat di-\emph{fine-tune}),
+        karena arsitekturnya modular.
+\end{itemize}
+
+\subsection{Kontribusi Utama}
+\begin{enumerate*}[label=(\alph*)]
+  \item baseline multimodal yang pragmatis dari komponen siap pakai (MobileNetV2 +
+        FastText) yang dapat dilatih \emph{end-to-end};
+  \item bukti bahwa teks OCR berderau tetap menambah akurasi pada dataset kecil maupun
+        besar;
+  \item rilis dataset teks QS-OCR untuk Tobacco3482 dan RVL-CDIP;
+  \item analisis latensi yang menunjukkan sistem layak untuk aplikasi hampir \emph{real-time}
+        di CPU.
+\end{enumerate*}
+
+\subsection{Detail Pelatihan dan Lingkungan}
+TensorFlow 1.12 (Keras), GPU NVIDIA Titan X. Semua model dioptimasi dengan SGD momentum
+0,9, laju belajar 0,01, \emph{batch} 40; teks 100 epoch, citra dan fusi 200 epoch.
+Hiperparameter disetel manual pada subset Tobacco3482 lalu dikunci untuk semua eksperimen.
+
+\subsection{Kelebihan}
+\begin{itemize}
+  \item Desain sederhana dan terukur: tiap komponen dipilih dengan eksperimen pendahuluan
+        (MLP vs.\ CNN 1D, dengan/tanpa augmentasi, konkatenasi vs.\ penjumlahan).
+  \item Melaporkan oracle, sehingga besar kenaikan fusi dapat dibaca relatif terhadap batas
+        atasnya, bukan hanya relatif terhadap baseline.
+  \item Melaporkan F1 per kelas untuk ketiga model, sehingga komplementaritas modalitas
+        terlihat jelas (mis.\ \emph{resume} sangat terbantu teks).
+  \item Analisis derau OCR yang kuantitatif (persentase kata di luar kosakata) dan
+        pengukuran latensi yang memasukkan OCR.
+  \item Data teks dirilis terbuka sehingga hasilnya dapat direplikasi.
+\end{itemize}
+
+\subsection{Catatan Kritis}
+\begin{itemize}
+  \item \textbf{Variansi tidak dilaporkan.} Tobacco3482 dirata-rata dari 3 kali percobaan
+        tetapi tanpa simpangan baku, sehingga tidak terlihat apakah kenaikan 3,3 poin
+        lebih besar dari variasi antar-\emph{split}. Tidak ada uji signifikansi untuk klaim kenaikan
+        "signifikan".
+  \item \textbf{Protokol Tobacco3482 kurang rinci.} Disebut "k-fold dengan 800 dokumen
+        latih", tetapi cara memilih 800 dokumen (acak/stratifikasi, berapa per kelas) dan
+        ada tidaknya set validasi tidak dijelaskan.
+  \item \textbf{Inkonsistensi kecil}: OA teks 73,9\,\% di Tabel~1 vs.\ 73,8\,\% di Tabel~3.
+  \item \textbf{RVL-CDIP hanya OA}; F1 dan hasil per kelas tidak dilaporkan.
+  \item \textbf{Fusi tunggal.} Hanya konkatenasi yang dilaporkan penuh; tidak ada
+        perbandingan dengan \emph{late fusion} (rata-rata probabilitas), padahal oracle
+        menunjukkan masih ada celah 4,3 poin.
+  \item \textbf{OCR tidak divariasikan.} Hanya Tesseract dengan satu konfigurasi; pengaruh
+        mesin OCR terhadap hasil fusi tidak diuji. Ini celah yang diisi Fase~2 proyek kami.
+  \item Fusi diklaim dilatih \emph{end-to-end}, tetapi FastText tidak di-\emph{fine-tune},
+        sehingga cabang teks hanya melatih CNN 1D di atas embedding beku.
+\end{itemize}
+
+% =====================================================================
+\section{Paper 2: Kashyap et al.\ (2026)}\label{sec:kashyap}
+
+\subsection{Latar Belakang dan Permasalahan}
+Volume dokumen digital terus naik dan klasifikasinya perlu diotomasi. Penulis
+mengidentifikasi tiga masalah:
+\begin{enumerate*}[label=(\alph*)]
+  \item pendekatan unimodal tidak tangguh: tampilan visual dokumen sekelas bisa berbeda dan
+        dokumen beda kelas bisa mirip, sementara pendekatan teks rentan terhadap kata
+        \emph{out-of-vocabulary} (OOV) akibat OCR buruk dan mengabaikan struktur halaman;
+  \item model besar \emph{vision-language} (LayoutLMv3, DocFormer, DocLLM) akurat tetapi
+        berat sehingga sulit dipasang di perangkat \emph{edge}, ponsel, atau IoMT;
+  \item fusi awal/menengah rentan terhadap propagasi galat antarmodal jika teks OCR
+        berderau.
+\end{enumerate*}
+Celah yang diangkat: literatur fokus memaksimalkan akurasi dengan arsitektur yang makin
+kompleks, dan jarang membahas \emph{trade-off} akurasi--efisiensi--sumber daya. Penulis
+menawarkan dua kerangka terpisah agar praktisi bisa memilih sesuai kebutuhan: satu
+mengejar akurasi, satu mengejar efisiensi.
+
+\subsection{Dataset}
+\begin{table}[H]
+  \centering
+  \caption{Dataset Kashyap et al.\ (Tabel~2 paper)}
+  \label{tab:kas-data}
+  \fontsize{10}{12}\selectfont
+  \begin{tabular}{|l|l|r|r|r|r|c|}
+    \hline
+    \textbf{Dataset} & \textbf{Jenis} & \textbf{Total} & \textbf{Latih} & \textbf{Val} & \textbf{Uji} & \textbf{Kelas} \\ \hline
+    RVL-CDIP    & sekunder & 399.743 & 319.754 & 39.995 & 39.995 & 16 \\ \hline
+    Tobacco3482 & sekunder & 3.482   & --      & --     & 3.482  & 10 \\ \hline
+    RealDoc-16  & primer   & 160     & --      & --     & 160    & 16 \\ \hline
+  \end{tabular}
+\end{table}
+Semua model dilatih \emph{hanya} pada RVL-CDIP. Tobacco3482 dipakai \emph{seluruhnya}
+sebagai set uji (bukan protokol 800 latih yang lazim) untuk menguji generalisasi pada
+kondisi tidak seimbang dan sumber daya rendah. RealDoc-16 adalah dataset buatan penulis
+(10 dokumen per kelas, taksonomi kelas RVL-CDIP) untuk menguji generalisasi lintas
+domain; data ini hanya tersedia atas permintaan.
+
+\subsection{Modalitas}
+Sama dengan Paper~1: \textbf{citra} halaman dan \textbf{teks} hasil OCR dari citra yang
+sama. Pendekatan~1 memakai keduanya; pendekatan~2 (SCSR) hanya memakai teks. Tata letak
+juga tidak dipakai secara eksplisit.
+
+\subsection{Pipeline Keseluruhan}
+Gambar~\ref{fig:pipeline-kashyap} menunjukkan dua pipeline yang berdiri sendiri.
+\begin{itemize}
+  \item \textbf{Pendekatan 1 -- multimodal late fusion.} Dua aliran dilatih terpisah:
+        EfficientNetB3 untuk citra dan BERT\textsubscript{base} untuk teks OCR, keduanya
+        di-\emph{fine-tune} pada RVL-CDIP. Logit kedua aliran dirata-rata, lalu argmax.
+  \item \textbf{Pendekatan 2 -- SCSR} (\emph{supervised contrastive semantic retrieval}).
+        Model embedding bge-small-en di-\emph{fine-tune} secara kontrastif terawasi dengan
+        pasangan anchor--positif sekelas. Teks latih dipotong menjadi \emph{chunk},
+        di-embed, dan disimpan di indeks FAISS beserta labelnya. Dokumen uji di-embed,
+        10 \emph{chunk} paling mirip diambil, dan labelnya ditentukan oleh voting mayoritas
+        (pada dasarnya $k$-NN dengan $k=10$ di ruang embedding hasil pelatihan kontrastif).
+\end{itemize}
+
+\begin{figure}[H]
+  \centering
+  \input{../gambar/pipeline-kashyap}
+  \caption{Dua pipeline Kashyap et al.\ (digambar ulang dari Gambar~1 dan~3 paper)}
+  \label{fig:pipeline-kashyap}
+\end{figure}
+
+\subsection{Model per Unimodal}
+\paragraph{Citra -- EfficientNetB3.} Input $300\times300$, piksel dinormalkan ke $[0,1]$,
+grayscale diubah ke RGB. Keluaran 1536-d $\to$ Dropout $\to$ Dense 16 kelas. Pelatihan:
+319.754 citra RVL-CDIP, 10 epoch, \emph{batch} 16, Adam lr $10^{-3}$, \emph{categorical
+cross-entropy}; $\approx$22,5 jam.
+
+\paragraph{Teks -- BERT\textsubscript{base}.} OCR memakai \emph{mesin OCR komersial}
+yang tidak disebut namanya. Praproses teks: huruf kecil, tokenisasi, penyatuan spasi,
+serta penghapusan angka, \emph{stopword}, karakter khusus, dan tanda baca. Tokenisasi
+WordPiece diklaim mengatasi OOV. Pelatihan: 10 epoch, \emph{batch} 16, Adam lr
+$5\times10^{-5}$ (adaptif), dropout 0,3; $\approx$41 jam.
+
+\paragraph{Teks -- SCSR (bge-small-en).} Model embedding 384-d (33,3 juta parameter),
+dilatih 4 epoch, \emph{batch} 16 dengan akumulasi gradien 16, AdamW lr $2\times10^{-5}$,
+\emph{cosine schedule}, \emph{warmup} 10\,\%. Loss: \emph{Multiple Negatives Ranking Loss}
+(MNRL) dibungkus \emph{Matryoshka loss}. Teks dipotong per 512 karakter dengan
+\emph{overlap} 50 karakter, menghasilkan indeks FAISS berisi 1.030.531 vektor.
+
+\subsection{Metode Fusi}
+\textbf{Late fusion (decision-level)} berupa \emph{unweighted average ensembling}:
+$\hat{y} = \arg\max_c \tfrac{1}{2}(z_v + z_t)_c$, dengan $z_v$ dan $z_t$ logit aliran
+citra dan teks sebelum softmax. Tidak ada parameter fusi yang dilatih, dan bobot kedua
+modalitas sama. Penulis memilih late fusion agar ekstraksi fitur terpisah dari fusi,
+modular, dan galat satu modalitas tidak merambat ke modalitas lain. SCSR tidak memakai
+fusi (unimodal teks).
+
+\subsection{Metrik Evaluasi}
+\begin{itemize}
+  \item RVL-CDIP dan RealDoc-16: akurasi serta presisi, recall, dan F1 \emph{macro-average};
+  \item Tobacco3482 (tidak seimbang): akurasi serta presisi, recall, dan F1
+        \emph{weighted-average};
+  \item akurasi per kelas (Tobacco3482, RealDoc-16);
+  \item efisiensi: jumlah parameter, total waktu inferensi, latensi per dokumen,
+        \emph{throughput};
+  \item analisis kualitatif: UMAP ruang fitur, Grad-CAM (citra), \emph{integrated
+        gradients} (token teks), dan matriks konfusi (lampiran).
+\end{itemize}
+
+\subsection{Hasil Keseluruhan}
+Tabel~\ref{tab:kas-utama} menyalin Tabel~4 paper. Pada pendekatan~1, kedua unimodal
+hampir setara di RVL-CDIP (teks 89,19 vs.\ citra 89,13), dan late fusion menaikkan
+akurasi sekitar 3,9 poin ke 93,06\,\%. Di Tobacco3482, teks (90,28) sedikit di atas citra
+(89,05), dan fusi mencapai 92,00\,\%. SCSR lebih rendah (80,76\,\% dan 87,89\,\%) tetapi
+dianggap kompetitif untuk ukurannya. UMAP menunjukkan komplementaritas: citra memisahkan
+kelas yang khas secara visual (\emph{handwritten}, \emph{advertisement}), teks memisahkan
+kelas yang kaya isi (\emph{memo}, \emph{scientific publication}).
+
+\begin{table}[H]
+  \centering
+  \caption{Hasil Kashyap et al.\ dibanding studi multimodal sebelumnya (Tabel~4 paper), dalam \%.
+           T = teks, V = citra, T+V = fusi. F1/Rec/Prec: macro untuk RVL-CDIP, weighted untuk Tobacco3482.}
+  \label{tab:kas-utama}
+  \fontsize{9}{11}\selectfont
+  \setlength\tabcolsep{4pt}
+  \begin{tabular}{|l|c|c|c|c|c|c|c|c|c|}
+    \hline
+    \multirow{2}{*}{\textbf{Studi}} & \multirow{2}{*}{\textbf{Mod.}} & \multicolumn{4}{c|}{\textbf{RVL-CDIP}} & \multicolumn{4}{c|}{\textbf{Tobacco3482}} \\ \cline{3-10}
+     & & Acc & F1 & Rec & Prec & Acc & F1 & Rec & Prec \\ \hline
+    \multirow{3}{*}{Audebert (2019)} & T & 74,6 & -- & -- & -- & 73,8 & -- & -- & -- \\
+     & V & 89,1 & -- & -- & -- & 84,5 & -- & -- & -- \\
+     & T+V & 90,6 & -- & -- & -- & 87,8 & -- & -- & -- \\ \hline
+    \multirow{3}{*}{Zingaro (2021)} & T & -- & -- & -- & -- & 67,8 & -- & -- & -- \\
+     & V & -- & -- & -- & -- & 88,0 & -- & -- & -- \\
+     & T+V & 92,7 & -- & -- & -- & 90,5 & -- & -- & -- \\ \hline
+    \multirow{3}{*}{Dauphinee/Tyler (2019)} & T & 82,23 & -- & -- & -- & -- & -- & -- & -- \\
+     & V & 90,24 & -- & -- & -- & -- & -- & -- & -- \\
+     & T+V & 93,03 & -- & -- & -- & -- & -- & -- & -- \\ \hline
+    \multirow{3}{*}{Kashyap: late fusion} & T (BERT) & 89,19 & 89,57 & 89,65 & 90,19 & 90,28 & 92,62 & 90,28 & 97,28 \\
+     & V (EffNetB3) & 89,13 & 89,12 & 89,15 & 89,23 & 89,05 & 91,58 & 89,05 & 96,15 \\
+     & \textbf{T+V} & \textbf{93,06} & 93,06 & 93,17 & 93,06 & \textbf{92,00} & 94,02 & 92,00 & 98,23 \\ \hline
+    Kashyap: SCSR & T & 80,76 & 84,00 & 81,00 & 84,00 & 87,89 & 90,00 & 88,00 & 95,00 \\ \hline
+  \end{tabular}
+\end{table}
+
+\begin{table}[H]
+  \centering
+  \caption{Akurasi per kelas pada Tobacco3482 (\%), Tabel~5 paper (hanya 8 dari 10 kelas dilaporkan)}
+  \label{tab:kas-kelas}
+  \fontsize{9}{11}\selectfont
+  \setlength\tabcolsep{4pt}
+  \begin{tabular}{|l|c|c|c|c|c|c|c|c|c|}
+    \hline
+    \textbf{Model} & \textbf{Mod.} & Letter & Form & Email & Adv & Sci-pub & News & Resume & Memo \\ \hline
+    \multirow{3}{*}{Kashyap: late fusion} & T & 96,25 & 96,67 & 99,00 & 96,30 & 89,09 & 96,72 & 100,0 & 98,55 \\
+     & V & 98,21 & 96,29 & 99,50 & 97,69 & 80,37 & 89,19 & 98,32 & 97,87 \\
+     & T+V & 98,41 & 97,73 & 99,50 & 98,17 & 88,39 & 96,79 & 100,0 & 99,68 \\ \hline
+    Kashyap: SCSR & T & 94,90 & 87,90 & 98,80 & 79,60 & 73,50 & 87,20 & 100,0 & 91,00 \\ \hline
+  \end{tabular}
+\end{table}
+
+\paragraph{Efisiensi (Tabel~6--7 paper).} SCSR (33,3 juta parameter) lebih akurat di
+Tobacco3482 daripada AlexNet-ELM (62 juta, 83,24\,\%) dan cabang teks Zingaro (1,8 juta,
+67,8\,\%). Latensi per dokumen: late fusion 0,184~s (5,42 dok/s), SCSR 0,157~s
+(6,36 dok/s); total waktu inferensi 555,27~s vs.\ 547,19~s.
+
+\paragraph{RealDoc-16 (Tabel~8 paper).} Hanya enam kelas yang dilaporkan, akurasi
+(fusi / SCSR): \emph{letter} 100/90, \emph{news article} 100/80, \emph{memo} 72,73/63,60,
+\emph{form} 70/70, \emph{resume} 70/80, \emph{scientific publication} 70/90. Akurasi
+keseluruhan RealDoc-16 tidak dilaporkan.
+
+\subsection{Future Work}
+\begin{itemize}
+  \item Kerangka representasi yang lebih tangguh untuk dokumen \textbf{multibahasa} pada
+        kondisi sumber daya rendah dan degradasi OCR berat.
+  \item \emph{Parameter-efficient fine-tuning} (PEFT) untuk menekan memori pelatihan.
+  \item Mengganti rata-rata tak berbobot dengan \textbf{pembobotan modalitas adaptif} atau
+        fusi berbasis keyakinan (\emph{confidence-aware}), termasuk memakai model fondasi
+        multimodal.
+  \item Menambahkan embedding citra ringan ke basis data retrieval SCSR untuk mengatasi
+        kemiripan antarkelas pada RVL-CDIP.
+\end{itemize}
+
+\subsection{Kontribusi Utama}
+\begin{enumerate*}[label=(\alph*)]
+  \item kerangka late fusion dua aliran (EfficientNetB3 + BERT) yang modular;
+  \item SCSR, yang menggabungkan pembelajaran kontrastif terawasi dengan retrieval
+        semantik sebagai pengklasifikasi tanpa lapis klasifikasi padat;
+  \item dataset primer RealDoc-16 untuk uji lintas domain;
+  \item analisis interpretabilitas (Grad-CAM, integrated gradients) yang memperlihatkan
+        koreksi galat ganda oleh fusi.
+\end{enumerate*}
+
+\subsection{Detail Pelatihan dan Lingkungan}
+Ubuntu 22.04, Intel Xeon E5-2620 v3 (12 inti), RAM 125,7~GiB, NVIDIA RTX A4000 16~GB,
+CUDA 10.1, TensorFlow/Keras, Python 3.12.4. Hiperparameter tiap model sudah dirinci pada
+subbagian model di atas.
+
+\subsection{Kelebihan}
+\begin{itemize}
+  \item Terbit di jurnal bereputasi tahun 2026 dan \emph{open access}; memenuhi syarat
+        referensi utama proyek.
+  \item Membahas \emph{trade-off} akurasi--efisiensi secara eksplisit dan menawarkan dua
+        titik operasi.
+  \item Evaluasi pada tiga dataset termasuk data primer di luar distribusi pelatihan.
+  \item Melaporkan presisi, recall, F1, dan hasil per kelas untuk setiap unimodal, serta
+        analisis kualitatif (UMAP, Grad-CAM, integrated gradients, matriks konfusi).
+  \item Late fusion sederhana dan mudah direplikasi; unimodal dapat dilatih dan diganti
+        secara terpisah.
+\end{itemize}
+
+\subsection{Catatan Kritis}
+Poin-poin berikut kami temukan saat memeriksa angka dan protokol paper.
+\begin{itemize}
+  \item \textbf{OCR tidak disebutkan.} Hanya disebut "mesin OCR komersial". Karena kedua
+        pendekatan bergantung pada teks, tidak disebutkannya nama OCR menghalangi
+        replikasi dan membuat perbandingan dengan Audebert (Tesseract) tidak setara.
+  \item \textbf{Pemetaan kelas Tobacco3482 tidak dijelaskan.} Model dilatih untuk 16 kelas
+        RVL-CDIP, padahal Tobacco3482 punya kelas \emph{note} dan \emph{report} yang tidak
+        ada di RVL-CDIP (13,4\,\% data). Tanpa pemetaan, akurasi maksimal hanya
+        $\approx$86,6\,\%, tetapi dilaporkan 92\,\%. Tabel per kelas juga hanya memuat
+        8 kelas.
+  \item \textbf{Potensi kebocoran data.} Tobacco3482 dan RVL-CDIP sama-sama diambil dari
+        arsip Truth Tobacco Industry Documents. Paper tidak menyebut apakah dokumen
+        Tobacco3482 yang juga ada di set latih RVL-CDIP sudah dibuang.
+  \item \textbf{Perbandingan tidak setara protokol.} Audebert melatih pada 800 dokumen
+        Tobacco3482; Kashyap melatih pada $\sim$320 ribu dokumen RVL-CDIP lalu menguji pada
+        seluruh Tobacco3482. Klaim "mengungguli studi sebelumnya" di Tobacco3482 perlu
+        dibaca dengan catatan ini.
+  \item \textbf{Angka metrik yang tidak konsisten.}
+        (i) Macro-F1 SCSR di RVL-CDIP 84,00 padahal macro-precision 84,00 dan macro-recall
+        81,00. Karena F1 per kelas $\leq$ rata-rata P dan R per kelas, macro-F1 seharusnya
+        $\leq$ 82,5.
+        (ii) Pada set uji yang seimbang, macro-recall sama dengan akurasi, tetapi
+        dilaporkan 89,65 vs.\ 89,19 (teks).
+        (iii) Weighted-precision Tobacco3482 (96--98\,\%) jauh di atas recall (89--92\,\%).
+        Ini wajar bila banyak prediksi jatuh ke kelas RVL-CDIP yang tidak ada di
+        Tobacco3482 (dukungan nol sehingga tidak ikut dibobot), sehingga presisi tampak
+        tinggi secara semu.
+  \item \textbf{RealDoc-16 tidak konsisten.} Tabel~2 menyebut 160 dokumen, teks menyebut
+        120. Dengan 10 dokumen per kelas, akurasi \emph{memo} 72,73\,\% (= 8/11) dan
+        63,60\,\% (= 7/11) tidak mungkin. Hanya 6 dari 16 kelas yang dilaporkan dan tidak
+        ada akurasi total. Jumlah data latih juga berbeda: 319.625 (Algoritma) vs.\
+        319.754 (Tabel~2).
+  \item \textbf{Angka Audebert dikutip keliru.} Tabel~5 paper mencantumkan akurasi per
+        kelas Audebert (mis.\ \emph{letter} fusi 93,2), sedangkan Audebert hanya
+        melaporkan F1 per kelas (\emph{letter} fusi 0,86) dan nilai-nilai tersebut tidak
+        ditemukan di paper aslinya. Kolom citra Audebert juga ditulis "--", padahal F1
+        per kelas citra dilaporkan.
+  \item \textbf{Klaim efisiensi SCSR lemah.} SCSR disebut "tidak bergantung pada DL",
+        padahal bge-small-en adalah transformer 33 juta parameter. Latensinya hanya
+        $\sim$15\,\% lebih cepat (0,157 vs.\ 0,184~s), latensi OCR tidak dihitung, dan
+        indeks FAISS 1,03 juta $\times$ 384 float32 berukuran $\approx$1,6~GB, yang
+        berat untuk perangkat \emph{edge}. Selain itu, 555,27~s / 0,184~s $\approx$ 3.018
+        dokumen, tidak cocok dengan 547,19~s / 0,157~s $\approx$ 3.485 dokumen jika
+        keduanya diuji pada set yang sama.
+  \item \textbf{Fusi tidak diablasi.} Hanya rata-rata tak berbobot yang diuji; tidak ada
+        pembanding fusi berbobot, \emph{product rule}, atau fusi fitur, dan tidak ada
+        oracle. Teks menyebut rata-rata logit, sedangkan Algoritma~3 menyebut probabilitas
+        dan prediksi.
+  \item \textbf{Tanpa variansi dan uji statistik}: hasil satu kali jalan tanpa seed, selang
+        kepercayaan, atau uji signifikansi.
+  \item Hal kecil: tabel menulis tahun "2025" untuk paper 2026; CUDA 10.1 tidak lazim
+        dipasangkan dengan Python 3.12 dan TensorFlow versi baru; nama "Tyler et al."
+        dan "Dauphinee et al." dipakai bergantian untuk rujukan yang sama.
+\end{itemize}
+
+% =====================================================================
+\section{Perbandingan Kedua Paper}\label{sec:banding}
+
+\begin{table}[H]
+  \centering
+  \caption{Perbandingan ringkas Audebert et al.\ (2020) dan Kashyap et al.\ (2026)}
+  \label{tab:banding}
+  \fontsize{9.5}{11.5}\selectfont
+  \begin{tabularx}{\textwidth}{|l|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|}
+    \hline
+    \textbf{Aspek} & \textbf{Audebert et al.\ (2020)} & \textbf{Kashyap et al.\ (2026)} \\ \hline
+    Fokus & Baseline multimodal ringan & Akurasi (fusi) dan efisiensi (SCSR) \\ \hline
+    Dataset & Tobacco3482 (800 latih), RVL-CDIP & Latih RVL-CDIP; uji RVL-CDIP, Tobacco3482 penuh, RealDoc-16 \\ \hline
+    OCR & Tesseract 4.0, dirilis (QS-OCR) & OCR komersial, tidak disebut \\ \hline
+    Model citra & MobileNetV2, 384$\times$384 & EfficientNetB3, 300$\times$300 \\ \hline
+    Model teks & FastText (beku) + CNN 1D & BERT\textsubscript{base} (fine-tune); bge-small-en (SCSR) \\ \hline
+    Fusi & Fitur (konkatenasi 128+128) + MLP, end-to-end & Keputusan (rata-rata logit tak berbobot) \\ \hline
+    Metrik & OA, macro-F1, F1/kelas, oracle, latensi & Acc, P/R/F1 macro/weighted, acc/kelas, parameter, latensi \\ \hline
+    Unimodal terkuat & Citra jauh di atas teks & Teks $\approx$ citra (teks sedikit unggul) \\ \hline
+    Fusi Tobacco3482 & 87,8\,\% (+3,3 dari citra) & 92,00\,\% (+1,72 dari teks) \\ \hline
+    Fusi RVL-CDIP & 90,6\,\% (+1,5 dari citra) & 93,06\,\% (+3,87 dari teks) \\ \hline
+    Reproduktibilitas & Tinggi: data teks terbuka, hiperparameter lengkap & Sedang: OCR anonim, RealDoc-16 tertutup, angka tidak konsisten \\ \hline
+  \end{tabularx}
+\end{table}
+
+Ada tiga perbedaan penting. Pertama, \textbf{kualitas cabang teks menentukan nilai fusi}.
+Pada Audebert, teks tertinggal 10--15 poin dari citra, sedangkan pada Kashyap teks setara
+atau sedikit lebih baik dari citra. Kenaikan ini datang dari dua hal yang tidak
+dipisahkan di Kashyap: OCR yang berbeda dan model teks yang lebih kuat (BERT vs.\ FastText
++ CNN). Kedua, \textbf{titik fusi}: Audebert menggabungkan fitur dan melatih fusi,
+sedangkan Kashyap merata-rata keputusan tanpa pelatihan. Ketiga, \textbf{protokol
+Tobacco3482} berbeda (latih 800 vs.\ \emph{transfer} dari RVL-CDIP), sehingga angka
+Tobacco3482 keduanya tidak bisa dibandingkan langsung.
+
+% =====================================================================
+\section{Relevansi untuk Proyek}\label{sec:relevansi}
+
+Fase~2 proyek kami menjadikan \textbf{mesin OCR} dan \textbf{model embedding} sebagai
+variabel. Dari review ini:
+\begin{itemize}
+  \item Kedua paper tidak memisahkan pengaruh OCR dari pengaruh model teks. Audebert
+        memakai satu OCR, Kashyap memakai OCR anonim sekaligus mengganti model teks.
+        Eksperimen faktorial OCR $\times$ embedding pada proyek kami mengisi celah ini
+        secara langsung.
+  \item Late fusion Kashyap (rata-rata logit) murah dan dapat ditambahkan sebagai
+        pembanding fusi konkatenasi Audebert, bersama oracle sebagai batas atas.
+  \item Pelajaran metodologis yang kami terapkan: laporkan rerata $\pm$ simpangan baku
+        lintas seed, gunakan macro-F1 untuk data tidak seimbang, nyatakan protokol split
+        dan mesin OCR secara eksplisit, serta jangan membandingkan angka antar-protokol
+        yang berbeda.
+\end{itemize}
+
+\section{Kesimpulan}
+Audebert et al.\ memberi baseline multimodal yang sederhana, transparan, dan dapat
+direplikasi. Kekuatannya adalah analisis derau OCR, oracle, dan F1 per kelas; kelemahannya
+adalah satu konfigurasi OCR dan tidak ada variansi. Kashyap et al.\ memperbarui komponen
+(EfficientNetB3, BERT) dan menunjukkan bahwa late fusion sederhana sudah memberi akurasi
+tinggi, serta menawarkan alternatif retrieval yang ringan. Namun paper ini memiliki
+sejumlah masalah pelaporan: OCR anonim, pemetaan kelas Tobacco3482 yang tidak jelas,
+beberapa angka metrik yang tidak konsisten secara matematis, dan kutipan hasil Audebert
+yang tidak cocok dengan sumbernya. Angka dari paper kedua sebaiknya dipakai sebagai acuan
+arah, bukan target yang harus dicapai persis.
