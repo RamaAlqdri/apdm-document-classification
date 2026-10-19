@@ -1,10 +1,11 @@
-% Presentasi review dua paper: Audebert et al. (2020) dan Kashyap et al. (2026).
+% Presentasi review tiga paper: Audebert (2020), Kanchi (2022), Kashyap (2026).
 % Isi mengikuti ../laporan/bagian/isi.tex; angka disalin dari tabel paper.
 % Kompilasi: latexmk -pdf main.tex
 \documentclass[aspectratio=169,10pt]{beamer}
 \usetheme[progressbar=frametitle,numbering=fraction]{metropolis}
 \usepackage[indonesian]{babel}
-\usepackage{booktabs,multirow,tikz}
+\usepackage{array,booktabs,multirow,tikz}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
 \usetikzlibrary{arrows.meta,positioning,calc}
 \graphicspath{{../gambar/}}
 \setbeamerfont{caption}{size=\scriptsize}
@@ -13,7 +14,7 @@
 \newcommand\awas[1]{\textcolor{merah}{\textbf{#1}}}
 
 \title{Review Paper: Klasifikasi Dokumen Multimodal\\Teks OCR + Citra}
-\subtitle{Audebert et al.\ (2020) \textbullet{} Kashyap et al.\ (2026)}
+\subtitle{Audebert et al.\ (2020) \textbullet{} Kashyap et al.\ (2026) \textbullet{} Kanchi et al.\ (2022)}
 \author{Yulian Anggreaif Rudamaga, Zalzabila Rani, Ramadhani Al-Qadri}
 \institute{Analisis \& Pemrosesan Data Multimodal -- Magister Ilmu Komputer, FILKOM UB}
 \date{}
@@ -21,23 +22,25 @@
 \begin{document}
 \maketitle
 
-\begin{frame}{Dua paper yang direview}
+\begin{frame}{Tiga paper yang direview}
   \kecil
-  \begin{tabular}{p{0.15\linewidth}p{0.38\linewidth}p{0.38\linewidth}}
+  \setlength\tabcolsep{3pt}
+  \begin{tabular}{L{0.1\linewidth}L{0.27\linewidth}L{0.27\linewidth}L{0.27\linewidth}}
     \toprule
-    & \textbf{Paper 1} & \textbf{Paper 2} \\ \midrule
+    & \textbf{Paper 1} & \textbf{Paper 2} & \textbf{Paper 3} \\ \midrule
     Judul & Multimodal Deep Networks for Text and Image-Based Document Classification
-          & Multimodal Fusion and Supervised Contrastive Learning for Robust Document Image Classification \\[2pt]
-    Penulis & Audebert, Herold, Slimani, Vidal (Quicksign) & Kashyap, Mittal, Singh (Central Univ.\ of Punjab) \\[2pt]
-    Venue & ECML PKDD 2019 Workshops, CCIS 1167, Springer 2020 & Int.\ J.\ Intelligent Systems (Wiley), 2026 \\[2pt]
-    DOI & 10.1007/978-3-030-43823-4\_35 & 10.1155/int/4241437 \\[2pt]
-    Peran & Dasar replikasi Fase 1 & Referensi utama Fase 2 \\ \bottomrule
+          & Multimodal Fusion and Supervised Contrastive Learning for Robust Document Image Classification
+          & EmmDocClassifier: Efficient Multimodal Document Image Classifier for Scarce Data \\[1pt]
+    Penulis & Audebert et al.\ (Quicksign) & Kashyap et al.\ (Univ.\ Punjab) & Kanchi et al.\ (TU Kaiserslautern, DFKI) \\[1pt]
+    Venue & ECML PKDD 2019 Workshops, CCIS 1167, Springer 2020 & Int.\ J.\ Intelligent Systems (Wiley), 2026 & Applied Sciences (MDPI) 12(3), 2022 \\[1pt]
+    DOI & 10.1007/978-3-030-43823-4\_35 & 10.1155/int/4241437 & 10.3390/app12031457 \\[1pt]
+    Peran & Dasar replikasi Fase 1 & Referensi utama Fase 2 & Pembanding data sedikit \\ \bottomrule
   \end{tabular}
 
-  \vspace{6pt}
-  Aspek review: 9 poin wajib (latar belakang, dataset, modalitas, pipeline, model unimodal,
+  \vspace{2pt}
+  {\kecil Aspek review: 9 poin wajib (latar belakang, dataset, modalitas, pipeline, model unimodal,
   fusi, metrik, hasil, future work) + 4 tambahan (kontribusi, detail pelatihan, kelebihan,
-  \alert{catatan kritis}).
+  \alert{catatan kritis}).}
 \end{frame}
 
 % =====================================================================
@@ -310,49 +313,178 @@
 \end{frame}
 
 % =====================================================================
+\section{Paper 3 -- Kanchi et al.\ (2022)}
+
+\begin{frame}{Latar belakang, dataset, modalitas}
+  \begin{columns}[T]
+    \column{0.5\textwidth}
+    \textbf{Masalah}
+    \begin{itemize}\kecil
+      \item Dokumen sering mirip secara visual tetapi berbeda isi (letter, memo, report).
+      \item Model dua aliran yang ada bergantung pada \emph{pre-training} RVL-CDIP (320 rb citra) dan model besar.
+      \item Pertanyaan: bisakah klasifikator multimodal \alert{efisien} tetap akurat dengan \alert{data sedikit} (Tobacco3482 saja)?
+    \end{itemize}
+    \column{0.5\textwidth}
+    \textbf{Dataset}
+    \begin{itemize}\kecil
+      \item Tobacco3482: 10 kelas; partisi ala Afzal (20--100 sampel/kelas), latih dibagi 80/20.
+      \item RVL-CDIP: hanya untuk eksperimen \emph{pre-training}.
+      \item Dua skenario: ImageNet + RVL-CDIP, dan ImageNet saja (fokus).
+    \end{itemize}
+    \textbf{Modalitas}
+    \begin{itemize}\kecil
+      \item Citra + teks OCR; teks diproses hierarkis (kata $\to$ kalimat $\to$ dokumen).
+    \end{itemize}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{Pipeline EmmDocClassifier}
+  \input{../gambar/pipeline-kanchi}
+  \vspace{6pt}
+  \begin{itemize}\kecil
+    \item Fitur citra dan teks berdimensi sama, dikonkatenasi ($2d$), lalu conv + pooling + FC.
+    \item Rata-rata fitur juga dicoba, tetapi konkatenasi lebih baik.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Model unimodal, fusi, metrik}
+  \begin{columns}[T]
+    \column{0.5\textwidth}
+    \textbf{Citra: EfficientNet-B0}
+    \begin{itemize}\kecil
+      \item 5,3 jt parameter ($\sim$5$\times$ lebih ringan dari ResNet-50).
+      \item 384$\times$384, gray $\to$ RGB, bobot ImageNet.
+      \item Adam $10^{-3}$, 20 epoch, lr turun bertahap ke $10^{-5}$.
+    \end{itemize}
+    \textbf{Teks: Tesseract 4 + BERT + HAN}
+    \begin{itemize}\kecil
+      \item Praproses: buang simbol, stopword, \emph{stemming}.
+      \item BERT\textsubscript{base} fine-tune (4 lapis akhir), lalu dibekukan; embedding = jumlah 4 lapis akhir.
+      \item HAN: BiGRU + atensi kata dan kalimat; 25 kalimat, 10 rb kata.
+      \item RMSProp $10^{-3}$, batch 100, 20 epoch.
+    \end{itemize}
+    \column{0.5\textwidth}
+    \textbf{Fusi: tingkat fitur}
+    \[ X_{ens} = [X_{img}; X_{text}] \in \mathbb{R}^{2d} \]
+    \begin{itemize}\kecil
+      \item Adam $10^{-3}$, 20 epoch, batch 100.
+      \item NVIDIA V100 32 GB.
+    \end{itemize}
+    \textbf{Metrik}
+    \begin{itemize}\kecil
+      \item Akurasi, \emph{relative error reduction}.
+      \item Matriks konfusi, latensi, contoh benar/salah.
+      \item \awas{Tidak ada F1/presisi/recall.}
+    \end{itemize}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{Hasil (Tobacco3482, akurasi \%)}
+  \begin{columns}[T]
+    \column{0.55\textwidth}
+    \kecil
+    \begin{tabular}{lcccc}
+      \toprule
+      & \multicolumn{2}{c}{ImageNet + RVL} & \multicolumn{2}{c}{ImageNet saja} \\
+      \cmidrule(lr){2-3}\cmidrule(lr){4-5}
+      Studi & Citra & Multi & Citra & Multi \\ \midrule
+      Audebert (2019) & -- & -- & 84,5 & 87,8 \\
+      Asim (2019) & 93,2 & 95,8 & -- & -- \\
+      Bakkali (2020) & 91,3 & 96,94 & -- & -- \\
+      Ferrando (2020) & 94,04 & 94,9 & 85,99 & 89,47 \\
+      \textbf{Kanchi} & 94,04 & 95,7 & 86,0 & \textbf{90,3} \\ \bottomrule
+    \end{tabular}
+    \column{0.45\textwidth}
+    \begin{itemize}\kecil
+      \item Tanpa RVL-CDIP: fusi 90,3\,\%, +0,83 dari Ferrando (galat relatif $-$7,9\,\%, hitungannya konsisten).
+      \item Dengan RVL-CDIP: 95,7\,\%, masih di bawah Asim dan Bakkali.
+      \item RVL-CDIP: 95,48\,\% (satu kalimat, tanpa rincian).
+      \item Latensi 105 ms (teks 55 + citra 50), tanpa OCR.
+      \item \awas{Akurasi aliran teks tidak dilaporkan.}
+      \item Kelas tersulit: \emph{scientific} (mirip report/adv., citra berderau).
+    \end{itemize}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{Future work, kelebihan, catatan kritis}
+  \begin{columns}[T]
+    \column{0.3\textwidth}
+    \textbf{Future work}
+    \begin{itemize}\kecil
+      \item Co-attention antarmodalitas.
+      \item Jaringan lebih kecil untuk pelatihan di perangkat.
+      \item Augmentasi citra sintetis (kelas scientific).
+    \end{itemize}
+    \textbf{Kelebihan}
+    \begin{itemize}\kecil
+      \item Skenario data sedikit = lingkup proyek kami.
+      \item Skenario dengan/tanpa RVL-CDIP dipisah.
+      \item OCR jelas (Tesseract 4).
+    \end{itemize}
+    \column{0.7\textwidth}
+    \textbf{Catatan kritis}
+    \begin{itemize}\kecil
+      \item \awas{Hasil unimodal teks dan ablasi FastText tanpa angka}, padahal aliran teks adalah klaim utama.
+      \item \awas{Angka citra identik dengan Ferrando} (94,04 = 94,04; 86,0 $\approx$ 85,99), tanpa penjelasan.
+      \item ``From scratch'' menyesatkan: memakai bobot ImageNet dan BERT pre-trained.
+      \item Protokol partisi ambigu; tidak ada jumlah ulangan atau simpangan baku.
+      \item BERT di-fine-tune pada ``korpus kami'', sehingga ada potensi kebocoran data uji.
+      \item Stemming + buang stopword sebelum BERT merusak konteks.
+      \item Klaim ``ukuran turun 80\,\%'' mengabaikan BERT (110 jt param.); OCR tidak dihitung.
+      \item Hanya akurasi pada data tidak seimbang; tanpa kode/data.
+    \end{itemize}
+  \end{columns}
+\end{frame}
+
+% =====================================================================
 \section{Perbandingan dan relevansi}
 
 \begin{frame}{Perbandingan}
   \kecil
-  \begin{tabular}{p{0.17\linewidth}p{0.37\linewidth}p{0.37\linewidth}}
+  \setlength\tabcolsep{3pt}
+  \begin{tabular}{L{0.15\linewidth}L{0.25\linewidth}L{0.25\linewidth}L{0.25\linewidth}}
     \toprule
-    Aspek & Audebert (2020) & Kashyap (2026) \\ \midrule
-    OCR & Tesseract 4.0, terbuka & Komersial, anonim \\
-    Citra & MobileNetV2 & EfficientNetB3 \\
-    Teks & FastText (beku) + CNN 1D & BERT\textsubscript{base}; bge-small (SCSR) \\
-    Fusi & Fitur, konkatenasi + MLP & Keputusan, rata-rata logit \\
-    Unimodal & Citra $\gg$ teks & Teks $\approx$ citra \\
-    Fusi Tobacco & 87,8 (+3,3) & 92,00 (+1,72) \\
-    Fusi RVL & 90,6 (+1,5) & 93,06 (+3,87) \\
-    Protokol Tobacco & 800 latih & Transfer dari RVL-CDIP \\
-    Replikasi & Tinggi & Sedang \\ \bottomrule
+    Aspek & Audebert (2020) & Kanchi (2022) & Kashyap (2026) \\ \midrule
+    OCR & Tesseract 4.0, terbuka & Tesseract 4 & Komersial, anonim \\
+    Citra & MobileNetV2 & EfficientNet-B0 & EfficientNetB3 \\
+    Teks & FastText + CNN 1D & BERT + HAN & BERT; bge-small (SCSR) \\
+    Fusi & Fitur: konkat.\ + MLP & Fitur: konkat.\ + conv & Keputusan: rata-rata logit \\
+    Unimodal & Citra $\gg$ teks & Teks tidak dilaporkan & Teks $\approx$ citra \\
+    Tobacco tanpa RVL & 87,8 & 90,3 & -- \\
+    Tobacco dengan RVL & -- & 95,7 & 92,00 \\
+    Fusi RVL & 90,6 & 95,48 (?) & 93,06 \\
+    Replikasi & Tinggi & Rendah--sedang & Sedang \\ \bottomrule
   \end{tabular}
 
   \vspace{6pt}
-  \alert{Inti:} lompatan kualitas teks di Kashyap berasal dari OCR \emph{dan} model teks
-  yang berubah bersamaan, sehingga keduanya tidak bisa dipisahkan.
+  \alert{Inti:} di ketiga paper, perbaikan teks datang bersamaan dengan pergantian model teks,
+  sehingga pengaruh OCR tidak pernah diisolasi. Protokol Tobacco3482 juga berbeda di tiap
+  paper.
 \end{frame}
 
 \begin{frame}{Relevansi untuk proyek (Fase 2)}
   \begin{itemize}
-    \item Kedua paper tidak memisahkan pengaruh \textbf{OCR} dari pengaruh \textbf{embedding};
+    \item Ketiga paper tidak memisahkan pengaruh \textbf{OCR} dari pengaruh \textbf{embedding};
           eksperimen faktorial OCR $\times$ embedding pada proyek kami mengisi celah ini.
-    \item Late fusion (rata-rata logit) murah, sehingga bisa ditambahkan sebagai pembanding
-          konkatenasi Audebert, bersama \alert{oracle} sebagai batas atas.
-    \item Praktik yang kami ambil: rerata $\pm$ simpangan baku lintas seed, macro-F1 untuk
-          data tidak seimbang, protokol split dan mesin OCR dinyatakan eksplisit, dan tidak
-          membandingkan angka dari protokol yang berbeda.
+    \item Skenario Kanchi (Tobacco3482 tanpa RVL-CDIP) paling sepadan dengan proyek kami,
+          sehingga 90,3\,\% / 86,0\,\% menjadi acuan yang lebih adil daripada angka Kashyap.
+    \item BERT + HAN (Kanchi) bisa menjadi salah satu level variabel embedding, di samping
+          FastText dan BERT/bge.
+    \item Late fusion (rata-rata logit) ditambahkan sebagai pembanding konkatenasi, bersama
+          \alert{oracle} sebagai batas atas.
+    \item Praktik yang kami ambil: laporkan \alert{akurasi tiap unimodal}, rerata $\pm$ simpangan
+          baku lintas seed, macro-F1, serta protokol split dan OCR secara eksplisit.
   \end{itemize}
 \end{frame}
 
 \begin{frame}{Kesimpulan}
   \begin{itemize}
-    \item \textbf{Audebert}: baseline multimodal sederhana dan transparan; kelemahannya satu OCR
-          dan tanpa variansi.
-    \item \textbf{Kashyap}: komponen modern dan late fusion sederhana dengan akurasi tinggi,
-          ditambah alternatif retrieval ringan, tetapi pelaporannya punya beberapa masalah
-          (OCR anonim, pemetaan kelas, angka tidak konsisten).
-    \item Angka Kashyap dipakai sebagai \emph{acuan arah}, bukan target yang harus dicapai persis.
+    \item \textbf{Audebert}: baseline sederhana dan transparan; kelemahannya satu OCR dan tanpa variansi.
+    \item \textbf{Kanchi}: 90,3\,\% tanpa RVL-CDIP lewat BERT + HAN, tetapi hasil teks tidak
+          dilaporkan, protokol ambigu, dan klaim efisiensi mengabaikan BERT.
+    \item \textbf{Kashyap}: late fusion sederhana dengan akurasi tinggi dan alternatif retrieval
+          ringan, tetapi pelaporannya bermasalah (OCR anonim, pemetaan kelas, angka tidak konsisten).
+    \item Angka Kanchi dan Kashyap dipakai sebagai \emph{acuan arah}, bukan target yang harus dicapai persis.
   \end{itemize}
 \end{frame}
 

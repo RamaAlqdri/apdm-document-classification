@@ -1,0 +1,27 @@
+% Pipeline EmmDocClassifier, Kanchi et al. (2022), digambar ulang dari Gambar 2 dan Bagian 3 paper.
+% Dipakai bersama oleh laporan dan presentasi; butuh TikZ (positioning, arrows.meta, calc).
+\resizebox{\linewidth}{!}{%
+\begin{tikzpicture}[
+  node distance=4mm and 6mm,
+  kotak/.style={draw, rounded corners=2pt, align=center, font=\small,
+                minimum height=10mm, inner sep=3pt},
+  citra/.style={kotak, fill=blue!10},
+  teks/.style={kotak, fill=orange!15},
+  fusi/.style={kotak, fill=green!15},
+  panah/.style={-{Stealth[length=2mm]}, thick}]
+  \node[kotak] (in) {Citra\\dokumen};
+  % alur citra
+  \node[citra, above right=4mm and 8mm of in] (rs) {Resize 384$\times$384\\gray$\to$RGB, prapros.\ ImageNet};
+  \node[citra, right=of rs] (eff) {EfficientNet-B0\\(5,3 jt param.)};
+  \node[citra, right=of eff] (gp) {global pooling\\$\to$ $d$-dim};
+  % alur teks
+  \node[teks, below right=4mm and 8mm of in] (ocr) {Tesseract 4\\+ buang simbol,\\stopword, stemming};
+  \node[teks, right=of ocr] (bert) {BERT\textsubscript{base} fine-tune\\$\Sigma$ 4 lapis akhir};
+  \node[teks, right=of bert] (han) {HAN: BiGRU +\\atensi kata \& kalimat};
+  % fusi
+  \node[fusi, right=10mm of $(gp)!0.5!(han)$] (cat) {Konkatenasi\\$2d$};
+  \node[fusi, right=of cat] (out) {Conv + pooling\\+ FC softmax};
+  \draw[panah] (in) |- (rs);  \draw[panah] (rs) -- (eff);  \draw[panah] (eff) -- (gp);
+  \draw[panah] (in) |- (ocr); \draw[panah] (ocr) -- (bert); \draw[panah] (bert) -- (han);
+  \draw[panah] (gp) -| (cat); \draw[panah] (han) -| (cat); \draw[panah] (cat) -- (out);
+\end{tikzpicture}}
