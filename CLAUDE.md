@@ -13,6 +13,13 @@ Systems, doi:10.1155/int/4241437 (PDF di references/). Syarat dosen: referensi
 utama minimal 2025 dan sudah terbit, BUKAN preprint arXiv. Rencana per tahap di
 vault/00-index/rencana-prompt.md.
 
+Rancangan Fase 2 (sejak 2026-10-22): Tobacco3482 saja, tanpa RVL-CDIP. Variabel
+bebas: mesin OCR (QS-OCR acuan, Tesseract-JPG, EasyOCR, PaddleOCR) dan aturan fusi
+(CONCAT di atas fitur beku vs LATE rata-rata logit). Embedding tetap FastText + CNN1D;
+BERT adalah future work. Seluruh pipeline dijalankan oleh SATU notebook,
+notebooks/pipeline.ipynb, yang hanya memanggil src/. Notebook per tahap yang lama ada
+di notebooks/arsip/ sebagai riwayat dan tidak dijalankan lagi.
+
 Dataset:
 - Citra: Tobacco3482 versi JPG dari Kaggle (patrickaudriaz/tobacco3482jpg)
 - Teks: QS-OCR-Small dari GitHub QuickSign/ocrized-text-dataset, tab Releases
@@ -30,7 +37,7 @@ proyek/
 ├── requirements.txt
 ├── data/{raw,interim,processed}/     # digitignore
 ├── references/                       # PDF paper (sudah ada)
-├── notebooks/                        # 01_..., 02_..., dst
+├── notebooks/                        # pipeline.ipynb (end-to-end) + arsip/
 ├── src/                              # modul reusable, di-import notebook
 ├── models/                           # checkpoint, digitignore
 ├── reports/figures/

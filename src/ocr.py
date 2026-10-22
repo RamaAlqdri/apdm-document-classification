@@ -246,6 +246,150 @@ def run_engine(engine: Engine, name: str, docs: Iterable[tuple[str, Path]],
             "detik_per_halaman": round(spent / max(done, 1), 3)}
 
 
+# --------------------------------------------------------------------------- #
+# Orchestration for the pipeline notebook: engine setup, one subprocess per engine,
+# and the per-condition texts aligned to the manifest.
+
+CONDITIONS = ("qs-ocr",) + ENGINES   # qs-ocr = released Tesseract-4 text, not rerun
+WIN_TESSERACT = Path(r"C:\Program Files\Tesseract-OCR\tesseract.exe")
+
+
+def find_tesseract(install: bool = True) -> str | None:
+    """Path of the tesseract binary; on Windows, install it with winget if missing."""
+    import shutil
+    import subprocess
+
+    found = shutil.which("tesseract")
+    if found:
+        return found
+    if WIN_TESSERACT.exists():
+        return str(WIN_TESSERACT)
+    if install and sys.platform == "win32":
+        print("Memasang Tesseract lewat winget...")
+        subprocess.run(["winget", "install", "--id", "UB-Mannheim.TesseractOCR", "-e",
+                        "--accept-source-agreements", "--accept-package-agreements"])
+        return str(WIN_TESSERACT) if WIN_TESSERACT.exists() else None
+    return None
+
+
+def paddle_python(root: Path) -> Path:
+    venv = Path(root) / ".venv-paddle"
+    return venv / ("Scripts/python.exe" if sys.platform == "win32" else "bin/python")
+
+
+def ensure_paddle_venv(root: Path) -> Path:
+    """PaddleOCR lives in its own venv: its numpy/opencv pins clash with torch's.
+    Created and filled on first call (~1 GB), a no-op afterwards."""
+    import subprocess
+
+    py = paddle_python(root)
+    if not py.exists():
+        print("Membuat .venv-paddle ...")
+        subprocess.run([sys.executable, "-m", "venv", str(py.parent.parent)], check=True)
+    if subprocess.run([str(py), "-c", "import paddleocr"], capture_output=True).returncode:
+        print("Memasang paddlepaddle + paddleocr (± 1 GB, beberapa menit)...")
+        subprocess.run([str(py), "-m", "pip", "install", "-q",
+                        "paddlepaddle==3.3.1", "paddleocr==3.7.0"], check=True)
+    return py
+
+
+def run_engine_subprocess(engine: str, manifest: Path, out: Path, root: Path, *,
+                          python: str | None = None, limit: int | None = None,
+                          gpu: bool = False, tesseract_cmd: str | None = None,
+                          paddle_models: str = "mobile") -> dict:
+    """Run `python -m src.ocr --engine ...` in its own process and stream progress.
+
+    One process per engine keeps a CUDA/DLL clash in one library from killing the
+    notebook kernel or the other engines. Returns the engine's RINGKASAN line.
+    """
+    import os
+    import subprocess
+    from collections import deque
+
+    cmd = [python or sys.executable, "-m", "src.ocr", "--engine", engine,
+           "--manifest", str(manifest), "--out", str(out)]
+    if limit:
+        cmd += ["--limit", str(limit)]
+    if engine == "easyocr" and gpu:
+        cmd.append("--gpu")
+    if engine == "tesseract" and tesseract_cmd:
+        cmd += ["--tesseract-cmd", tesseract_cmd]
+    if engine == "paddleocr":
+        cmd += ["--paddle-models", paddle_models, "--device", "cpu"]
+    env = {**os.environ, "PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK": "True",
+           "PYTHONIOENCODING": "utf-8"}
+    summary, tail = None, deque(maxlen=40)
+    with subprocess.Popen(cmd, cwd=root, env=env, stdout=subprocess.PIPE,
+                          stderr=subprocess.STDOUT, text=True, encoding="utf-8",
+                          errors="replace") as proc:
+        for line in proc.stdout:
+            tail.append(line)
+            if line.startswith("RINGKASAN "):
+                summary = json.loads(line[len("RINGKASAN "):])
+            elif line.startswith(f"[{engine}]"):
+                print(line, end="", flush=True)
+    if proc.returncode != 0 or summary is None:
+        print("".join(tail))
+        raise RuntimeError(f"{engine} gagal (kode {proc.returncode}); lihat keluaran di atas")
+    return summary
+
+
+def seconds_per_page(out_dir: Path, engine: str) -> float | None:
+    """Median seconds per page, read from the JSONs (a resumed run's summary only
+    sees the remainder)."""
+    secs = [json.loads(p.read_text(encoding="utf-8"))["seconds"]
+            for p in (Path(out_dir) / engine).glob("*.json") if not p.name.startswith("_")]
+    return statistics.median(secs) if secs else None
+
+
+def condition_texts(cond: str, ids: list[str], qs_paths: list[str],
+                    out_dir: Path) -> tuple[list[str], list[str]]:
+    """Texts of one OCR condition in manifest order, plus the ids it has no page for.
+
+    A missing page is returned as "" so the arrays stay aligned; the caller decides
+    whether a missing page is acceptable (the pipeline refuses it).
+    """
+    if cond == "qs-ocr":
+        return ([Path(p).read_text(encoding="utf-8", errors="replace") for p in qs_paths],
+                [])
+    if cond not in ENGINES:
+        raise ValueError(f"kondisi OCR tidak dikenal: {cond!r}, pilih dari {CONDITIONS}")
+    got = load_texts(out_dir, cond)
+    return [got.get(str(i), "") for i in ids], [str(i) for i in ids if str(i) not in got]
+
+
+def known_words() -> Callable[[str], bool]:
+    """Word list for the OOV proxy: any word wordfreq has seen in English."""
+    from functools import lru_cache
+
+    from wordfreq import zipf_frequency
+
+    @lru_cache(maxsize=None)
+    def known(w: str) -> bool:
+        return zipf_frequency(w, "en") > 0
+    return known
+
+
+def quality_rows(texts: dict[str, list[str]], ids: list[str], labels: list[str],
+                 known: Callable[[str], bool]) -> list[dict]:
+    """One row per (document, condition): words read and OOV share."""
+    return [{"id": i, "kelas": k, "ocr": cond, "n_kata": len(words(t[n])),
+             "oov": oov_share(t[n], known)}
+            for cond, t in texts.items()
+            for n, (i, k) in enumerate(zip(ids, labels))]
+
+
+def agreement(texts: dict[str, list[str]]) -> dict[tuple[str, str], float | None]:
+    """Median word-set Jaccard between every two conditions, over shared documents."""
+    out = {}
+    names = list(texts)
+    for a in names:
+        for b in names:
+            vals = [j for j in map(jaccard, texts[a], texts[b]) if j is not None]
+            out[(a, b)] = statistics.median(vals) if vals else None
+    return out
+
+
 def read_manifest(path: Path) -> list[tuple[str, Path]]:
     with open(path, newline="", encoding="utf-8") as f:
         return [(r["id"], Path(r["path_citra"])) for r in csv.DictReader(f)]
@@ -340,6 +484,27 @@ def _self_check() -> None:
         man = tmp / "manifest.csv"
         man.write_text("id,kelas,path_citra\nx1,Memo,/d/x1.jpg\n", encoding="utf-8")
         assert read_manifest(man) == [("x1", Path("/d/x1.jpg"))]
+
+        # condition texts stay aligned to the manifest, gaps are reported
+        qs = tmp / "q.txt"
+        qs.write_text("dari tif", encoding="utf-8")
+        assert condition_texts("qs-ocr", ["a"], [str(qs)], tmp / "out") == (["dari tif"], [])
+        (tmp / "out" / "easyocr").mkdir()
+        (tmp / "out" / "easyocr" / "a.json").write_text(json.dumps({"text": "hai"}))
+        got, missing = condition_texts("easyocr", ["a", "zz"], [], tmp / "out")
+        assert got == ["hai", ""] and missing == ["zz"], (got, missing)
+        assert seconds_per_page(tmp / "out", "palsu") is not None
+        try:
+            condition_texts("abbyy", ["a"], [], tmp / "out")
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("kondisi tak dikenal harus ditolak")
+
+    rows = quality_rows({"x": ["dear sirr", ""]}, ["1", "2"], ["Memo", "Note"], known)
+    assert rows[0]["n_kata"] == 2 and rows[0]["oov"] == 0.5 and rows[1]["oov"] is None, rows
+    ag = agreement({"x": ["the cat sat", ""], "y": ["sat the cat", ""]})
+    assert ag[("x", "y")] == 1.0 and ag[("x", "x")] == 1.0, ag
 
     try:
         make_engine("tidak-ada")

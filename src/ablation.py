@@ -199,7 +199,7 @@ def evaluate_zeroed(model, loader, which: str, device) -> dict:
 
     Same return shape as train.evaluate, so results are directly comparable.
 
-    NOTE: `notebooks/06_ablasi.ipynb` has an equivalent loop written inline, from
+    NOTE: `notebooks/arsip/06_ablasi.ipynb` has an equivalent loop written inline, from
     before this helper existed. The duplication is deliberate: regenerating that
     notebook would wipe the outputs of a 12-hour run. Notebook 07 re-measures the
     concat number with THIS function and asserts it matches the inline version's

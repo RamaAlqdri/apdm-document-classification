@@ -133,8 +133,53 @@ class FusionModel(nn.Module):
         return self.head(self.features(image, text))
 
 
+class ConcatHead(nn.Module):
+    """Fase 2 feature fusion on FROZEN, separately trained unimodal models.
+
+    Same head as FusionModel("concat") — project the 1280-d image vector to 128,
+    concatenate with the 128-d text vector, one hidden layer — but its inputs are
+    the cached features of the trained IMAGE and TEXT baselines instead of branches
+    trained end to end. That way the two fusion rules compared in Fase 2 (this head
+    and the logit average) sit on the very same unimodal models, so a difference
+    between them is a difference of the rule alone.
+
+    Deviation from Audebert (end-to-end) on purpose; it also sidesteps the text
+    branch collapse measured in Fase 1, since the text branch arrives already trained.
+    """
+
+    def __init__(self, img_dim: int | None = None, txt_dim: int | None = None,
+                 n_classes: int = 10, width: int | None = None,
+                 dropout: float | None = None):
+        super().__init__()
+        img_dim = CONFIG["image_feature_dim"] if img_dim is None else img_dim
+        dim = CONFIG["fusion_dim"]
+        txt_dim = dim if txt_dim is None else txt_dim
+        width = CONFIG["concat_head_width"] if width is None else width
+        dropout = CONFIG["dropout"] if dropout is None else dropout
+        self.project = nn.Linear(img_dim, dim)
+        self.head = nn.Sequential(
+            nn.Linear(dim + txt_dim, width), nn.BatchNorm1d(width), nn.ReLU(),
+            nn.Dropout(dropout), nn.Linear(width, n_classes))
+
+    def forward(self, batch) -> torch.Tensor:
+        """`batch` is (image_features, text_features)."""
+        img, txt = batch
+        return self.head(torch.cat([self.project(img), txt], dim=1))
+
+
 def _self_check() -> None:
     torch.manual_seed(0)
+
+    # ConcatHead: shapes, and both inputs reach the output
+    head = ConcatHead(img_dim=1280, txt_dim=128)
+    fi = torch.randn(4, 1280, requires_grad=True)
+    ft = torch.randn(4, 128, requires_grad=True)
+    out = head((fi, ft))
+    assert out.shape == (4, 10), out.shape
+    out.sum().backward()
+    assert fi.grad.abs().sum() > 0 and ft.grad.abs().sum() > 0, \
+        "ConcatHead mengabaikan salah satu masukan"
+
     b, size, dim, length, n_classes = 2, CONFIG["image_size"], 300, 500, 10
     img = torch.randn(b, 3, size, size)
     txt = torch.randn(b, dim, length)

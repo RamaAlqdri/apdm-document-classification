@@ -557,6 +557,27 @@ OCR atau embedding yang lebih baik mengubah itu?
   sama, ditambah rata-rata ± simpangan baku 3 seed. Ini menanggapi angka 11,8% di
   [[mironczuk-2026-review-fusion]].
 
+## Implementasi (2026-10-22): satu notebook end-to-end
+
+Tahap 10-12 diimplementasikan sekaligus sebagai `notebooks/pipeline.ipynb`, yang hanya
+memanggil `src/`. Keputusan yang mengubah rencana di bawah:
+
+- **Embedding hanya FastText + CNN1D.** BERT (sumbu kedua Tahap 11) dan H2 menjadi
+  *future work*, karena fine-tune BERT di GPU 4 GB berisiko dan memakan waktu.
+- **CONCAT dilatih di atas fitur beku** model unimodal yang sudah dilatih
+  (`src/models/fusion.py: ConcatHead`), untuk SEMUA sel, bukan fusion end-to-end hanya
+  pada OCR terbaik/terburuk. Dengan begitu LATE dan CONCAT memakai model unimodal yang
+  sama, dan perbedaannya murni aturan fusi. Ini sekaligus bentuk paling sederhana dari
+  "inisialisasi cabang teks dari checkpoint" yang terbukti menghilangkan kolaps di
+  [[12-perbaikan-norm-dan-init]].
+- **Missing modality** = modalitas diganti keluaran model untuk masukan kosong (teks
+  kosong / citra rata-rata ImageNet), sama untuk LATE dan CONCAT.
+- McNemar dengan koreksi Holm di dalam tiap seed. Sel QS-OCR × FastText dicek terhadap
+  CNN1D Fase 1 (0,7266 ± 0,0059) dan IMAGE terhadap 0,8086 ± 0,0210.
+- EDA (notebook 11) dan OCR (notebook 10) dijalankan ulang di dalam pipeline yang sama;
+  notebook lama dipindah ke `notebooks/arsip/`. Catatan: [[15-grid-teks-ocr]],
+  [[16-fusi-per-ocr]], log [[2026-10-22-pipeline-end-to-end]].
+
 ---
 
 ## Tahap 9 — Revisi landasan
@@ -626,9 +647,9 @@ paddleocr (+ keras-ocr bila ada).
 Kondisi embedding:
 - FastText + CNN1D: pipeline Fase 1 apa adanya (src/text_features.py,
   src/models/text_models.py). Fitur per mesin ke memmap terpisah.
-- BERT-base fine-tune (src/models/bert_text.py), maksimal 512 token, AMP,
-  micro-batch + akumulasi gradien agar muat di 4 GB. Fallback DistilBERT
-  bila tidak muat, dan catat sebagai deviasi dari Kashyap.
+- [DITUNDA 2026-10-22, future work] BERT-base fine-tune (src/models/bert_text.py),
+  maksimal 512 token, AMP, micro-batch + akumulasi gradien agar muat di 4 GB.
+  Fallback DistilBERT bila tidak muat, dan catat sebagai deviasi dari Kashyap.
 Teks masuk TANPA praproses gaya Kashyap (buang angka/stopword) di kedua
 embedding, supaya efek embedding tidak tercampur efek praproses.
 
@@ -647,10 +668,9 @@ TAHAP 12: Apakah teks yang lebih kuat membuat fusion memakai teks?
 
 A. Aturan fusion Kashyap: rata-rata logit TEXT dan IMAGE. Tanpa training, jadi
    jalankan untuk SEMUA sel Tahap 11 × 3 seed. Checkpoint IMAGE dari Fase 1.
-B. Fusion fitur dengan arsitektur yang sudah diperbaiki (LayerNorm per cabang +
-   inisialisasi dari checkpoint teks, src/models/fusion.py) hanya untuk kondisi
-   OCR terbaik dan terburuk, embedding FastText. Seed 42 dulu; tiga seed bila
-   waktunya cukup.
+B. [DIUBAH 2026-10-22] Fusion fitur = ConcatHead di atas fitur beku IMAGE dan TEXT
+   yang sudah dilatih, untuk SEMUA sel × 3 seed (murah: fitur sudah di-cache).
+   Versi end-to-end dengan LayerNorm + init checkpoint tidak dijalankan.
 C. Untuk setiap model fusion: OA, macro F1, oracle, dan uji missing modality
    (nolkan teks / nolkan citra, src/ablation.py).
 Pertanyaan yang harus dijawab: apakah penurunan saat teks dinolkan membesar
@@ -702,9 +722,9 @@ persetujuan sebelum implementasi.
 - [x] Tahap 7 — Ablasi (ablasi 4 dilewati)
 - [x] Tahap 8 — Sintesis akhir (plus 3 eksperimen lanjutan di luar rencana)
 - [x] Tahap 9 — Revisi landasan: referensi ≥2025, gap, proposal (2026-10-09)
-- [ ] Tahap 10 — Ekstraksi OCR multi-mesin (kode siap 2026-10-09, belum dijalankan)
-- [ ] Tahap 11 — Grid teks OCR × embedding
-- [ ] Tahap 12 — Fusion per kondisi OCR + rata-rata logit
+- [ ] Tahap 10 — Ekstraksi OCR multi-mesin (di `pipeline.ipynb` bagian 5, belum dijalankan)
+- [ ] Tahap 11 — Grid teks OCR × FastText (di `pipeline.ipynb` bagian 6-7, belum dijalankan; BERT ditunda)
+- [ ] Tahap 12 — Fusion per kondisi OCR: LATE + CONCAT (di `pipeline.ipynb` bagian 8-9, belum dijalankan)
 - [ ] Tahap 13 — Sintesis Fase 2
 - [ ] Tahap 14 — Rancangan teks sebagai objek
 

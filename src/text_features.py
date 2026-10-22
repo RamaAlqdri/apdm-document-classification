@@ -151,6 +151,29 @@ def build_sequences(token_lists: Sequence[Sequence[str]], embed: Embed,
     return out_path
 
 
+def build_condition_sequences(texts_by_cond: dict[str, list[str]], tokenize: Tokenize,
+                              embed_factory: Callable[[], Embed], out_dir: Path,
+                              overwrite: bool = False, **seq_kwargs) -> dict[str, dict]:
+    """Fase 2: one sequence file per OCR condition, sequences_<cond>.npy.
+
+    Tokenisation always runs (cheap, and the token counts are reported); the 15 GB
+    FastText model is loaded only if some file is missing, and only once. Written via
+    a .part file so an interrupted run never leaves a truncated array behind.
+    """
+    out, embed = {}, None
+    for cond, texts in texts_by_cond.items():
+        tokens = tokenize_corpus(texts, tokenize)
+        path = Path(out_dir) / f"sequences_{cond}.npy"
+        if overwrite or not path.exists():
+            if embed is None:
+                embed = embed_factory()
+            tmp = path.with_name(path.stem + ".part.npy")
+            build_sequences(tokens, embed, tmp, **seq_kwargs)
+            tmp.replace(path)
+        out[cond] = {"path": path, "n_token": np.array([len(t) for t in tokens])}
+    return out
+
+
 # --------------------------------------------------------------------------- #
 # representation 2 — SIF document vectors for the MLP
 # --------------------------------------------------------------------------- #
@@ -300,6 +323,22 @@ def _self_check() -> None:
             # importable on a machine without torch.
             arr._mmap.close()
             del arr
+
+    # per-condition files: built once, the embedder loaded lazily and only once
+    with tempfile.TemporaryDirectory() as tmp:
+        loads = []
+
+        def factory():
+            loads.append(1)
+            return embed
+
+        by_cond = {"a": ["satu dua", ""], "b": ["tiga"]}
+        res = build_condition_sequences(by_cond, str.split, factory, Path(tmp), dim=8)
+        assert len(loads) == 1, "FastText dimuat lebih dari sekali"
+        assert res["a"]["n_token"].tolist() == [2, 0] and res["b"]["path"].exists()
+        build_condition_sequences(by_cond, str.split, factory, Path(tmp), dim=8)
+        assert len(loads) == 1, "file yang sudah ada dibangun ulang"
+        assert not list(Path(tmp).glob("*.part.npy"))
 
     # SIF weighting: "the" is frequent, so it must be pushed down hard
     probs = word_probabilities(toks)

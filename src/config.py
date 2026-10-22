@@ -82,8 +82,10 @@ CONFIG = {
     "lr": 0.01,
     "momentum": 0.9,
     "batch_size": 40,
-    "epochs": ({"text": 15, "image": 20, "fusion": 20} if QUICK
-               else {"text": 100, "image": 200, "fusion": 200}),
+    # "head" is the Fase 2 concat head trained on frozen unimodal features: it sees
+    # cached vectors only, so its epochs cost seconds, not hours.
+    "epochs": ({"text": 15, "image": 20, "fusion": 20, "head": 50} if QUICK
+               else {"text": 100, "image": 200, "fusion": 200, "head": 200}),
     # Early stopping is OUR deviation: the paper trains a fixed number of epochs.
     "patience": 15,
     "num_workers": _DEFAULT_WORKERS,
@@ -92,6 +94,18 @@ CONFIG = {
     # only BatchNorm sees the smaller group.
     "micro_batch_size": _auto_micro_batch(),
     "quick": QUICK,
+    # --- Fase 2: OCR engine as the variable, two fusion rules (vault rencana-prompt) ---
+    # "qs-ocr" is the released Tesseract-4 text read from the original TIFs; the other
+    # three are run by src/ocr.py on the Kaggle JPGs. Order = order of every table.
+    "ocr_conditions": ["qs-ocr", "tesseract", "easyocr", "paddleocr"],
+    "ocr_dir": ROOT / "data" / "interim" / "ocr",
+    # Own folders, so a Fase 2 run never overwrites a Fase 1 checkpoint or CSV.
+    "fase2_data": ROOT / "data" / "processed" / "fase2",
+    "fase2_models": ROOT / "models" / "fase2",
+    "fase2_reports": ROOT / "reports" / "fase2",
+    "concat_head_width": 256,     # same width as the Fase 1 fusion head
+    "alpha": 0.05,                # significance level for McNemar (Holm-corrected)
+    "overwrite": os.environ.get("APDM_TIMPA") == "1",
 }
 
 

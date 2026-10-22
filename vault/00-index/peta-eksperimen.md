@@ -90,3 +90,9 @@ Selisih 2-4% wajar. Yang wajib konsisten adalah urutannya.
 Urutan terpenuhi. Tapi lihat [[sintesis-akhir]] sebelum menyimpulkan bahwa fusion
 memakai kedua modalitas — ia tidak, sampai diperbaiki di
 [[12-perbaikan-norm-dan-init]]. Tabel lengkap dengan F1 per kelas: [[tabel-utama]].
+
+## Fase 2 — pipeline end-to-end
+
+Dijalankan oleh `notebooks/pipeline.ipynb` (sejak 2026-10-22):
+[[13-ocr-multi-mesin]] → [[14-kurasi-dan-eda]] → [[15-grid-teks-ocr]] →
+[[16-fusi-per-ocr]].

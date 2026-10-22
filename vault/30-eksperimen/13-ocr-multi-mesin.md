@@ -27,9 +27,9 @@ oa:: -
 macro_f1:: -
 durasi::
 
-> **BELUM DIJALANKAN.** Kode dan notebook sudah siap:
-> `notebooks/10_ocr_multi_mesin.ipynb` dan `src/ocr.py`. Jalankan di laptop compute. Semua
-> angka di bawah diisi dari keluaran sel terakhir notebook itu.
+> **BELUM DIJALANKAN.** Sejak 2026-10-22 dijalankan oleh `notebooks/pipeline.ipynb`
+> bagian 5 (logika di `src/ocr.py`; notebook lama di `notebooks/arsip/10_ocr_multi_mesin.ipynb`).
+> Angka di bawah diisi dari `reports/fase2/ocr_*.csv` setelah notebook itu dijalankan.
 
 ## Tujuan
 

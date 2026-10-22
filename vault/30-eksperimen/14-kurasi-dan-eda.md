@@ -21,6 +21,11 @@ terkait:
 
 # Kurasi dataset dan EDA per modalitas
 
+> Sejak 2026-10-22 EDA ini dijalankan ulang oleh `notebooks/pipeline.ipynb` bagian 4 dan
+> 6.1 (logika di `src/eda.py`), dengan keluaran di `reports/fase2/eda_*`. Angka di catatan
+> ini tetap dari run notebook 11 (kini `notebooks/arsip/11_eda.ipynb`). Bagian 6.1 menambah
+> probe teks per kondisi OCR.
+
 model:: MobileNetV2 pretrained (tanpa fine-tune) + rata-rata FastText
 dataset:: Tobacco3482 + QS-OCR, 3.482 dokumen
 split:: seed 42 untuk analisis berlabel; seed 42/43/44 di manifest

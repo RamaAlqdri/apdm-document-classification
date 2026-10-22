@@ -239,6 +239,62 @@ def build_manifest(image_root: Path, text_root: Path, mapping: dict) -> tuple:
     return rows, report
 
 
+MANIFEST_FIELDS = ["id", "kelas", "path_citra", "path_teks", "n_kata", "n_karakter"]
+
+
+def write_manifest(rows: list[dict], path: Path) -> Path:
+    import csv
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", newline="", encoding="utf-8") as f:
+        w = csv.DictWriter(f, fieldnames=MANIFEST_FIELDS)
+        w.writeheader()
+        w.writerows(rows)
+    return path
+
+
+def audit_and_pair(image_path: Path, text_path: Path, expected_classes: int = 10) -> dict:
+    """Locate both archives' class folders, reconcile names, pair files, and report.
+
+    Raises when not every class can be mapped: an alias missing from CLASS_ALIASES
+    must be added there by hand, never guessed.
+    """
+    from collections import Counter
+
+    image_root, img_rep = pick_dataset_root(find_class_dirs(image_path, ".jpg"),
+                                            expected_classes)
+    text_root, txt_rep = pick_dataset_root(find_class_dirs(text_path, ".txt"),
+                                           expected_classes)
+    rec = reconcile_classes([d.name for d in image_root.iterdir() if d.is_dir()],
+                            [d.name for d in text_root.iterdir() if d.is_dir()])
+    if rec["n_kelas_cocok"] != expected_classes:
+        raise RuntimeError(f"hanya {rec['n_kelas_cocok']} kelas terpetakan: {rec}. "
+                           "Tambahkan alias ke CLASS_ALIASES di src/data.py.")
+    rows, pair_report = build_manifest(image_root, text_root, rec["mapping"])
+
+    def stems_in_many_classes(root, suffix):
+        c = Counter(f.stem for d in root.iterdir() if d.is_dir()
+                    for f in d.iterdir() if f.suffix.lower() == suffix)
+        return sorted(s for s, n in c.items() if n > 1)
+
+    return {
+        "rows": rows,
+        "image_root": image_root, "text_root": text_root,
+        "kandidat_citra": img_rep, "kandidat_teks": txt_rep,
+        "rekonsiliasi": rec, "pairing": pair_report,
+        "stem_ganda_citra": stems_in_many_classes(image_root, ".jpg"),
+        "stem_ganda_teks": stems_in_many_classes(text_root, ".txt"),
+    }
+
+
+def prepare_dataset(out: Path | None = None) -> dict:
+    """Download both modalities, audit them, and write manifest.csv. Idempotent."""
+    out = CONFIG["data_processed"] / "manifest.csv" if out is None else out
+    report = audit_and_pair(download_images(), download_text())
+    report["manifest"] = write_manifest(report["rows"], out)
+    return report
+
+
 # --------------------------------------------------------------------------- #
 
 def _self_check() -> None:
@@ -276,6 +332,18 @@ def _self_check() -> None:
         assert report["Advertisement"]["n_citra_yatim"] == 1, report
         assert report["Advertisement"]["n_teks_yatim"] == 1, report
         assert rows[0]["n_kata"] == 3 and rows[0]["n_karakter"] == 13, rows[0]
+
+        # the one-call audit agrees with the step-by-step one and writes a CSV
+        rep = audit_and_pair(tmp / "arsip", tmp / "teks", expected_classes=1)
+        assert len(rep["rows"]) == 2 and rep["stem_ganda_citra"] == [], rep
+        path = write_manifest(rep["rows"], tmp / "m.csv")
+        assert path.read_text(encoding="utf-8").splitlines()[0] == ",".join(MANIFEST_FIELDS)
+        try:
+            audit_and_pair(tmp / "arsip", tmp / "teks", expected_classes=2)
+        except RuntimeError:
+            pass
+        else:
+            raise AssertionError("kelas yang tidak lengkap harus ditolak")
         print("data self-check ok")
     finally:
         shutil.rmtree(tmp)

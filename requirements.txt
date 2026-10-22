@@ -14,6 +14,7 @@ numpy==1.26.4
 
 pandas
 scikit-learn
+scipy            # uji McNemar (binomtest)
 matplotlib
 seaborn
 spacy
@@ -22,3 +23,8 @@ kagglehub
 pillow
 tqdm
 jupyter
+wordfreq         # daftar kata untuk proksi OOV (EDA dan kualitas OCR)
+
+# Mesin OCR TIDAK di sini: pytesseract + easyocr dipasang oleh notebooks/pipeline.ipynb
+# dengan constraints agar numpy/torch tidak berubah; PaddleOCR di venv terpisah
+# (.venv-paddle). Biner Tesseract dipasang terpisah (winget / brew / apt).

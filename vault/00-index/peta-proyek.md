@@ -107,8 +107,12 @@ setiap sel Fase 2. Prompt lengkap per tahap ada di [[rencana-prompt]].
       Kode siap dan diverifikasi ([[2026-10-09-tahap-10-ocr-multi-mesin]]), belum dijalankan
 - [ ] **10b** — Kurasi dataset + EDA (permintaan dosen) → [[14-kurasi-dan-eda]], kode siap
       ([[2026-10-11-kurasi-eda]]), belum dijalankan
-- [ ] **11** — Grid teks OCR × embedding (FastText, BERT)
-- [ ] **12** — Fusion per kondisi OCR + rata-rata logit gaya Kashyap
+- [ ] **11** — Grid teks OCR × FastText → [[15-grid-teks-ocr]] (BERT ditunda, *future work*)
+- [ ] **12** — Fusion per kondisi OCR: LATE (rata-rata logit) vs CONCAT (fitur beku) →
+      [[16-fusi-per-ocr]]
+
+Sejak 2026-10-22 tahap 10-12 dijalankan oleh satu notebook, `notebooks/pipeline.ipynb`
+([[2026-10-22-pipeline-end-to-end]]). Notebook per tahap lama ada di `notebooks/arsip/`.
 - [ ] **13** — Sintesis Fase 2
 - [ ] **14** — Rancangan teks sebagai objek, dengan kontrol [[larson-2025-id-codes]]
 

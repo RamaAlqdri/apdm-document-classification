@@ -1,362 +1,124 @@
-# Runbook — menjalankan di mesin compute
+# Runbook — menjalankan pipeline di mesin compute
 
-Kode ditulis di mesin lain dan **belum pernah dieksekusi**. Dokumen ini adalah
-prosedur menjalankannya dari nol sampai seluruh catatan eksperimen terisi angka.
+Kode ditulis di mesin lain dan **belum pernah dieksekusi pada dataset asli**. Yang sudah
+diuji di mesin penulis: self-check setiap modul `src/`, dan *dry run* seluruh sel
+`notebooks/pipeline.ipynb` pada dataset sintetis kecil (240 dokumen, epoch 2).
 
-Semua catatan di `vault/30-eksperimen/` dan `vault/50-hasil/` saat ini berstatus
-`belum-dijalankan` dengan field angka kosong. Itu disengaja — aturan 3 di
-`CLAUDE.md` melarang mengisi angka yang belum dihitung.
+Semua catatan hasil Fase 2 di `vault/` berstatus `belum-dijalankan` sampai diisi dari
+keluaran notebook. Aturan 3 di `CLAUDE.md` melarang mengisi angka yang belum dihitung.
 
 ---
 
-## Jalur singkat: buka satu notebook
+## Jalur singkat
 
-1. Clone atau unduh repo ini
-2. Buka `notebooks/00_setup_dan_jalankan.ipynb` (Anaconda, VS Code, atau `jupyter lab`)
-3. **Run All**
+1. Clone repo, buat venv Python **3.12**, `pip install -r requirements.txt`
+2. Buka `notebooks/pipeline.ipynb` (Jupyter Lab / VS Code / Anaconda)
+3. Atur sel `RUN` paling atas (cukup `quick` saja, sisanya punya bawaan)
+4. **Run All**
 
-Itu saja. Notebook itu memasang dependency lewat `%pip`, memeriksa GPU dan memasang
-ulang PyTorch versi CUDA kalau yang terpasang versi CPU, menerima token Kaggle
-langsung di dalam notebook (lewat `getpass`, jadi tidak tersimpan di output),
-menjalankan dua belas self-check, lalu mengeksekusi notebook 01-06 berurutan.
-
-Satu-satunya pilihan yang perlu Anda buat ada di sel terakhir: `CEPAT = True`
-(± 1 jam, untuk menguji pipeline) atau `False` (setelan paper penuh).
-
-### Jalur terminal, kalau lebih suka
+Atau lewat terminal:
 
 ```bash
-git clone https://github.com/RamaAlqdri/apdm-document-classification.git
-cd apdm-document-classification
-python3.12 -m venv venv && source venv/bin/activate && pip install -r requirements.txt
-python run_all.py
+python run_all.py --periksa   # prasyarat + 14 self-check, tidak menjalankan apa pun
+python run_all.py --cepat     # 1 seed, epoch dipangkas: uji pipeline dulu
+python run_all.py             # setelan penuh
 ```
 
-Windows: ganti baris ketiga dengan
-`py -3.12 -m venv venv; .\venv\Scripts\Activate.ps1; pip install -r requirements.txt`
+Notebook **bisa dilanjutkan**. Halaman OCR, sekuens teks, dan model yang sudah ada di
+disk dipakai ulang; kalau kernel mati atau listrik padam, cukup Run All (atau perintah
+yang sama) lagi. `RUN["overwrite"] = True` / `--timpa` memaksa semuanya dihitung ulang.
 
-`run_all.py` mengerjakan sisanya: memeriksa prasyarat, menjalankan sepuluh
-self-check modul, memilih micro-batch dari VRAM, menyalakan AMP kalau CUDA ada,
-mengatur jumlah worker sesuai sistem operasi, mengunduh model spaCy dan FastText saat
-pertama dibutuhkan, lalu menjalankan keenam notebook berurutan dengan output
-tersimpan di dalamnya.
+Mode cepat dan penuh menulis ke file yang sama. Setelah uji cepat, hapus
+`data/processed/fase2/outputs/` sebelum run penuh, atau pakai `--timpa`, supaya model
+1-seed hasil uji tidak terbawa.
 
-**Tidak ada sel yang perlu Anda sunting.**
+## Urutan di dalam notebook
 
-Sebelum melepas run panjang:
-
-```bash
-python run_all.py --periksa   # cek prasyarat + self-check, tidak menjalankan apa pun
-python run_all.py --cepat     # 15/20/20 epoch, 1 seed — uji pipeline ± 1 jam
-```
-
-Kalau ada notebook yang gagal, perbaiki lalu lanjutkan dari titik itu:
-
-```bash
-python run_all.py --dari 04
-```
-
-## Sudah pernah jalan? Jangan jalankan 01-06 lagi
-
-Notebook 01-06 menulis ke nama file yang sama setiap kali dijalankan, jadi run ulang
-**menghapus** hasil sebelumnya: checkpoint di `models/`, log di `reports/`, dan output
-di dalam notebook itu sendiri. Untuk run penuh itu belasan jam yang hilang.
-
-`run_all.py` menolak berjalan dari notebook 01 kalau `reports/tabel_utama.csv` sudah
-ada. Untuk menimpanya dengan sengaja: `--timpa`. Untuk menyimpan hasil lama lebih dulu,
-salin `models/` dan `reports/` ke folder lain.
-
-**Notebook 07, 08, dan 09 aman dijalankan kapan saja** — masing-masing memakai nama
-artefak sendiri dan checkpoint lama hanya dibaca:
-
-| Notebook | Menulis | Membaca |
+| Bagian | Isi | Perkiraan (RTX 3050 4 GB) |
 |---|---|---|
-| 07 | `FUSION-concat-noES_*`, `uji_lanjutan.csv`, `figures/08_*` | checkpoint 05 |
-| 08 | `diagnostik_cabang_teks.csv`, `figures/09_*` | checkpoint 03, 05, 07 |
-| 09 | `FUSION-fix_*`, `uji_perbaikan*.csv`, `figures/10_*` | `CNN1D_seed42.pt` |
-| 10 | `data/interim/ocr/`, `reports/ocr_*`, `figures/ocr_*` | `manifest.csv`, citra JPG |
-| 11 | `manifest_kurasi.csv`, `data/interim/eda_*`, `reports/eda_*`, `figures/eda_*` | `manifest.csv`, `split_seed*.json`, sekuens FastText |
+| 1 | pip, cek CUDA, token Kaggle, self-check | menit |
+| 2 | unduh citra Kaggle (3,3 GB) + QS-OCR, audit, `manifest.csv` | 15-30 menit |
+| 3 | split 800/2.682, tiga seed | detik |
+| 4 | EDA: distribusi, statistik citra/teks, kurasi, duplikat, jalan pintas kode ID | 5-10 menit |
+| 5 | OCR Tesseract, EasyOCR, PaddleOCR + proksi kualitas | **± 1-3 jam per mesin** (uji 20 halaman dulu, perkiraannya dicetak) |
+| 6 | spaCy + FastText (unduh 7 GB sekali), sekuens per kondisi, probe + t-SNE | 30-90 menit |
+| 7 | training IMAGE ×3 seed, TEXT ×4 kondisi ×3 seed | **jam-an**; sel estimasi mencetak batas atasnya |
+| 8 | LATE, CONCAT, ORACLE, missing modality | menit |
+| 9 | McNemar H1/H3, pemakaian modalitas, F1 per kelas | detik |
+| 10 | blok ringkasan untuk vault | detik |
 
-```bash
-python run_all.py --dari 07     # atau 08, 09, 10, 11
-```
-
-### Notebook 10 (Fase 2): OCR multi-mesin
-
-Paling mudah dibuka langsung dan di-Run All. Tiga hal yang berbeda dari notebook lain:
-
-- **Memasang sendiri yang dibutuhkannya.** `pytesseract`, `easyocr`, `wordfreq` masuk ke
-  lingkungan utama dengan numpy dan torch dikunci. Tesseract dipasang lewat winget
-  (muncul jendela izin administrator — klik *Yes*). PaddleOCR dipasang di
-  `.venv-paddle/` yang terpisah, ± 1 GB, karena dependensinya bentrok dengan opencv
-  milik EasyOCR dan dengan pin numpy.
-- **Mengukur kecepatan dulu.** 20 halaman per mesin, lalu perkiraan total dicetak
-  sebelum proses penuh. Set `JALANKAN_PENUH = False` kalau hanya ingin melihat
-  perkiraannya.
-- **Boleh diputus.** Hasil disimpan per halaman; Run All lagi melanjutkan dari halaman
-  terakhir.
-
-Dua hal yang tetap butuh Anda:
-
-1. **Token Kaggle** (sekali saja) — kaggle.com → Settings → API → Create New Token,
-   simpan sebagai `~/.kaggle/kaggle.json`. `run_all.py --periksa` akan
-   memberitahu kalau belum ada.
-2. **torch dengan CUDA.** `requirements.txt` memasang torch versi default yang belum
-   tentu bawa CUDA. `run_all.py` mendeteksi dan memperingatkan; perintah pasang
-   ulangnya ada di bagian 2.
-
-Setelah selesai, satu langkah manual terakhir: salin angka dari sel ringkasan tiap
-notebook ke catatan di `vault/`, lalu ubah `status: belum-dijalankan` menjadi
-`selesai`. `run_all.py` juga mencetak daftar deviasi runtime untuk ikut disalin.
-
-Sisa dokumen ini adalah rinciannya, untuk saat ada yang tidak berjalan semestinya.
+Hasil: `reports/fase2/*.csv`, gambar `reports/figures/fase2_*.png`, model
+`models/fase2/`, keluaran unimodal `data/processed/fase2/outputs/`. Semua terpisah dari
+artefak Fase 1, jadi run ini tidak menimpa hasil lama.
 
 ---
 
-## 0. Yang perlu disiapkan
+## Yang perlu disiapkan
 
 | Kebutuhan | Ukuran | Catatan |
 |---|---|---|
-| Disk kosong | **± 15 GB** | citra 3,3 GB + FastText 7 GB + sekuens 1 GB + checkpoint ± 1 GB |
-| RAM | **16 GB minimum** | FastText butuh ± 15 GB saat dimuat, hanya di notebook 02 |
-| GPU | opsional tapi sangat membantu | tanpa GPU, notebook 04-05 bisa berjam-jam |
+| Disk | **± 25 GB** | citra 3,3 + FastText 7 + 4 sekuens teks 4 + venv PaddleOCR 1 + model |
+| RAM | **16 GB minimum** | FastText ± 15 GB saat dimuat (bagian 6 saja) |
+| GPU | sangat disarankan | tanpa GPU, bagian 7 bisa berhari-hari |
 | Python | **3.12** | 3.13/3.14 belum punya wheel `torch`/`spacy`/`fasttext` |
-| Akun Kaggle | — | butuh API token untuk mengunduh dataset citra |
+| Kaggle | token API | kaggle.com → Settings → API → Create New Token |
+| Tesseract | biner | Windows: dipasang otomatis lewat winget (jendela izin admin → *Yes*); macOS `brew install tesseract`; Linux `apt install tesseract-ocr` |
 
-### Profil yang sudah diperhitungkan: ASUS TUF, i7 gen 11, 24 GB RAM, RTX 3050 4 GB
+Token Kaggle: notebook mencari `kaggle.json` di Downloads/Unduhan/folder proyek dan
+memindahkannya ke `~/.kaggle/`; kalau tidak ada, ia meminta username dan key lewat
+`getpass` (tidak tersimpan di output). Lewat `run_all.py` tidak ada prompt, jadi token
+harus sudah ada; `--periksa` memberitahu.
 
-| Aspek | Status |
-|---|---|
-| RAM 24 GB | **Aman.** FastText butuh ± 15 GB, masih lapang |
-| Disk | perlu ± 15 GB kosong |
-| VRAM 4 GB | **Ini kendalanya** — lihat di bawah |
-| CUDA | RTX 3050 = Ampere, punya tensor core, jadi AMP aktif otomatis |
+**PyTorch dengan CUDA.** `requirements.txt` memakai indeks `cu121`. Kalau GPU NVIDIA ada
+tapi `torch.cuda.is_available()` `False`, notebook memasang ulang dari indeks `cu124`
+lalu meminta restart kernel. Sesuaikan versi CUDA dengan `nvidia-smi` bila perlu.
 
-**Batch 40 pada MobileNetV2 384×384 tidak muat di 4 GB VRAM.** Parameternya kecil
-(9 MB), yang memakan adalah peta aktivasi yang harus disimpan untuk backward —
-kasarnya 60-80 MB per sampel, jadi batch 40 ≈ 2,5-3 GB sebelum menghitung workspace
-dan fragmentasi. Di kartu 4 GB yang efektifnya ± 3,6 GB, itu akan OOM.
-
-Solusinya sudah terpasang dan **otomatis**: `src/config.py` membaca kapasitas VRAM
-lalu memilih micro-batch sendiri — 8 untuk kartu di bawah 5 GB, 16 untuk 6-8 GB,
-batch penuh untuk 10 GB ke atas. DataLoader menyajikan micro-batch itu, `train_model`
-mengakumulasi gradiennya, dan optimizer tetap melangkah dari 40 sampel persis seperti
-paper. Notebook 04 dan 05 mencetak nilai yang terpilih.
-
-Kalau ternyata masih OOM, itu satu-satunya tempat Anda perlu turun tangan:
-
-```python
-CONFIG["micro_batch_size"] = 4   # di sel pertama notebook, sebelum training
-```
-
-**Yang tidak setara, dan wajib dicatat sebagai deviasi:** BatchNorm menormalisasi
-per micro-batch, jadi statistiknya berasal dari 8 sampel, bukan 40. Akumulasi
-gradien tidak bisa memperbaiki itu. Self-check `src/train.py` memverifikasi bagian
-yang memang setara — gradien hasil akumulasi identik dengan gradien batch penuh pada
-model tanpa BatchNorm.
-
-**AMP (mixed precision) menyala otomatis di CUDA**, memangkas memori aktivasi
-sekitar separuh dan mempercepat 2-3× di Ampere. Matikan dengan
-`train_model(..., amp=False)` kalau mencurigai masalah numerik.
-
-Perkiraan durasi di 3050 (kasar, **ukur sendiri dengan sel estimasi**): IMAGE
-200 epoch ± 1-1,5 jam per seed; FUSION lebih berat, ± 2 jam per seed per strategi.
-Total untuk 3 seed penuh ± 12-18 jam. Lihat urutan pemotongan di bagian 5.
-
-### Kalau RAM hanya 16 GB
-
-Notebook 02 akan kena swap saat memuat `cc.en.300.bin`. Biarkan — ia hanya berjalan
-sekali, lalu fitur ditulis ke disk dan model dilepas. **Jangan** memakai
-`fasttext.util.reduce_model` sebagai jalan keluar: fungsi itu harus memuat model
-300 dimensi penuh lebih dulu, jadi puncak RAM-nya sama saja.
-
-Tutup aplikasi lain sebelum menjalankan notebook 02, dan pastikan swap/pagefile
-cukup besar.
+**Pustaka OCR.** `pytesseract` dan `easyocr` dipasang di bagian 5 dengan *constraints*
+yang mengunci numpy/torch/torchvision. PaddleOCR dipasang di `.venv-paddle/`
+(± 1 GB) karena pin numpy-nya bentrok dengan torch. Keras-OCR tidak dipakai: butuh TF
+dengan API Keras 2 yang tidak tersedia untuk Python 3.12.
 
 ---
 
-## 1. Ambil kode
+## VRAM 4 GB dan micro-batch
 
-```bash
-git clone https://github.com/RamaAlqdri/apdm-document-classification.git
-cd apdm-document-classification
-```
+Batch 40 MobileNetV2 384×384 tidak muat di 4 GB. `src/config.py` membaca VRAM lalu
+memilih micro-batch sendiri (8 untuk < 5 GB, 16 untuk 6-8 GB); gradien diakumulasi
+sehingga optimizer tetap melangkah dari 40 sampel. **Yang tidak setara, dan dicetak
+sebagai deviasi:** BatchNorm menormalisasi per micro-batch. AMP menyala otomatis di
+CUDA. Notebook mencetak daftar deviasi runtime di bagian 1 dan 10; salin ke catatan.
 
-Jangan menyalin `data/processed/manifest.csv` dari mesin lain: isinya **path
-absolut** milik mesin yang membuatnya. File itu dibuat ulang oleh notebook 01.
-
----
-
-## 2. Environment
-
-### Linux / WSL2
-
-```bash
-python3.12 -m venv venv
-source venv/bin/activate
-pip install --upgrade pip
-pip install -r requirements.txt
-```
-
-Model spaCy diunduh otomatis saat pertama dibutuhkan, jadi
-`python -m spacy download en_core_web_sm` tidak perlu dijalankan manual.
-
-### Windows (PowerShell)
-
-```powershell
-py -3.12 -m venv venv
-.\venv\Scripts\Activate.ps1
-pip install --upgrade pip
-pip install -r requirements.txt
-```
-
-### PyTorch dengan CUDA
-
-`requirements.txt` memasang `torch` versi default, yang di Linux/Windows **belum
-tentu** membawa CUDA. Periksa:
-
-```bash
-python -c "import torch; print(torch.__version__, torch.cuda.is_available())"
-```
-
-Kalau `False` padahal ada GPU NVIDIA, pasang ulang dari indeks CUDA — sesuaikan
-`cu124` dengan versi driver Anda (`nvidia-smi` menunjukkan CUDA version):
-
-```bash
-pip uninstall -y torch torchvision
-pip install torch torchvision --index-url https://download.pytorch.org/whl/cu124
-```
-
-`src/train.py:pick_device` memilih `cuda` lebih dulu, jadi tidak ada yang perlu
-diubah di kode.
+Kalau masih OOM: tambahkan `CONFIG["micro_batch_size"] = 4` setelah sel import,
+restart kernel, Run All (yang sudah selesai tidak diulang).
 
 ---
 
-## 3. Kredensial Kaggle
+## Masalah yang sudah diantisipasi
 
-Buat API token di kaggle.com → Settings → API → Create New Token. Simpan
-`kaggle.json`:
+**DataLoader hang di Windows.** `CONFIG["num_workers"]` otomatis 0 di Windows.
 
-- Linux/WSL: `~/.kaggle/kaggle.json`, lalu `chmod 600 ~/.kaggle/kaggle.json`
-- Windows: `C:\Users\<nama>\.kaggle\kaggle.json`
+**Symlink gagal di Windows.** `download_images` menangkapnya dan menulis lokasi cache
+ke `data/raw/LOKASI_CITRA.txt`. Tidak ada yang rusak.
 
----
+**`prepare_dataset` gagal "hanya N kelas terpetakan".** Nama folder kelas tidak
+tercakup `CLASS_ALIASES`. Tambahkan aliasnya di `src/data.py`, jangan diakali di
+notebook.
 
-## 4. Verifikasi sebelum menyentuh data
+**Assert "halaman belum di-OCR".** Satu mesin belum tuntas. Jalankan ulang; OCR
+melanjutkan dari halaman terakhir. Halaman yang gagal dicatat di
+`data/interim/ocr/<mesin>/_errors.txt` dan dicoba lagi pada run berikutnya.
 
-Dua belas modul punya self-check yang berjalan **tanpa dataset**. Jalankan semuanya
-dulu — kalau ada yang gagal di sini, tidak ada gunanya mengunduh 3 GB:
+**Bagian 6 kehabisan RAM.** Tutup aplikasi lain dan perbesar swap/pagefile. Jangan
+pakai `fasttext.util.reduce_model`: ia memuat model penuh lebih dulu.
 
-```bash
-for m in config data splits text_features datasets ablation models.text_models models.image_model models.fusion train; do python -m src.$m; done
-```
-
-Windows PowerShell:
-
-```powershell
-foreach ($m in "config","data","splits","text_features","datasets","ablation","models.text_models","models.image_model","models.fusion","train") { python -m src.$m }
-```
-
-Harus muncul sepuluh baris `... self-check ok`.
+**Jangan menyalin `data/processed/manifest.csv` dari mesin lain.** Isinya path absolut;
+notebook membuatnya ulang.
 
 ---
 
-## 5. Urutan menjalankan notebook
+## Setelah selesai: isi catatan vault
 
-```bash
-jupyter lab
-```
-
-Jalankan **berurutan**. Tiap notebook bergantung pada keluaran sebelumnya.
-
-| # | Notebook | Perkiraan | Menghasilkan |
-|---|---|---|---|
-| 01 | `01_data_audit.ipynb` | 15-30 menit (mayoritas download 3,3 GB) | `manifest.csv`, figur EDA |
-| 02 | `02_text_features.ipynb` | 30-90 menit (+ download FastText 7 GB) | sekuens 500×300, vektor SIF, split |
-| 03 | `03_baseline_teks.ipynb` | menit-an di GPU | checkpoint MLP + CNN1D, prediksi TEXT |
-| 04 | `04_baseline_citra.ipynb` | **jam-an** | checkpoint IMAGE, prediksi IMAGE |
-| 05 | `05_fusion.ipynb` | **paling berat** | checkpoint FUSION, tabel utama |
-| 06 | `06_ablasi.ipynb` | menit-an, tanpa training | CSV + figur ablasi |
-| 07 | `07_uji_lanjutan.ipynb` | menit-an (uji A) + ± 3,3 jam (uji B) | `uji_lanjutan.csv`, checkpoint `-noES` |
-| 08 | `08_diagnostik_cabang_teks.ipynb` | menit-an, read-only | `diagnostik_cabang_teks.csv` |
-| 09 | `09_uji_perbaikan.ipynb` | ± 3,3 jam | `uji_perbaikan.csv`, checkpoint `-fix` |
-
-Notebook 07 opsional dan tidak menimpa apa pun. Ia menjawab dua pertanyaan yang
-tertinggal: apakah cabang teks dipakai pada strategi `sum`, dan apakah cabang teks yang
-tidak terpakai pada `concat` disebabkan early stopping.
-
-Angka di atas kasar. **Notebook 04, 05, dan 06 masing-masing punya sel estimasi
-durasi** yang menjalankan 2 epoch lalu mengekstrapolasi ke target. Jalankan sel itu
-dan baca angkanya sebelum melepas training penuh.
-
-### Kalau terlalu lama
-
-Tiap notebook punya sel `EPOCHS` dan `SEEDS` tepat setelah estimasi. Turunkan di
-situ. Notebook mengumpulkan pemotongan ke variabel `DEVIASI` dan mencetaknya di
-akhir — **salin ke catatan eksperimen**. Jangan dipotong diam-diam; seluruh nilai
-proyek ini bergantung pada deviasi yang tercatat.
-
-Urutan pemotongan yang paling murah dampaknya:
-
-1. Kurangi `SEEDS` jadi `[42]` untuk strategi fusion `sum` (paper pun hanya
-   menyebutnya eksperimen pendahuluan)
-2. Turunkan `EPOCHS` untuk IMAGE dan FUSION dari 200 ke 60-80 — ada early stopping
-   `patience=15`, jadi kemungkinan besar berhenti sendiri sebelum 200
-3. Terakhir baru kurangi `SEEDS` untuk model utama, karena itu menghapus ± std
-
----
-
-## 6. Setelah selesai: isi catatan
-
-Tiap notebook mencetak blok ringkasan siap-salin di sel terakhir. Untuk tiap
-catatan: isi tabelnya, isi field `oa::`/`macro_f1::`/`durasi::` di bagian atas, lalu
-ubah `status: belum-dijalankan` menjadi `status: selesai`.
-
-| Notebook | Catatan yang diisi |
-|---|---|
-| 01 | `vault/30-eksperimen/00-audit-data.md` |
-| 02 | `vault/30-eksperimen/01-ekstraksi-fitur-teks.md` |
-| 03 | `02-baseline-mlp-sif.md`, `03-baseline-cnn1d.md` |
-| 04 | `04-baseline-mobilenetv2.md` |
-| 05 | `05-fusion-concat.md`, `06-fusion-sum.md`, `vault/50-hasil/tabel-utama.md` |
-| 06 | `07-ablasi-degradasi-citra.md`, `08-ablasi-missing-modality.md`, `09-ablasi-degradasi-teks.md` |
-
-Beberapa catatan sudah memuat **hipotesis yang ditulis sebelum eksekusi**. Biarkan
-apa adanya meski meleset — hipotesis yang salah lebih berharga daripada hipotesis
-yang diedit setelah melihat hasilnya.
-
-Setelah semua terisi, Tahap 8 (sintesis akhir) baru bisa dikerjakan.
-
----
-
-## 7. Masalah yang sudah diantisipasi
-
-**`DataLoader` hang atau crash di Windows.** `CONFIG["num_workers"]` otomatis 0 di
-Windows karena multiprocessing di dalam kernel Jupyter sering menggantung di sana.
-Kalau Anda pakai WSL2, nilainya 4 dan semuanya normal. WSL2 memang lebih disarankan.
-
-**`symlink` gagal di Windows.** Windows menolak symlink tanpa Developer Mode atau
-hak admin. `download_images` menangkapnya, mencetak peringatan, dan menulis lokasi
-cache ke `data/raw/LOKASI_CITRA.txt`. Tidak ada yang rusak — symlink itu kosmetik.
-
-**Notebook 01 gagal di `assert rec["n_kelas_cocok"] == 10`.** Berarti nama folder
-kelas di arsip tidak tercakup `CLASS_ALIASES`. Notebook mencetak nama yang tidak
-dikenali. Tambahkan aliasnya di `src/data.py`, **jangan** diakali di sel notebook —
-normalisasi diam-diam persis hal yang audit ini dimaksudkan untuk menangkap.
-
-**Notebook 02 kehabisan RAM.** Lihat bagian 0. Tutup aplikasi lain; jangan pakai
-`reduce_model`.
-
-**`torch.OutOfMemoryError` di notebook 04/05.** Turunkan
-`CONFIG["micro_batch_size"]` ke 4, lalu restart kernel — VRAM tidak dilepas
-sepenuhnya setelah OOM. Kalau masih gagal, pastikan tidak ada proses lain memakai
-GPU (`nvidia-smi`), dan tutup notebook sebelumnya: kernel Jupyter yang masih hidup
-tetap memegang VRAM-nya.
-
-**Notebook 06 gagal memuat checkpoint.** Nama filenya mengikuti seed dan strategi:
-`IMAGE_seed42.pt`, `CNN1D_seed42.pt`, `FUSION-concat_seed42.pt`. Kalau Anda mengubah
-`SEEDS` di notebook sebelumnya, ubah juga `SEED` di sel pertama notebook 06.
-
-**Injeksi typo di notebook 06 dilewati.** Itu normal kalau `cc.en.300.bin` sudah
-dihapus untuk menghemat disk. Notebook mencetak peringatan. Catat di
-`09-ablasi-degradasi-teks.md` bahwa bagian itu tidak dikerjakan.
+Sel terakhir mencetak blok siap-salin (field Dataview `oa::`, `macro_f1::`, dan
+ringkasan H1/H3). Isi catatan Fase 2 di `vault/30-eksperimen/` (13 sampai 16) dan
+`vault/50-hasil/`, lalu ubah `status: belum-dijalankan` menjadi `selesai`.
+Hipotesis yang ditulis sebelum eksekusi dibiarkan apa adanya meski meleset.
