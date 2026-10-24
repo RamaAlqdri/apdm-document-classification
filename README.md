@@ -137,5 +137,18 @@ Cerita lengkapnya di `vault/50-hasil/sintesis-akhir.md`, limitasinya di
 
 Lihat `vault/00-index/papan-progress.md` (butuh plugin Dataview di Obsidian).
 
-Hasil Fase 2 diisi dari keluaran `notebooks/pipeline.ipynb` setelah dijalankan
-(status saat ini: belum-dijalankan).
+## Hasil Fase 2
+
+Run penuh `notebooks/pipeline.ipynb` pada 2026-10-24 (laptop Windows, RTX 3050 4 GB). OA
+rerata ± std 3 seed pada 2.682 dokumen uji:
+
+| Kondisi OCR | TEXT | LATE | CONCAT | ORACLE |
+|---|---|---|---|---|
+| qs-ocr (Tesseract 4, TIF) | 0,7266 ± 0,0059 | 0,8456 ± 0,0221 | 0,8316 ± 0,0119 | 0,9023 |
+| tesseract 5 (JPG) | 0,6970 ± 0,0047 | 0,8376 ± 0,0174 | 0,8349 ± 0,0102 | 0,8950 |
+| easyocr | 0,7155 ± 0,0061 | 0,8538 ± 0,0158 | 0,8567 ± 0,0034 | 0,8972 |
+| paddleocr | **0,7514 ± 0,0043** | 0,8653 ± 0,0122 | **0,8674 ± 0,0014** | 0,9079 |
+
+IMAGE 0,8169 ± 0,0257 (sama untuk semua kondisi). Mesin OCR saja menggeser cabang teks
+5,4 poin (H1 didukung), dan kenaikannya terbawa ke kedua aturan fusi. Cabang TEXT qs-ocr
+mereproduksi Fase 1 bit-identik. Analisis lengkap: `vault/50-hasil/sintesis-fase-2.md`.

@@ -722,10 +722,10 @@ persetujuan sebelum implementasi.
 - [x] Tahap 7 — Ablasi (ablasi 4 dilewati)
 - [x] Tahap 8 — Sintesis akhir (plus 3 eksperimen lanjutan di luar rencana)
 - [x] Tahap 9 — Revisi landasan: referensi ≥2025, gap, proposal (2026-10-09)
-- [ ] Tahap 10 — Ekstraksi OCR multi-mesin (di `pipeline.ipynb` bagian 5, belum dijalankan)
-- [ ] Tahap 11 — Grid teks OCR × FastText (di `pipeline.ipynb` bagian 6-7, belum dijalankan; BERT ditunda)
-- [ ] Tahap 12 — Fusion per kondisi OCR: LATE + CONCAT (di `pipeline.ipynb` bagian 8-9, belum dijalankan)
-- [ ] Tahap 13 — Sintesis Fase 2
+- [x] Tahap 10 — Ekstraksi OCR multi-mesin (dijalankan 2026-10-24)
+- [x] Tahap 11 — Grid teks OCR × FastText (dijalankan 2026-10-24; BERT ditunda)
+- [x] Tahap 12 — Fusion per kondisi OCR: LATE + CONCAT (dijalankan 2026-10-24)
+- [x] Tahap 13 — Sintesis Fase 2 (2026-10-24, [[sintesis-fase-2]])
 - [ ] Tahap 14 — Rancangan teks sebagai objek
 
 ## Catatan praktis

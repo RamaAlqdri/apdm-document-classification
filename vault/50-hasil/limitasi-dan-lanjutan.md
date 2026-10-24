@@ -205,3 +205,40 @@ pendekatan modern mungkin sebagian bukan soal arsitektur, melainkan soal menghin
 ketimpangan modalitas.** Transformer yang menyatukan kedua modalitas dari awal tidak punya
 dua cabang terpisah yang bisa kalah skala satu terhadap yang lain. Itu hipotesis yang bisa
 diuji, dan kami tidak menemukannya dinyatakan di tempat lain.
+
+---
+
+## H. Limitasi Fase 2 (ditambahkan 2026-10-24)
+
+Berlaku untuk [[sintesis-fase-2]].
+
+**H.1 Tidak ada CER.** Tobacco3482 tidak punya transkripsi acuan, jadi kualitas OCR hanya
+diukur lewat proksi dan lewat akurasi hilir ([[13-ocr-multi-mesin]]). "Mesin lebih baik"
+di sini berarti "teksnya lebih berguna untuk klasifikasi", bukan "lebih benar dibaca".
+
+**H.2 Efek mesin bercampur dengan efek sumber dan versi.** Tesseract-JPG berbeda dari
+QS-OCR dalam versi (5.4 vs 4-beta) **dan** citra (JPG vs TIF). PaddleOCR memakai
+paddlepaddle 3.2.2, bukan 3.3.1 seperti rencana, karena 3.3.x gagal di CPU Windows.
+
+**H.3 Urutan baca direkonstruksi heuristik** untuk EasyOCR dan PaddleOCR (satu kolom).
+Efeknya terhadap CNN1D tidak diuji terpisah.
+
+**H.4 CONCAT dilatih di atas fitur latih yang juga dipakai melatih unimodal.** *Head*
+menilai cabang dari perilaku latihnya. Validasi silang di dalam data latih akan lebih
+bersih, tetapi tidak dilakukan.
+
+**H.5 Uji missing modality dengan masukan kosong hanya sah untuk LATE tanpa teks.**
+Pada CONCAT dan pada semua versi tanpa citra, masukan pengganti keluar distribusi
+([[16-fusi-per-ocr]] temuan 2). Ini kekeliruan rancangan kami sendiri; ukuran pengganti
+yang dipakai adalah gain di atas IMAGE dan panen potensi oracle.
+
+**H.6 Satu embedding.** Hanya FastText + CNN1D. Hipotesis H2 (apakah BERT memperkecil
+selisih antar-OCR) belum diuji, jadi kesimpulan Q1 berlaku untuk embedding statis subword.
+
+**H.7 Seed 44 citra lemah** (0,781, berhenti di epoch 26). Sebagian kesimpulan H3b bertumpu
+pada satu seed itu; dengan 3 seed, kuatnya pola "CONCAT unggul saat citra lemah" terbatas.
+
+**Arah lanjutan Fase 2:** (a) uji langsung dugaan "teks kosong ⇒ Note" pada *head* CONCAT,
+misalnya dengan menghapus dokumen kosong dari data latih *head*; (b) missing modality
+dengan pengganti dalam distribusi (rata-rata fitur latih) untuk CONCAT; (c) BERT sebagai
+sumbu embedding (H2); (d) kotak teks yang sudah tersimpan untuk tahap tata letak (Tahap 14).

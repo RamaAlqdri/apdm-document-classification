@@ -95,4 +95,4 @@ memakai kedua modalitas — ia tidak, sampai diperbaiki di
 
 Dijalankan oleh `notebooks/pipeline.ipynb` (sejak 2026-10-22):
 [[13-ocr-multi-mesin]] → [[14-kurasi-dan-eda]] → [[15-grid-teks-ocr]] →
-[[16-fusi-per-ocr]].
+[[16-fusi-per-ocr]]. Sintesis: [[sintesis-fase-2]].
