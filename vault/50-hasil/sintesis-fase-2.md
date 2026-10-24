@@ -16,6 +16,7 @@ terkait:
   - "[[13-ocr-multi-mesin]]"
   - "[[15-grid-teks-ocr]]"
   - "[[16-fusi-per-ocr]]"
+  - "[[17-missing-modality-lanjutan]]"
   - "[[sintesis-akhir]]"
   - "[[limitasi-dan-lanjutan]]"
   - "[[peta-proyek]]"
@@ -73,9 +74,21 @@ antar-seed. Untuk cabang teks yang lemah, keduanya setara.
 Uji *missing modality* yang dipra-registrasi (mengganti modalitas dengan keluaran untuk
 masukan kosong) **hanya sah untuk LATE tanpa teks**. Untuk CONCAT dan untuk semua versi
 "tanpa citra", hasilnya jatuh di bawah model unimodal modalitas lain, yang hanya mungkin
-bila masukan penggantinya keluar distribusi. Dugaan untuk CONCAT: *head* mempelajari
-"teks kosong ⇒ Note". Pemakaian modalitas karena itu dinilai dengan gain di atas IMAGE dan
-panen potensi. Lihat [[16-fusi-per-ocr]] temuan 2.
+bila masukan penggantinya keluar distribusi. Pemakaian modalitas karena itu dinilai dengan
+gain di atas IMAGE dan panen potensi. Lihat [[16-fusi-per-ocr]] temuan 2.
+
+Uji lanjutan [[17-missing-modality-lanjutan]] memastikan penyebabnya:
+
+- **Pengganti di luar distribusi (H4a): didukung sebagian.** Dengan rerata fitur latih
+  sebagai pengganti, semua versi tanpa citra mendarat paling jauh 4,2 poin di bawah TEXT
+  (sebelumnya 11-35 poin). CONCAT tanpa teks naik dari −0,56 / −0,59 / −0,14 / −0,30
+  menjadi −0,108 / −0,130 / −0,026 / −0,027 terhadap IMAGE (qs-ocr / tesseract / easyocr /
+  paddleocr). Pada OCR yang lebih baik, CONCAT bisa bekerja setara IMAGE tanpa teks; pada
+  qs-ocr dan tesseract tidak.
+- **"Teks kosong ⇒ Note" (H4b): tidak didukung.** *Head* tanpa dokumen kosong tetap
+  tertarik ke Note, juga pada OCR yang tidak punya dokumen kosong sama sekali.
+- **Pengganti rerata tidak netral untuk LATE:** rerata logit latih menjatuhkan LATE tanpa
+  teks 7-13 poin di bawah IMAGE. Untuk LATE, pengganti kosong tetap ukuran yang sah.
 
 ## Posisi terhadap literatur (dengan catatan protokol)
 
@@ -91,5 +104,6 @@ adalah dua baris terakhir.
 
 ## Yang tetap terbuka
 
-H2 (BERT memperkecil selisih antar-OCR) belum diuji. Penyebab kejatuhan CONCAT tanpa teks
-belum diverifikasi. Ringkasan limitasi ada di [[limitasi-dan-lanjutan]] bagian H.
+H2 (BERT memperkecil selisih antar-OCR) belum diuji. Kejatuhan CONCAT tanpa teks terbukti
+sebagian besar artefak masukan pengganti, tetapi asal tarikan ke Note belum diketahui
+(dugaan belum diuji: Note kelas berteks terpendek, [[17-missing-modality-lanjutan]]). Ringkasan limitasi ada di [[limitasi-dan-lanjutan]] bagian H.

@@ -230,8 +230,14 @@ bersih, tetapi tidak dilakukan.
 **H.5 Uji missing modality dengan masukan kosong hanya sah untuk LATE tanpa teks.**
 Pada CONCAT dan pada semua versi tanpa citra, masukan pengganti keluar distribusi
 ([[16-fusi-per-ocr]] temuan 2). Ini kekeliruan rancangan kami sendiri; ukuran pengganti
-yang dipakai adalah gain di atas IMAGE dan panen potensi oracle. Uji ulang dengan pengganti
-rerata latih dan *head* tanpa teks kosong: [[17-missing-modality-lanjutan]] (belum dijalankan).
+yang dipakai adalah gain di atas IMAGE dan panen potensi oracle. Uji ulang
+([[17-missing-modality-lanjutan]]) mengonfirmasi penyebabnya: dengan rerata fitur latih
+sebagai pengganti, semua versi tanpa citra mendarat paling jauh 4,2 poin di bawah TEXT, dan
+CONCAT tanpa teks mendekati IMAGE pada easyocr/paddleocr (−2,6 / −2,7 poin) tetapi tetap
+11-13 poin di bawahnya pada qs-ocr/tesseract. Pengganti rerata tidak berlaku untuk LATE tanpa
+teks: rerata logit latih menambah bias kelas tetap dan menjatuhkannya 7-13 poin di bawah
+IMAGE, jadi di sana pengganti kosong tetap yang dipakai. Dugaan "*head* belajar teks kosong ⇒
+Note" tidak didukung; asal tarikan ke Note belum diketahui.
 
 **H.6 Satu embedding.** Hanya FastText + CNN1D. Hipotesis H2 (apakah BERT memperkecil
 selisih antar-OCR) belum diuji, jadi kesimpulan Q1 berlaku untuk embedding statis subword.

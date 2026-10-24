@@ -134,8 +134,16 @@ CONCAT 0,8188 < IMAGE 0,8386 (minimum −0,020).
    (14,4 % halaman Note pada QS-OCR kosong, [[14-kurasi-dan-eda]]), sehingga vektor teks kosong menarik semua
    prediksi ke Note. Dugaan ini cocok dengan urutan kejatuhannya: paling dalam pada
    qs-ocr/tesseract yang halaman kosongnya paling banyak (1,06 % / 0,60 %), paling dangkal
-   pada easyocr/paddleocr (0,17 % / 0,06 %). Belum diuji langsung; uji
-   lanjutan dirancang di [[17-missing-modality-lanjutan]]. Karena itu H3 di bawah
+   pada easyocr/paddleocr (0,17 % / 0,06 %).
+   **Pembaruan setelah uji lanjutan ([[17-missing-modality-lanjutan]]):** dugaan "teks
+   kosong ⇒ Note" **tidak didukung**. *Head* yang dilatih tanpa dokumen kosong tetap menarik
+   prediksi ke Note, dan easyocr/paddleocr yang tidak punya dokumen kosong menurut model pun
+   tertarik ke Note (porsi 0,19 / 0,32, sebenarnya 0,058). Argumen urutan di atas juga lemah:
+   paddleocr jatuh lebih dalam daripada easyocr. Dugaan bahwa masukan pengganti keluar
+   distribusi **didukung**: dengan rerata fitur/logit latih sebagai pengganti, semua versi
+   "tanpa citra" mendarat paling jauh 4,2 poin di bawah TEXT, dan CONCAT tanpa teks naik dari
+   −0,563 / −0,591 / −0,137 / −0,301 menjadi −0,108 / −0,130 / −0,026 / −0,027 terhadap IMAGE.
+   Karena itu H3 di bawah
    dinilai dengan **gain di atas IMAGE dan panen potensi**, bukan "turun tanpa teks", kecuali
    untuk LATE.
 3. **H3a didukung untuk LATE, lemah untuk CONCAT.** Spearman (OA TEXT, turun tanpa teks
