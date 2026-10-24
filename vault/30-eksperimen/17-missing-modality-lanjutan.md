@@ -25,7 +25,7 @@ terkait:
 
 # Missing modality lanjutan
 
-model:: LATE dan CONCAT dengan modalitas diganti rerata latih; CONCAT_nonkosong = ConcatHead dilatih ulang tanpa dokumen bertekst kosong
+model:: LATE dan CONCAT dengan modalitas diganti rerata latih; CONCAT_nonkosong = ConcatHead dilatih ulang tanpa dokumen berteks kosong
 dataset:: Tobacco3482, 4 kondisi OCR (cache keluaran unimodal [[16-fusi-per-ocr]])
 split:: 800 latih terstratifikasi (80 val) / 2.682 uji, sama dengan [[16-fusi-per-ocr]]
 seed:: 42, 43, 44

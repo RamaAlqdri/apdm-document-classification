@@ -83,9 +83,10 @@ lanjutan. Untuk klasifikasi dokumen, pengukuran serupa belum kami temukan.
 OCR, karena derau OCR jarang muncul dalam data pelatihannya. Ketahanannya dapat
 dipulihkan dengan cara yang murah: \textit{fine-tuning} memakai teks yang diberi derau
 karakter buatan dan \textit{loss} kontrastif, tanpa data berlabel dari domain sasaran.
-Temuan ini mendasari sumbu embedding dalam penelitian ini. FastText menangani derau OCR
-secara struktural melalui \textit{subword}, sedangkan BERT menanganinya melalui
-tokenisasi WordPiece dan konteks kalimat.
+Temuan ini mendasari sumbu embedding yang semula direncanakan dalam penelitian ini.
+FastText menangani derau OCR secara struktural melalui \textit{subword}, sedangkan BERT
+menanganinya melalui tokenisasi WordPiece dan konteks kalimat. Dalam pelaksanaan, hanya
+FastText yang diuji; BERT ditunda (Subbagian~\ref{sec:batasan}).
 
 \subsubsection{Jalan Pintas pada Tobacco3482}
 
@@ -97,7 +98,7 @@ mencapai $\pm$60\% akurasi di Tobacco3482. Pada RVL-CDIP, classifier mutakhir ke
 Temuan ini menjadi kontrol wajib pada tahap lanjutan yang memperlakukan teks sebagai
 objek berposisi (Subbagian~\ref{sec:lanjutan}).
 
-\subsubsection{Posisi Rencana Penelitian}\label{sec:posisi}
+\subsubsection{Posisi Penelitian}\label{sec:posisi}
 
 Tabel~\ref{tab:posisi} memetakan studi-studi di atas terhadap lima aspek yang menjadi
 fokus penelitian ini.
@@ -116,7 +117,7 @@ fokus penelitian ini.
     \textcite{kashyap2026} & -- & -- & -- & -- & -- \\ \hline
     \textcite{francis2025} & \checkmark & \checkmark\ (7) &
     \multicolumn{3}{c|}{tanpa tugas klasifikasi} \\ \hline
-    \textbf{Rencana ini} & \checkmark & \checkmark\ (3) & FastText, BERT &
+    \textbf{Penelitian ini} & \checkmark & \checkmark\ (4) & -- (FastText) &
     \checkmark & \checkmark \\ \hline
   \end{tabularx}
 \end{table}
@@ -204,18 +205,9 @@ logit tanpa bobot \parencite{kashyap2026}:
   \hat{y} = \arg\max_c \; \tfrac{1}{2}\left(z_{t,c} + z_{v,c}\right)
 \end{equation}
 Fusion tingkat keputusan menjamin kedua cabang ikut menentukan hasil. Akibatnya, cabang
-yang lemah tetap memengaruhi keputusan.
-
-Pada fusion tingkat fitur, cabang dengan skala fitur jauh lebih besar dapat mendominasi.
-Masalah ini dapat diatasi dengan \textbf{Layer Normalization} \parencite{ba2016}, yang
-menormalkan setiap vektor fitur terhadap rata-rata $\mu$ dan simpangan baku $\sigma$
-komponennya sendiri:
-\begin{equation}\label{eq:layernorm}
-  \mathrm{LN}(\mathbf{v}) = \boldsymbol{\gamma} \odot \frac{\mathbf{v} - \mu}{\sigma +
-  \epsilon} + \boldsymbol{\beta}
-\end{equation}
-dengan $\boldsymbol{\gamma}$ dan $\boldsymbol{\beta}$ parameter yang dipelajari. LN
-bekerja per sampel, sehingga tidak bergantung pada ukuran \textit{batch}.
+yang lemah tetap memengaruhi keputusan. Sebaliknya, pada fusion tingkat fitur MLP dapat
+belajar memberi bobot kecil pada cabang yang kurang berguna, atau mengabaikannya sama
+sekali.
 
 \subsubsection{Metrik Evaluasi}
 
@@ -235,12 +227,16 @@ cabang teks \emph{atau} cabang citra mengklasifikasikannya dengan benar
 dapat dipanen fusion.
 
 \textbf{Uji \textit{missing modality}} mengukur ketergantungan model gabungan pada setiap
-modalitas. Caranya, masukan satu modalitas dinolkan saat inferensi:
+modalitas. Caranya, masukan satu modalitas diganti sebuah \emph{pengganti} saat inferensi:
 \begin{equation}\label{eq:delta}
-  \Delta_\text{teks} = \mathrm{OA}_\text{utuh} - \mathrm{OA}_\text{teks dinolkan}
+  \Delta_\text{teks} = \mathrm{OA}_\text{utuh} - \mathrm{OA}_\text{teks diganti}
 \end{equation}
 $\Delta_\text{citra}$ didefinisikan secara analog. $\Delta_\text{teks}$ yang mendekati nol
-berarti model tidak memakai teks, berapa pun akurasinya.
+berarti model tidak memakai teks, berapa pun akurasinya. Ukuran ini hanya sah bila
+penggantinya masih berada di dalam distribusi yang dikenal model. Pengganti yang keluar
+distribusi dapat membuat model gabungan jatuh di bawah model unimodal modalitas yang
+tersisa, sehingga $\Delta$ melebih-lebihkan ketergantungan
+(Subbagian~\ref{sec:hasil-missing}).
 
 \textbf{Uji McNemar} \parencite{mcnemar1947} membandingkan dua classifier pada data uji
 yang sama. Uji ini dianjurkan untuk perbandingan algoritme pembelajaran oleh
@@ -249,6 +245,9 @@ pertama dan $c$ jumlah dokumen yang hanya benar pada classifier kedua:
 \begin{equation}\label{eq:mcnemar}
   \chi^2 = \frac{(|b - c| - 1)^2}{b + c}
 \end{equation}
-Statistik ini berdistribusi $\chi^2$ dengan satu derajat bebas. Bila $b + c$ kecil,
-dipakai uji binomial eksak. Untuk $m$ perbandingan sekaligus, ambang signifikansi
-dikoreksi menjadi $\alpha/m$ (koreksi Bonferroni, \cite{dunn1961}).
+Statistik ini berdistribusi $\chi^2$ dengan satu derajat bebas. Versi eksaknya adalah uji
+binomial dua sisi atas $b$ dari $b + c$ pasangan berbeda dengan peluang $0{,}5$. Untuk $m$
+perbandingan sekaligus, nilai $p$ dikoreksi dengan prosedur Holm \parencite{holm1979}:
+nilai $p$ diurutkan naik, $p_{(i)}$ dikalikan $m - i + 1$, lalu dibuat monoton. Prosedur
+ini mengendalikan peluang galat tipe~I keluarga sama seperti koreksi Bonferroni
+\parencite{dunn1961}, tetapi lebih kuat.

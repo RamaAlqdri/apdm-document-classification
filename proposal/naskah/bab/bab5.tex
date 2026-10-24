@@ -1,0 +1,82 @@
+\section{Kesimpulan}\label{sec:kesimpulan}
+
+\subsection{Jawaban Rumusan Masalah}\label{sec:jawaban}
+
+\textbf{RM1: mesin OCR mengubah cabang teks secara nyata.} Dengan embedding, arsitektur,
+dan pembagian data dikunci, pilihan mesin OCR saja menggeser OA cabang teks 5,4 poin
+(Tesseract-JPG 0,6970 sampai PaddleOCR 0,7514), konsisten di ketiga seed. Mesin modern
+tidak otomatis unggul: PaddleOCR terbaik, EasyOCR di bawah teks acuan QS-OCR. Mesin juga
+lebih menentukan daripada sumber citra, karena PaddleOCR pada JPG mengalahkan Tesseract
+pada TIF asli. Proksi OOV tidak meramalkan urutan ini, sedangkan \textit{linear probe}
+murah tanpa pelatihan meramalkannya.
+
+\textbf{RM2: tidak dijawab.} BERT ditunda, sehingga interaksi mesin OCR dan embedding
+belum diukur. Kesimpulan RM1 berlaku untuk embedding \textit{subword} statis.
+
+\textbf{RM3: teks yang lebih baik terbawa sampai ke fusion, tetapi aturan rata-rata logit
+tidak lebih tahan.} Dari Tesseract-JPG ke PaddleOCR, kedua aturan fusion naik sekitar
+3 poin, dan sel terbaik (CONCAT dengan PaddleOCR, $0{,}8674 \pm 0{,}0014$) memanen 52\%
+potensi oracle, di atas 43\% pada \textcite{audebert2020}. Untuk LATE, pemakaian teks naik
+seiring akurasi cabang teks (Spearman 0,683); untuk CONCAT hubungannya lemah. LATE tidak
+lebih tahan daripada CONCAT: rata-rata keduanya hampir sama, LATE unggul saat cabang citra
+kuat, dan CONCAT unggul serta jauh lebih stabil saat cabang citra lemah.
+
+\subsection{Koreksi atas Rancangan Sendiri}\label{sec:koreksi}
+
+Uji \textit{missing modality} dengan pengganti kosong, yang kami rancang sebelum
+eksekusi, ternyata hanya sah untuk LATE tanpa teks. Untuk CONCAT dan untuk semua versi
+tanpa citra, pengganti kosong keluar distribusi dan membuat model jatuh di bawah model
+unimodal modalitas yang tersisa. Uji lanjutan dengan pengganti rerata memastikan
+penyebabnya, dan juga menggugurkan dugaan awal kami bahwa \textit{head} belajar
+\enquote{teks kosong $\Rightarrow$ Note}. Pelajaran metodologisnya: pengganti dalam uji
+\textit{missing modality} harus dipilih menurut aturan fusion yang diuji, dan kewajaran
+hasilnya harus diperiksa terhadap model unimodal sebelum ditafsirkan.
+
+\subsection{Keterbatasan}\label{sec:keterbatasan}
+
+\begin{enumerate}
+  \item \textbf{Tidak ada CER.} \enquote{Mesin lebih baik} di sini berarti teksnya lebih
+  berguna untuk klasifikasi, bukan lebih benar dibaca.
+  \item \textbf{Efek mesin bercampur dengan efek versi dan sumber citra.} Tesseract-JPG
+  berbeda dari QS-OCR dalam versi (5.4 vs 4-beta) dan citra (JPG vs TIF).
+  \item \textbf{Urutan baca EasyOCR dan PaddleOCR direkonstruksi heuristik} dengan asumsi
+  satu kolom. Efeknya terhadap CNN~1D tidak diuji terpisah.
+  \item \textbf{\textit{Head} CONCAT dilatih pada fitur latih} yang juga dipakai melatih
+  model unimodal. Validasi silang di dalam data latih akan lebih bersih.
+  \item \textbf{Tiga seed, dengan satu seed citra yang lemah} (0,7808). Sebagian
+  kesimpulan tentang LATE vs CONCAT bertumpu pada seed itu.
+  \item \textbf{Satu embedding dan satu dataset.} Hasil tidak dapat digeneralisasi ke BERT
+  atau ke RVL-CDIP tanpa diuji.
+\end{enumerate}
+
+\subsection{Arah Lanjutan}\label{sec:arah}
+
+\begin{enumerate}
+  \item \textbf{Embedding kontekstual} untuk menjawab RM2, dengan pembagian data dan teks
+  OCR yang sama.
+  \item \textbf{Asal tarikan ke Note} pada CONCAT tanpa teks, misalnya dengan mengukur
+  jarak fitur teks setiap kelas ke fitur teks kosong.
+  \item \textbf{Validasi silang untuk \textit{head} CONCAT}, supaya \textit{head} menilai
+  cabang dari perilaku di luar data latihnya.
+\end{enumerate}
+
+\subsection{Tahap Lanjutan: Teks sebagai Objek}\label{sec:lanjutan}
+
+Sesuai arahan dosen pengampu, tahap berikutnya memperlakukan teks bukan hanya sebagai
+rangkaian kata, tetapi sebagai \textbf{objek berposisi} pada halaman. Bahannya sudah
+tersedia, karena setiap mesin OCR menyimpan kotak teksnya. Ada tiga kandidat
+representasi:
+\begin{enumerate}
+  \item fitur posisi dua dimensi di samping embedding kata;
+  \item peta kotak teks sebagai citra, yaitu setiap kotak digambar pada kanvas seukuran
+  halaman;
+  \item graf yang simpulnya kotak teks dan sisinya kedekatan spasial.
+\end{enumerate}
+
+Satu kontrol bersifat wajib. Kode ID arsip pada Tobacco3482 adalah objek teks berposisi
+konsisten, dan fitur dari kode ID saja sudah memberi $\pm$60\% akurasi
+\parencite{larson2025}. Model berbasis posisi dapat belajar jalan pintas ini alih-alih
+belajar tata letak dokumen. Karena itu setiap model akan diuji dengan dan tanpa kotak
+kode ID. Granularitas kotak juga berbeda antar-mesin: Tesseract per kata, sedangkan
+EasyOCR dan PaddleOCR per baris. Rancangan rinci beserta referensinya akan diajukan
+tersendiri.

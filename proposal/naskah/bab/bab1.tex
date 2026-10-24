@@ -31,7 +31,7 @@ terbukti merambat ke tugas berikutnya \parencite{zhang2025}. Bagaimana pilihan m
 memengaruhi klasifikasi dokumen multimodal, dan seberapa jauh model gabungan memakai
 teksnya, belum diukur.
 
-\subsection{Dari Progress 1 ke Rencana Ini}\label{sec:riwayat}
+\subsection{Dari Progress 1 ke Penelitian Ini}\label{sec:riwayat}
 
 Pada Progress~1, kelompok kami mengusulkan replikasi \textcite{audebert2020}. Paper ini
 menggabungkan MobileNetV2 untuk citra halaman dengan FastText dan CNN~1D untuk teks hasil
@@ -62,9 +62,10 @@ Tabel~\ref{tab:tanggapan}.
     Celah penelitian belum ditentukan &
     Dirumuskan pada Subbagian~\ref{sec:latar-belakang} dan \ref{sec:posisi} \\ \hline
     Kemungkinan eksplorasi pada embedding &
-    Embedding dijadikan variabel kedua: FastText dan BERT (RM2) \\ \hline
+    Direncanakan sebagai variabel kedua (RM2); dalam pelaksanaan BERT ditunda, embedding
+    dikunci pada FastText (Subbagian~\ref{sec:batasan}) \\ \hline
     Teks yang dideteksi sebagai objek, untuk tahap selanjutnya &
-    Kotak posisi teks disimpan sejak langkah OCR; rancangannya pada
+    Kotak posisi teks disimpan sejak langkah OCR; arah tahap lanjutan pada
     Subbagian~\ref{sec:lanjutan} \\ \hline
     Referensi masih tahun 2019 dan berbentuk arsip; minimal tahun 2025 &
     Referensi utama diganti ke \textcite{kashyap2026}. Audebert dikutip dari versi
@@ -97,7 +98,7 @@ yang dibaca baru abstraknya.
   \fontsize{10}{12}\selectfont
   \begin{tabularx}{\textwidth}{|l|>{\raggedright\arraybackslash}X|}
     \hline
-    \textbf{Referensi} & \textbf{Peran dalam rencana ini} \\ \hline
+    \textbf{Referensi} & \textbf{Peran dalam penelitian ini} \\ \hline
     \textcite{kashyap2026} & Referensi utama: fusion teks--citra terkini pada
     Tobacco3482 \\ \hline
     \textcite{mironczuk2026} & Pembingkai celah: meta-analisis 139 studi fusion untuk
@@ -118,8 +119,15 @@ persis yang hendak diuji di sini.
 
 Paper ini \textbf{tidak direplikasi}. \textit{Fine-tuning}-nya memakan sekitar 63 jam
 pada GPU 16~GB dengan RVL-CDIP, jauh di luar perangkat yang tersedia. Yang diambil dari
-paper ini adalah embedding BERT, aturan fusion rata-rata logit, dan arah lanjutan yang
-disebut penulisnya sendiri.
+paper ini adalah aturan fusion rata-rata logit dan arah lanjutan yang disebut penulisnya
+sendiri. Embedding BERT-nya semula direncanakan sebagai variabel kedua, tetapi ditunda.
+
+Replikasi Audebert pada Progress~1 (Fase~1) tetap dipakai sebagai fondasi. Hasilnya
+menjadi sel acuan, yaitu QS-OCR dengan FastText, dan memberi satu pelajaran yang menentukan
+rancangan di sini: fusion konkatenasi yang dilatih \textit{end-to-end} mencapai akurasi di
+atas baseline citra, tetapi uji \textit{missing modality} menunjukkan cabang teksnya nyaris
+tidak dipakai: menolkan seluruh masukan teks hanya menurunkan akurasi 0,15 poin. Akurasi
+gabungan saja karena itu tidak cukup sebagai bukti fusion.
 
 \subsection{Rumusan Masalah}\label{sec:rumusan-masalah}
 
@@ -139,7 +147,8 @@ disebut penulisnya sendiri.
 \begin{enumerate}
   \item Mengukur pengaruh mesin OCR terhadap akurasi dan macro F1 cabang teks, disertai
   uji statistik antar-mesin.
-  \item Mengukur interaksi mesin OCR dan jenis embedding melalui desain faktorial.
+  \item Mengukur interaksi mesin OCR dan jenis embedding melalui desain faktorial. Tujuan
+  ini tidak dilaksanakan dalam laporan ini (Subbagian~\ref{sec:batasan}).
   \item Mengukur pemanfaatan modalitas teks pada model gabungan melalui uji
   \textit{missing modality}, serta membandingkan aturan rata-rata logit
   \parencite{kashyap2026} dengan fusion tingkat fitur.
@@ -150,11 +159,18 @@ disebut penulisnya sendiri.
 \begin{enumerate}
   \item Dataset yang dipakai hanya Tobacco3482 (3.482 dokumen, 10 kelas). RVL-CDIP
   \parencite{harley2015} tidak dipakai karena ukurannya ($\pm$400.000 dokumen) di luar
-  kemampuan perangkat. Akibatnya, hasil rencana ini \textbf{tidak sebanding langsung}
+  kemampuan perangkat. Akibatnya, hasil penelitian ini \textbf{tidak sebanding langsung}
   dengan \textcite{kashyap2026}, yang melatih modelnya pada RVL-CDIP.
   \item Kualitas OCR diukur melalui proksi. Tobacco3482 tidak memiliki transkripsi acuan,
   sehingga \textit{character error rate} tidak dapat dihitung.
   \item Cabang citra dibuat tetap (MobileNetV2) di semua kondisi, supaya perbedaan hasil
   hanya berasal dari sisi teks.
+  \item Embedding dikunci pada FastText dengan CNN~1D. BERT, yang semula direncanakan untuk
+  RM2, ditunda: rancangan disederhanakan supaya seluruh pipeline dapat dijalankan
+  \textit{end-to-end} oleh satu notebook pada satu laptop. Akibatnya RM2 \textbf{tidak
+  dijawab} dalam laporan ini, dan jawaban RM1 berlaku untuk embedding \textit{subword}
+  statis.
+  \item Keras-OCR tidak dijalankan karena tidak dapat dipasang pada Python 3.12
+  (risiko yang sudah diidentifikasi dalam rencana).
   \item Seluruh komputasi dijalankan pada satu laptop dengan GPU 4~GB VRAM.
 \end{enumerate}

@@ -1,118 +1,348 @@
-\section{Rencana Pelaksanaan}\label{sec:rencana}
+\section{Hasil dan Pembahasan}\label{sec:hasil}
 
-\subsection{Jadwal}\label{sec:jadwal}
+Seluruh angka pada bagian ini berasal dari satu eksekusi penuh
+\texttt{notebooks/pipeline.ipynb} dan disalin dari berkas \texttt{reports/fase2/*.csv}
+yang dihasilkannya. Angka turunan (selisih, panen, korelasi) dihitung dari berkas yang
+sama.
 
-Pelaksanaan dimulai setelah rencana ini disetujui dosen pengampu. Setiap tahap diakhiri
-dengan catatan hasil dan pemeriksaan sebelum lanjut ke tahap berikutnya. Jadwalnya
-disajikan pada Tabel~\ref{tab:jadwal}.
+\subsection{Validitas Pipeline}\label{sec:validitas}
 
-\begin{table}[H]
-  \centering
-  \caption{Jadwal pelaksanaan}
-  \label{tab:jadwal}
-  \fontsize{10}{12}\selectfont
-  \begin{tabularx}{\textwidth}{|c|l|>{\raggedright\arraybackslash}X|}
-    \hline
-    \textbf{Minggu} & \textbf{Kegiatan} & \textbf{Keluaran} \\ \hline
-    1 & OCR multi-mesin & Teks dan kotak dari tiga mesin untuk 3.482 halaman; proksi
-    kualitas OCR (Subbagian~\ref{sec:proksi}); versi pustaka tercatat \\ \hline
-    2 & Cabang teks: FastText & 12 model (4 kondisi OCR $\times$ 3 seed); pemeriksaan
-    kewarasan; uji McNemar antar-mesin \\ \hline
-    3 & Cabang teks: BERT & 12 model; uji interaksi mesin OCR $\times$ embedding \\ \hline
-    4 & Cabang citra dan fusion & 3 model citra; rata-rata logit untuk 24 kondisi;
-    fusion fitur untuk dua kondisi; uji \textit{missing modality} \\ \hline
-    5 & Analisis dan laporan & Jawaban RM1--RM3 beserta jejaknya ke angka sumber;
-    grafik $\Delta_\text{teks}$ terhadap akurasi cabang teks \\ \hline
-    6 & Rancangan tahap lanjutan & Rancangan teks sebagai objek beserta referensinya
-    (Subbagian~\ref{sec:lanjutan}) \\ \hline
-  \end{tabularx}
-\end{table}
+Pemeriksaan kewarasan lolos. Cabang teks QS-OCR mereproduksi CNN~1D Fase~1
+\textbf{bit-identik} per seed (OA 0,7345 / 0,7248 / 0,7204, dengan epoch terbaik yang
+sama), walaupun dilatih ulang dari nol dengan kode baru. Cabang citra mencapai
+$0{,}8169 \pm 0{,}0257$, di dalam toleransi terhadap Fase~1 ($0{,}8086 \pm 0{,}0210$).
+Seed 44 jelas lebih lemah (0,7808, epoch terbaik 11), sedangkan seed 42 dan 43 mencapai
+0,8315 dan 0,8386.
 
-\subsection{Kebutuhan Komputasi}\label{sec:komputasi}
+Analisis data eksploratif memberi tiga patokan:
+\begin{itemize}
+  \item \textit{Linear probe} di atas fitur yang belum dilatih pada data ini mencapai OA
+  0,7293 untuk citra (MobileNetV2 ImageNet) dan 0,6685 untuk teks (rata-rata vektor
+  FastText QS-OCR). Kelas mayoritas hanya 0,1782.
+  \item Citra jauh lebih informatif untuk Advertisement dan Note (F1 probe teks dikurangi
+  citra $-0{,}297$ dan $-0{,}289$), teks lebih informatif untuk Resume ($+0{,}237$).
+  \item Jalan pintas kode ID arsip \parencite{larson2025} yang dibaca dari teks OCR saja
+  mencapai OA 0,2782. Jalan pintas ini ada, tetapi jauh di bawah akurasi cabang teks.
+\end{itemize}
 
-Seluruh komputasi dijalankan pada laptop dengan GPU RTX 3050 (4~GB VRAM), prosesor Intel
-Core i7 generasi 11, dan RAM 24~GB. Tiga hal menentukan kebutuhan ini.
+\subsection{Kualitas Keluaran OCR}\label{sec:hasil-ocr}
 
-\begin{enumerate}
-  \item \textbf{Model FastText} berukuran sekitar 7~GB di disk dan membutuhkan sekitar
-  15~GB RAM saat dimuat. Karena itu ekstraksi fiturnya dijalankan sekali untuk semua
-  mesin OCR, lalu modelnya dilepas.
-  \item \textbf{BERT-base} perlu \textit{mixed precision} dan akumulasi gradien supaya
-  muat di GPU 4~GB.
-  \item \textbf{Fusion tingkat fitur} dilatih \textit{end-to-end} dan merupakan bagian
-  paling mahal, sehingga dibatasi pada dua kondisi OCR.
-\end{enumerate}
-
-Kecepatan setiap mesin OCR akan diukur pada 20 halaman pertama sebelum proses penuh,
-supaya perkiraan waktu totalnya diketahui di awal.
-
-\subsection{Risiko dan Mitigasi}\label{sec:risiko}
-
-Risiko yang sudah teridentifikasi dan mitigasinya disajikan pada Tabel~\ref{tab:risiko}.
+Proksi kualitas setiap kondisi disajikan pada Tabel~\ref{tab:proksi}.
 
 \begin{table}[H]
   \centering
-  \caption{Risiko dan mitigasi}
-  \label{tab:risiko}
+  \caption{Proksi kualitas OCR per kondisi (seluruh 3.482 halaman)}
+  \label{tab:proksi}
   \fontsize{10}{12}\selectfont
-  \begin{tabularx}{\textwidth}{|c|>{\raggedright\arraybackslash}p{5.2cm}|>{\raggedright\arraybackslash}X|}
+  \begin{tabular}{|l|r|r|r|r|r|}
     \hline
-    & \textbf{Risiko} & \textbf{Mitigasi} \\ \hline
-    R1 & PaddleOCR membawa \texttt{opencv-contrib-python}, yang bentrok dengan opencv milik
-    EasyOCR dan dapat menggeser versi numpy & PaddleOCR dijalankan di
-    \textit{virtual environment} terpisah, sehingga lingkungan utama tidak tersentuh \\ \hline
-    R2 & Tesseract di Windows bukan paket pip & Dipasang lewat \texttt{winget}, dengan
-    langkah manual sebagai cadangan \\ \hline
-    R3 & Keras-OCR membutuhkan TensorFlow dengan API Keras~2, yang tidak tersedia untuk
-    Python 3.12. Dependensinya, \texttt{imgaug}, juga tidak cocok dengan numpy versi baru &
-    Dijalankan di lingkungan Python 3.11 tersendiri bila diwajibkan. Bila tidak, tiga
-    mesin sudah cukup untuk menjawab RM1--RM3 \\ \hline
-    R4 & BERT-base tidak muat di GPU 4~GB & \textit{Mixed precision}, akumulasi gradien,
-    atau DistilBERT (dicatat sebagai deviasi) \\ \hline
-    R5 & Menolkan masukan menghasilkan input di luar distribusi, sehingga $\Delta$ dapat
-    melebih-lebihkan ketergantungan & $\Delta$ ditafsirkan sebagai ukuran ketergantungan,
-    bukan sumbangan informasi \\ \hline
-    R6 & Perbedaan antar-mesin lebih kecil daripada variasi antar-seed & Itu tetap jawaban
-    RM1: temuan negatif yang terukur, disertai uji statistik \\ \hline
+    \textbf{Kondisi} & \textbf{\makecell{Kata/halaman\\(median)}} &
+    \textbf{\makecell{Halaman\\kosong}} & \textbf{\makecell{OOV\\median}} &
+    \textbf{\makecell{OOV\\rata-rata}} & \textbf{\makecell{Jaccard\\ke QS-OCR}} \\ \hline
+    QS-OCR & 160 & 1,06\% & 0,055 & 0,098 & 1 \\ \hline
+    Tesseract & 161 & 0,60\% & 0,057 & 0,115 & 0,920 \\ \hline
+    EasyOCR & 157 & 0,17\% & 0,136 & 0,232 & 0,693 \\ \hline
+    PaddleOCR & 162 & 0,06\% & 0,054 & 0,124 & 0,864 \\ \hline
+  \end{tabular}
+\end{table}
+
+PaddleOCR menghasilkan teks paling lengkap: halaman kosongnya hampir nol dan OOV
+mediannya terendah, walaupun dibaca dari JPG. EasyOCR menonjol ke arah sebaliknya, dengan
+OOV median 2,5 kali mesin lain dan kesepakatan terendah dengan semua mesin (Jaccard 0,69
+sampai 0,73). Tesseract-JPG paling dekat dengan QS-OCR, wajar karena mesinnya sekeluarga.
+Untuk semua mesin, kelas dengan OOV tertinggi adalah Note (median 0,25 sampai 0,64),
+disusul Advertisement dan News.
+
+Biayanya sangat berbeda: EasyOCR di GPU 4~GB sekitar 22 kali lebih lambat daripada
+Tesseract di CPU (Tabel~\ref{tab:waktu}).
+
+\subsection{Pengaruh Mesin OCR terhadap Cabang Teks (RM1)}\label{sec:hasil-teks}
+
+Akurasi cabang teks per kondisi disajikan pada Tabel~\ref{tab:teks}, dan uji
+McNemar-nya pada Tabel~\ref{tab:mcnemar-ocr}.
+
+\begin{table}[H]
+  \centering
+  \caption{Akurasi cabang teks (FastText + CNN~1D) per kondisi OCR}
+  \label{tab:teks}
+  \fontsize{10}{12}\selectfont
+  \begin{tabular}{|l|c|c|c|}
+    \hline
+    \textbf{Kondisi} & \textbf{OA} & \textbf{Macro F1} & \textbf{OA per seed (42/43/44)} \\ \hline
+    QS-OCR & $0{,}7266 \pm 0{,}0059$ & $0{,}7017 \pm 0{,}0053$ & 0,7345 / 0,7248 / 0,7204 \\ \hline
+    Tesseract & $0{,}6970 \pm 0{,}0047$ & $0{,}6547 \pm 0{,}0083$ & 0,6913 / 0,7028 / 0,6969 \\ \hline
+    EasyOCR & $0{,}7155 \pm 0{,}0061$ & $0{,}6862 \pm 0{,}0095$ & 0,7155 / 0,7081 / 0,7230 \\ \hline
+    PaddleOCR & $\mathbf{0{,}7514 \pm 0{,}0043}$ & $\mathbf{0{,}7200 \pm 0{,}0057}$ &
+    0,7498 / 0,7573 / 0,7472 \\ \hline
+  \end{tabular}
+\end{table}
+
+\begin{table}[H]
+  \centering
+  \caption{McNemar antar-kondisi OCR untuk cabang teks (Holm per seed, $\alpha = 0{,}05$)}
+  \label{tab:mcnemar-ocr}
+  \fontsize{10}{12}\selectfont
+  \begin{tabular}{|l|c|c|}
+    \hline
+    \textbf{Pasangan (a $-$ b)} & \textbf{Selisih OA rerata} & \textbf{Seed signifikan} \\ \hline
+    Tesseract $-$ PaddleOCR & $-0{,}0544$ & 3/3 \\ \hline
+    EasyOCR $-$ PaddleOCR & $-0{,}0359$ & 3/3 \\ \hline
+    QS-OCR $-$ Tesseract & $+0{,}0296$ & 3/3 \\ \hline
+    QS-OCR $-$ PaddleOCR & $-0{,}0249$ & 2/3 \\ \hline
+    Tesseract $-$ EasyOCR & $-0{,}0185$ & 2/3 \\ \hline
+    QS-OCR $-$ EasyOCR & $+0{,}0111$ & 0/3 \\ \hline
+  \end{tabular}
+\end{table}
+
+\textbf{H1 didukung.} Dengan embedding, arsitektur, pembagian data, dan hiperparameter
+dikunci, mesin OCR saja menggeser OA cabang teks sebesar \textbf{5,4 poin}, dari 0,6970
+(Tesseract-JPG) ke 0,7514 (PaddleOCR). Tiga pasangan berbeda nyata di ketiga seed. Selisih
+terbesar sekitar 11 kali simpangan baku antar-seed cabang teks. Dugaan arah juga benar:
+QS-OCR mengungguli Tesseract-JPG di ketiga seed.
+
+Tiga pengamatan menyertai hasil ini.
+
+\textbf{Mesin lebih menentukan daripada sumber citra.} PaddleOCR yang membaca JPG
+mengalahkan QS-OCR yang dibaca dari TIF asli (+2,5 poin, nyata di dua seed), sedangkan
+Tesseract pada JPG kalah dari QS-OCR ($-3{,}0$ poin, nyata di tiga seed). Teks QS-OCR yang
+selama ini dipakai sebagai acuan karena itu bukan batas atas.
+
+\textbf{Proksi OOV tidak meramalkan kegunaan teks.} EasyOCR memiliki OOV terburuk dan
+kesepakatan terendah, tetapi cabang teksnya lebih akurat daripada Tesseract-JPG.
+Sebaliknya, \textit{linear probe} tanpa pelatihan pada rata-rata vektor FastText
+meramalkan urutan mesin dengan cukup baik: PaddleOCR 0,686 $>$ QS-OCR 0,669 $>$ EasyOCR
+0,652 $\approx$ Tesseract 0,650. Untuk memilih mesin OCR bagi tugas klasifikasi, probe
+kecil lebih berguna daripada statistik OOV.
+
+\textbf{Tidak ada mesin yang terbaik di semua kelas.} Keunggulan PaddleOCR tersebar di
+kelas yang kaya teks: terhadap QS-OCR, F1 Advertisement naik 8,5 poin, Letter 7,4,
+Report 5,1, dan Memo 4,5. Namun F1 Note \emph{turun} 9,2 poin (0,621 ke 0,529). Note
+adalah kelas dengan OOV tertinggi untuk semua mesin, dan 48,3\% halamannya berisi kurang
+dari 20 kata.
+
+\subsection{Fusion per Kondisi OCR (RM3)}\label{sec:hasil-fusion}
+
+Hasil utama disajikan pada Tabel~\ref{tab:utama} dan Gambar~\ref{fig:grid}.
+
+\begin{table}[H]
+  \centering
+  \caption{OA rerata $\pm$ simpangan baku antar-seed per kondisi OCR}
+  \label{tab:utama}
+  \fontsize{9}{11}\selectfont
+  \setlength{\tabcolsep}{3.5pt}
+  \begin{tabular}{|l|c|c|c|c|c|}
+    \hline
+    \textbf{Kondisi} & \textbf{IMAGE} & \textbf{TEXT} & \textbf{LATE} & \textbf{CONCAT} &
+    \textbf{ORACLE} \\ \hline
+    QS-OCR & $0{,}8169 \pm 0{,}0257$ & $0{,}7266 \pm 0{,}0059$ & $0{,}8456 \pm 0{,}0221$ &
+    $0{,}8316 \pm 0{,}0119$ & $0{,}9023 \pm 0{,}0127$ \\ \hline
+    Tesseract & $0{,}8169 \pm 0{,}0257$ & $0{,}6970 \pm 0{,}0047$ & $0{,}8376 \pm 0{,}0174$ &
+    $0{,}8349 \pm 0{,}0102$ & $0{,}8950 \pm 0{,}0086$ \\ \hline
+    EasyOCR & $0{,}8169 \pm 0{,}0257$ & $0{,}7155 \pm 0{,}0061$ & $0{,}8538 \pm 0{,}0158$ &
+    $0{,}8567 \pm 0{,}0034$ & $0{,}8972 \pm 0{,}0091$ \\ \hline
+    PaddleOCR & $0{,}8169 \pm 0{,}0257$ & $0{,}7514 \pm 0{,}0043$ &
+    $\mathbf{0{,}8653 \pm 0{,}0122}$ & $\mathbf{0{,}8674 \pm 0{,}0014}$ &
+    $0{,}9079 \pm 0{,}0105$ \\ \hline
+  \end{tabular}
+\end{table}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{../../reports/figures/fase2_grid_oa.png}
+  \caption{OA per kondisi OCR, rerata $\pm$ simpangan baku tiga seed}
+  \label{fig:grid}
+\end{figure}
+
+\textbf{OCR yang lebih baik menaikkan fusion, untuk kedua aturan.} Dari Tesseract-JPG ke
+PaddleOCR, LATE naik 2,8 poin dan CONCAT 3,2 poin, berbeda nyata di ketiga seed. Sel
+terbaik adalah \textbf{CONCAT dengan PaddleOCR, $0{,}8674 \pm 0{,}0014$} (macro F1
+$0{,}8524 \pm 0{,}0016$), 3,3 poin di atas fusion \textit{end-to-end} Fase~1 (0,8342).
+Macro F1 mengikuti pola yang sama dengan OA.
+
+Seberapa banyak potensi teks dipanen fusion (Persamaan~\ref{eq:panen}) disajikan pada
+Tabel~\ref{tab:panen}. Sebagai pembanding, fusion \textcite{audebert2020} memanen 43\%
+potensinya, dan fusion \textit{end-to-end} Fase~1 29\%.
+
+\begin{table}[H]
+  \centering
+  \caption{Potensi oracle dan bagian yang dipanen fusion (rerata seed)}
+  \label{tab:panen}
+  \fontsize{10}{12}\selectfont
+  \begin{tabular}{|l|c|c|c|c|c|}
+    \hline
+    \textbf{Kondisi} & \textbf{Potensi} & \textbf{LATE $-$ IMAGE} & \textbf{Panen LATE} &
+    \textbf{CONCAT $-$ IMAGE} & \textbf{Panen CONCAT} \\ \hline
+    QS-OCR & 0,0854 & $+0{,}0287$ & 34\% & $+0{,}0147$ & 13\% \\ \hline
+    Tesseract & 0,0781 & $+0{,}0206$ & 25\% & $+0{,}0180$ & 19\% \\ \hline
+    EasyOCR & 0,0803 & $+0{,}0369$ & 46\% & $+0{,}0398$ & 46\% \\ \hline
+    PaddleOCR & 0,0910 & $+0{,}0483$ & 52\% & $+0{,}0505$ & 52\% \\ \hline
+  \end{tabular}
+\end{table}
+
+LATE berada di atas IMAGE di 12 dari 12 sel (minimum $+0{,}006$). CONCAT tidak: pada
+QS-OCR seed 43, CONCAT 0,8188 berada di bawah IMAGE 0,8386.
+
+\textbf{H3a didukung untuk LATE, lemah untuk CONCAT.} Korelasi Spearman antara OA cabang
+teks dan $\Delta_\text{teks}$ LATE adalah 0,683 atas 12 sel; terhadap kenaikan LATE di
+atas IMAGE 0,517, dan terhadap panen LATE 0,65. Untuk CONCAT, $\Delta_\text{teks}$ dengan
+pengganti kosong tidak sah sebagai ukuran (Subbagian~\ref{sec:hasil-missing}), sehingga
+yang dipakai adalah kenaikan di atas IMAGE; korelasinya hanya 0,287. Akurasi teks juga
+bukan satu-satunya penentu: cabang teks EasyOCR lebih lemah daripada QS-OCR, tetapi
+dipanen jauh lebih banyak (46\% vs 34\% untuk LATE, 46\% vs 13\% untuk CONCAT).
+
+\textbf{H3b tidak didukung; arahnya justru terbalik bila cabang citra lemah.} Hasil
+McNemar LATE vs CONCAT disajikan pada Tabel~\ref{tab:late-concat}.
+
+\begin{table}[H]
+  \centering
+  \caption{McNemar LATE vs CONCAT per kondisi (Holm per seed); \enquote{--} berarti tidak
+  berbeda nyata}
+  \label{tab:late-concat}
+  \fontsize{10}{12}\selectfont
+  \begin{tabular}{|c|c|c|c|c|c|}
+    \hline
+    \textbf{Seed} & \textbf{IMAGE} & \textbf{QS-OCR} & \textbf{Tesseract} & \textbf{EasyOCR} &
+    \textbf{PaddleOCR} \\ \hline
+    42 & 0,8315 & LATE lebih baik & -- & -- & -- \\ \hline
+    43 & 0,8386 & LATE lebih baik & -- & -- & LATE lebih baik \\ \hline
+    44 & 0,7808 & CONCAT lebih baik & -- & CONCAT lebih baik & CONCAT lebih baik \\ \hline
+  \end{tabular}
+\end{table}
+
+Rerata kedua aturan hampir sama (selisih paling besar 1,4 poin), dan pemenangnya
+bergantung pada kekuatan cabang citra. LATE unggul nyata saat cabang citra kuat (seed 42
+dan 43), sedangkan CONCAT unggul nyata di tiga dari empat kondisi saat cabang citra lemah
+(seed 44). Rata-rata tanpa bobot ikut jatuh bersama cabang yang lemah, sedangkan
+\textit{head} yang dilatih menyesuaikan bobotnya. CONCAT juga jauh lebih stabil
+antar-seed (simpangan baku 0,0014 sampai 0,0119, LATE 0,0122 sampai 0,0221). Untuk cabang
+\emph{teks} yang lemah (Tesseract-JPG), kedua aturan tidak berbeda nyata di seed mana pun.
+
+Matriks konfusi sel terbaik ditunjukkan Gambar~\ref{fig:konfusi}. Kelas tersulit tetap
+Scientific (\textit{recall} 0,46), yang terutama tertukar dengan Report dan Form, sama
+dengan pola pada ketiga paper rujukan.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.72\textwidth]{../../reports/figures/fase2_konfusi_terbaik.png}
+  \caption{Matriks konfusi ternormalisasi per baris, CONCAT dengan PaddleOCR, seed 42}
+  \label{fig:konfusi}
+\end{figure}
+
+\subsection{Uji \textit{Missing Modality}}\label{sec:hasil-missing}
+
+\subsubsection{Pengganti kosong: anomali}
+
+Hasil uji dengan pengganti kosong, yang dirancang sebelum eksekusi, disajikan pada
+Tabel~\ref{tab:missing-kosong}.
+
+\begin{table}[H]
+  \centering
+  \caption{Uji \textit{missing modality} dengan pengganti kosong: selisih OA terhadap model
+  unimodal modalitas yang tersisa (rerata seed)}
+  \label{tab:missing-kosong}
+  \fontsize{10}{12}\selectfont
+  \begin{tabular}{|l|c|c|c|c|}
+    \hline
+    \textbf{Kondisi} & \textbf{\makecell{LATE tanpa teks\\$-$ IMAGE}} &
+    \textbf{\makecell{CONCAT tanpa teks\\$-$ IMAGE}} &
+    \textbf{\makecell{LATE tanpa citra\\$-$ TEXT}} &
+    \textbf{\makecell{CONCAT tanpa citra\\$-$ TEXT}} \\ \hline
+    QS-OCR & $-0{,}022$ & $-0{,}563$ & $-0{,}268$ & $-0{,}112$ \\ \hline
+    Tesseract & $-0{,}008$ & $-0{,}591$ & $-0{,}271$ & $-0{,}135$ \\ \hline
+    EasyOCR & $-0{,}001$ & $-0{,}137$ & $-0{,}337$ & $-0{,}202$ \\ \hline
+    PaddleOCR & $-0{,}003$ & $-0{,}301$ & $-0{,}349$ & $-0{,}216$ \\ \hline
+  \end{tabular}
+\end{table}
+
+Hanya LATE tanpa teks yang berperilaku seperti seharusnya: ia mendarat di IMAGE (selisih
+paling besar 2,2 poin). CONCAT tanpa teks jatuh \textbf{jauh di bawah cabang citra
+sendiri}, sampai 59 poin, dan semua versi tanpa citra jatuh di bawah cabang teks sendiri.
+Kehilangan satu modalitas tidak mungkin lebih buruk daripada model unimodal modalitas yang
+tersisa, kecuali penggantinya keluar distribusi bagi model. Dugaan awal kami untuk CONCAT
+adalah bahwa \textit{head} belajar \enquote{teks kosong $\Rightarrow$ Note}, karena
+sebagian halaman Note pada QS-OCR kosong. Dua dugaan ini diuji pada uji lanjutan (H4a dan
+H4b).
+
+\subsubsection{Uji lanjutan: pengganti rerata dan \textit{head} tanpa teks kosong}
+
+Dokumen yang kosong menurut model berjumlah 27 (QS-OCR: 20 Note, 7 Advertisement), 11
+(Tesseract: 6 Note, 5 Advertisement), dan 0 untuk EasyOCR maupun PaddleOCR. Di bagian latih
+\textit{head} terdapat 4 sampai 8 dokumen kosong untuk QS-OCR dan 2 sampai 4 untuk
+Tesseract, dari 720 dokumen. Hasil uji lanjutan disajikan pada Tabel~\ref{tab:missing-lanjutan}.
+
+\begin{table}[H]
+  \centering
+  \caption{Uji lanjutan: selisih OA terhadap model unimodal modalitas yang tersisa (rerata
+  seed)}
+  \label{tab:missing-lanjutan}
+  \fontsize{10}{12}\selectfont
+  \begin{tabularx}{\textwidth}{|>{\raggedright\arraybackslash}X|c|c|c|c|}
+    \hline
+    \textbf{Selisih} & \textbf{QS-OCR} & \textbf{Tesseract} & \textbf{EasyOCR} &
+    \textbf{PaddleOCR} \\ \hline
+    CONCAT tanpa teks, kosong $-$ IMAGE & $-0{,}563$ & $-0{,}591$ & $-0{,}137$ & $-0{,}301$ \\ \hline
+    CONCAT tanpa teks, rerata $-$ IMAGE & $-0{,}108$ & $-0{,}130$ & $-0{,}026$ & $-0{,}027$ \\ \hline
+    CONCAT\_nonkosong tanpa teks, kosong $-$ IMAGE & $-0{,}496$ & $-0{,}633$ & $-0{,}137$ & $-0{,}301$ \\ \hline
+    LATE tanpa teks, rerata $-$ IMAGE & $-0{,}132$ & $-0{,}129$ & $-0{,}076$ & $-0{,}074$ \\ \hline
+    LATE tanpa citra, rerata $-$ TEXT & $-0{,}029$ & $-0{,}036$ & $-0{,}040$ & $-0{,}042$ \\ \hline
+    CONCAT tanpa citra, rerata $-$ TEXT & $-0{,}005$ & $+0{,}006$ & $-0{,}017$ & $-0{,}014$ \\ \hline
+    CONCAT\_nonkosong $-$ CONCAT (masukan lengkap) & $+0{,}006$ & $+0{,}003$ & 0 & 0 \\ \hline
   \end{tabularx}
 \end{table}
 
-\subsection{Luaran}\label{sec:luaran}
+\textbf{H4a didukung sebagian.} Dengan pengganti rerata, kedua aturan tanpa citra
+mendarat paling jauh 4,2 poin di bawah cabang teks, padahal dengan pengganti kosong 11
+sampai 35 poin. Kejatuhan tanpa citra karena itu artefak pengganti. CONCAT tanpa teks pulih
+sebagian besar (QS-OCR $-0{,}563 \rightarrow -0{,}108$; Tesseract
+$-0{,}591 \rightarrow -0{,}130$) dan mendarat dekat IMAGE pada EasyOCR dan PaddleOCR
+($-0{,}026$ dan $-0{,}027$). Pada QS-OCR dan Tesseract masih tersisa 11 sampai 13 poin di
+bawah IMAGE, dengan sebaran besar antar-seed ($-0{,}03$ sampai $-0{,}20$). Pada kedua
+kondisi itu, \textit{head} memang tidak dapat bekerja setara cabang citra tanpa teks.
 
-\begin{enumerate}
-  \item Teks dan kotak posisi teks Tobacco3482 dari tiga mesin OCR, beserta proksi
-  kualitasnya.
-  \item Grid akurasi cabang teks untuk empat kondisi OCR $\times$ dua embedding $\times$
-  tiga seed, beserta uji McNemar.
-  \item Nilai $\Delta_\text{teks}$ dan $\Delta_\text{citra}$ untuk setiap model fusion.
-  \item Laporan yang menyatakan setiap hipotesis terdukung atau tidak, dengan rujukan ke
-  angka sumbernya.
-\end{enumerate}
+\textbf{H4b tidak didukung.} Prasyaratnya terpenuhi: membuang dokumen kosong hanya
+menggeser CONCAT dengan masukan lengkap 0,3 sampai 0,6 poin. Kriteria (i) juga terpenuhi:
+dengan teks kosong, porsi prediksi Note membengkak dari 0,058 (porsi sebenarnya) menjadi
+0,727, 0,756, 0,192, dan 0,320 (QS-OCR, Tesseract, EasyOCR, PaddleOCR). Namun kriteria (ii)
+gagal di keempat kondisi. \textit{Head} tanpa dokumen kosong tetap menarik prediksi ke Note
+(0,483 pada QS-OCR, bahkan naik ke 0,817 pada Tesseract). Bukti paling langsung datang
+dari EasyOCR dan PaddleOCR: tidak ada satu pun dokumen kosong pada kedua kondisi itu, tetapi
+tarikan ke Note tetap muncul. Dengan pengganti rerata, porsi Note kembali normal (0,04
+sampai 0,09 per sel). Tarikan itu karena itu milik vektor teks kosong, bukan hasil belajar
+dari dokumen kosong di data latih. Dugaan yang tersisa, dan belum diuji, adalah bahwa Note
+sebagai kelas berteks terpendek memiliki fitur yang paling dekat dengan fitur teks kosong,
+sehingga \textit{head} berekstrapolasi ke arah Note. Besar tarikannya berubah tajam
+antar-seed (PaddleOCR: 0,044 / 0,532 / 0,383), sesuai dengan ekstrapolasi di luar
+distribusi.
 
-Keberhasilan diukur dari kelengkapan dan ketelitian jawaban, \emph{bukan} dari arah
-hasilnya. Bila mesin OCR ternyata tidak berpengaruh, itu jawaban yang sah dan informatif:
-artinya, celah pelaporan kualitas OCR yang diidentifikasi \textcite{mironczuk2026} tidak
-berdampak pada dataset ini.
+\textbf{Pengganti rerata tidak netral untuk LATE.} LATE tanpa teks dengan pengganti kosong
+mendarat di IMAGE, tetapi dengan rerata logit latih ia jatuh 7 sampai 13 poin di bawah
+IMAGE (negatif di setiap sel). Rerata logit menambahkan bias kelas tetap ke logit citra,
+dan logit latih cabang teks berasal dari model yang dilatih pada dokumen itu sendiri.
+Jadi, pengganti yang sah berbeda menurut aturan: pengganti kosong untuk LATE tanpa teks,
+pengganti rerata untuk CONCAT tanpa teks dan untuk semua versi tanpa citra.
 
-\subsection{Tahap Lanjutan: Teks sebagai Objek}\label{sec:lanjutan}
+\subsection{Posisi terhadap Literatur}\label{sec:posisi-hasil}
 
-Sesuai arahan dosen pengampu, tahap berikutnya memperlakukan teks bukan hanya sebagai
-rangkaian kata, tetapi sebagai \textbf{objek berposisi} pada halaman. Bahannya sudah
-tersedia dari langkah OCR, karena setiap mesin menyimpan kotak teksnya. Ada tiga kandidat
-representasi:
-\begin{enumerate}
-  \item fitur posisi dua dimensi di samping embedding kata;
-  \item peta kotak teks sebagai citra, yaitu setiap kotak digambar pada kanvas seukuran
-  halaman;
-  \item graf yang simpulnya kotak teks dan sisinya kedekatan spasial.
-\end{enumerate}
+Tabel~\ref{tab:literatur} menempatkan hasil ini di samping studi rujukan.
 
-Satu kontrol bersifat wajib. Kode ID arsip pada Tobacco3482 adalah objek teks berposisi
-konsisten, dan fitur dari kode ID saja sudah memberi $\pm$60\% akurasi
-\parencite{larson2025}. Model berbasis posisi dapat belajar jalan pintas ini alih-alih
-belajar tata letak dokumen. Karena itu setiap model akan diuji dengan dan tanpa kotak
-kode ID.
+\begin{table}[H]
+  \centering
+  \caption{OA fusion pada Tobacco3482 dan protokolnya}
+  \label{tab:literatur}
+  \fontsize{10}{12}\selectfont
+  \begin{tabularx}{\textwidth}{|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}p{6.2cm}|c|}
+    \hline
+    \textbf{Studi} & \textbf{Protokol} & \textbf{OA fusion} \\ \hline
+    \textcite{kashyap2026} & dilatih pada RVL-CDIP, Tobacco3482 hanya diuji & 0,9200 \\ \hline
+    \textcite{audebert2020} & 800 dokumen latih, tiga run & 0,878 \\ \hline
+    Fase~1 (replikasi Audebert) & 800 dokumen latih, tiga seed & $0{,}8342 \pm 0{,}0105$ \\ \hline
+    \textbf{Penelitian ini, CONCAT + PaddleOCR} & 800 dokumen latih, tiga seed &
+    $\mathbf{0{,}8674 \pm 0{,}0014}$ \\ \hline
+  \end{tabularx}
+\end{table}
 
-Granularitas kotak juga berbeda antar-mesin: Tesseract per kata, sedangkan EasyOCR dan
-PaddleOCR per baris. Rancangan rinci beserta referensi (minimal tahun 2025) untuk tahap
-ini akan diajukan tersendiri.
+Angka antarbaris tidak sepenuhnya sebanding. \textcite{kashyap2026} melatih pada
+$\pm$320.000 dokumen RVL-CDIP, dan angka Tobacco3482-nya tidak konsisten dengan
+protokolnya sendiri (Subbagian~\ref{sec:kajian-pustaka}). Yang sebanding langsung adalah
+dua baris terakhir: dengan data dan pembagian yang sama, mengganti mesin OCR dan aturan
+fusion menaikkan fusion 3,3 poin dan memperkecil simpangan baku antar-seed tujuh kali lipat.

@@ -1,4 +1,4 @@
-\section{Metode yang Direncanakan}\label{sec:metode}
+\section{Metode}\label{sec:metode}
 
 \subsection{Kerangka Penelitian}\label{sec:kerangka}
 
@@ -11,15 +11,25 @@ Kerangka penelitian ditunjukkan Gambar~\ref{fig:kerangka}.
   \label{fig:kerangka}
 \end{figure}
 
-Penelitian terdiri atas empat langkah:
+Penelitian terdiri atas lima langkah:
 \begin{enumerate}
-  \item OCR ulang seluruh citra dengan tiga mesin.
-  \item Melatih cabang teks untuk setiap kombinasi mesin OCR dan embedding.
-  \item Menggabungkan setiap cabang teks dengan cabang citra yang sama.
-  \item Mengevaluasi akurasi sekaligus pemanfaatan modalitas.
+  \item OCR ulang seluruh citra dengan tiga mesin, di samping teks QS-OCR sebagai acuan.
+  \item Mengubah teks setiap kondisi OCR menjadi sekuens vektor FastText.
+  \item Melatih model unimodal: satu cabang citra per seed, dan satu cabang teks per
+  kondisi OCR dan seed.
+  \item Menggabungkan setiap cabang teks dengan cabang citra yang sama melalui dua aturan
+  fusion.
+  \item Mengevaluasi akurasi, uji statistik, dan pemanfaatan modalitas.
 \end{enumerate}
-Cabang citra sengaja dibuat tetap, supaya setiap perbedaan hasil hanya dapat berasal dari
-sisi teks.
+Embedding, arsitektur, dan cabang citra sengaja dibuat tetap, supaya setiap perbedaan
+hasil hanya dapat berasal dari mesin OCR atau dari aturan fusion.
+
+Seluruh langkah dijalankan oleh satu notebook, \texttt{notebooks/pipeline.ipynb}, yang
+hanya memanggil fungsi di modul \texttt{src/}. Setiap model unimodal dilatih sekali, lalu
+fitur dan logitnya untuk \emph{seluruh} dokumen disimpan ke \textit{cache}. Kedua aturan
+fusion, oracle, uji \textit{missing modality}, dan uji statistik membaca \textit{cache}
+tersebut, sehingga dapat diulang dalam hitungan detik tanpa melatih ulang. Seed global
+dan seluruh hiperparameter diatur di satu tempat.
 
 \subsection{Dataset dan Protokol}\label{sec:dataset}
 
@@ -34,18 +44,21 @@ dengan yang dipakai \textcite{audebert2020}.
 
 Protokol pembagian data mengikuti \textcite{audebert2020}:
 \begin{itemize}
-  \item 800 dokumen latih per pembagian, 10\% di antaranya dipakai untuk validasi;
+  \item 800 dokumen latih per pembagian, 80 di antaranya (10\%) dipakai untuk validasi
+  dan \textit{early stopping};
   \item sisanya, 2.682 dokumen, menjadi data uji;
   \item tiga pembagian acak terstratifikasi, dengan seed 42, 43, dan 44;
   \item \textbf{indeks pembagian yang sama} dipakai di semua kondisi, supaya perbedaan
-  antar-kondisi tidak tercampur perbedaan data.
+  antar-kondisi tidak tercampur perbedaan data. Indeks dibekukan ke disk beserta sidik
+  jari daftar dokumen.
 \end{itemize}
 Pemakaian dataset dibatasi untuk keperluan akademik non-komersial, dan tidak ada berkas
 dataset yang didistribusikan ulang.
 
 \subsection{Ekstraksi OCR Multi-mesin}\label{sec:metode-ocr}
 
-Konfigurasi setiap mesin disajikan pada Tabel~\ref{tab:mesin}.
+Versi dan konfigurasi setiap mesin yang benar-benar dipakai disajikan pada
+Tabel~\ref{tab:mesin}.
 
 \begin{table}[H]
   \centering
@@ -54,32 +67,34 @@ Konfigurasi setiap mesin disajikan pada Tabel~\ref{tab:mesin}.
   \fontsize{10}{12}\selectfont
   \begin{tabularx}{\textwidth}{|l|>{\raggedright\arraybackslash}X|l|}
     \hline
-    \textbf{Mesin} & \textbf{Konfigurasi} & \textbf{Kotak teks} \\ \hline
-    QS-OCR (acuan) & Tesseract 4.0-beta pada TIF asli, \texttt{-{}-oem 1 -{}-psm 3} &
-    tidak tersedia \\ \hline
-    Tesseract & versi 5 pada JPG, konfigurasi sama dengan QS-OCR & per kata \\ \hline
-    EasyOCR & model bahasa Inggris, GPU & per baris \\ \hline
-    PaddleOCR & model PP-OCRv5 \textit{mobile}, CPU, tanpa koreksi orientasi &
-    per baris \\ \hline
+    \textbf{Kondisi} & \textbf{Konfigurasi} & \textbf{Kotak teks} \\ \hline
+    QS-OCR (acuan) & Tesseract 4.0.0-beta.1 pada TIF asli, \texttt{-{}-oem 1 -{}-psm 3};
+    tidak dijalankan ulang & tidak tersedia \\ \hline
+    Tesseract & Tesseract 5.4.0 pada JPG, konfigurasi sama dengan QS-OCR, CPU &
+    per kata \\ \hline
+    EasyOCR & EasyOCR 1.7.2, model bahasa Inggris, GPU & per baris \\ \hline
+    PaddleOCR & PaddleOCR 3.7.0 dengan paddlepaddle 3.2.2, model deteksi dan pengenalan
+    PP-OCRv5 \textit{mobile}, CPU, tanpa koreksi orientasi & per baris \\ \hline
   \end{tabularx}
 \end{table}
 
-Empat keputusan desain menyertai konfigurasi tersebut:
+Lima keputusan desain menyertai konfigurasi tersebut:
 \begin{enumerate}
   \item \textbf{Semua mesin membaca citra JPG yang sama}, termasuk Tesseract yang
   dijalankan ulang. Selisih antara QS-OCR dan Tesseract-JPG karena itu mengukur efek
   gabungan format citra dan versi Tesseract.
   \item \textbf{Urutan baca mesin berbasis kotak direkonstruksi}: baris dari atas ke
-  bawah, kata dari kiri ke kanan. Karena CNN~1D peka urutan, perbedaan urutan baca dicatat
-  sebagai bagian dari efek mesin.
+  bawah, kata dari kiri ke kanan, dengan asumsi satu kolom. Karena CNN~1D peka urutan,
+  perbedaan urutan baca menjadi bagian dari efek mesin.
   \item \textbf{Teks dan kotak posisi setiap halaman disimpan}, sehingga tahap lanjutan
   tidak memerlukan OCR ulang.
-  \item \textbf{Versi pustaka dan nama model dikunci serta dicatat}, karena model bawaan
-  mesin OCR dapat berganti antar-versi.
+  \item \textbf{PaddleOCR memakai model \textit{mobile}}, bukan model bawaan versi 3.7
+  (PP-OCRv6 \textit{medium}). Pada uji satu halaman, model bawaan tiga kali lebih lambat
+  dengan teks keluaran yang sama. paddlepaddle diturunkan dari 3.3.1 ke 3.2.2 karena
+  versi 3.3 gagal di setiap halaman pada CPU Windows.
+  \item \textbf{Keras-OCR tidak dijalankan.} Pustaka ini membutuhkan TensorFlow dengan API
+  Keras~2, yang tidak tersedia untuk Python 3.12.
 \end{enumerate}
-
-Keras-OCR disarankan dosen, tetapi dimasukkan secara bersyarat. Alasannya dijelaskan pada
-risiko R3 (Subbagian~\ref{sec:risiko}).
 
 \subsection{Proksi Kualitas OCR}\label{sec:proksi}
 
@@ -110,45 +125,74 @@ benar-salahnya.
 
 \subsection{Representasi Teks dan Citra}\label{sec:representasi}
 
-Dua representasi teks diuji.
+\textbf{Cabang teks} mengikuti \textcite{audebert2020}. Teks ditokenisasi dengan spaCy
+(\texttt{en\_core\_web\_sm}), tanda baca dibuang, lalu setiap kata dipetakan ke vektor
+FastText \textit{subword} 300 dimensi (\texttt{cc.en.300.bin},
+Persamaan~\ref{eq:fasttext}). Sekuens dibatasi 500 kata pertama dan diberi
+\textit{zero-padding}. CNN~1D terdiri atas empat lapis konvolusi dengan lebar kernel 12
+dan 512 kanal, menghasilkan vektor fitur 128 dimensi. Teks masuk \textbf{tanpa} praproses
+gaya \textcite{kashyap2026}, yaitu tanpa membuang angka dan \textit{stopword}, supaya efek
+mesin OCR tidak tercampur efek praproses.
 
-\textbf{FastText dan CNN~1D}, mengikuti \textcite{audebert2020}. Setiap kata dipetakan ke
-vektor FastText 300 dimensi (Persamaan~\ref{eq:fasttext}). Sekuens dibatasi 500 kata,
-lalu diproses CNN~1D.
+\textbf{Cabang citra} memakai MobileNetV2 berbobot awal ImageNet yang di-\textit{fine-tune}
+penuh, dengan masukan $384\times384$ dan rasio aspek di-\textit{warp}, mengikuti
+\textcite{audebert2020}. Vektor fiturnya 1.280 dimensi. Satu model citra dilatih per seed
+dan dipakai untuk semua kondisi OCR.
 
-\textbf{BERT-base}, mengikuti \textcite{kashyap2026}. Model ini di-\textit{fine-tune}
-dengan masukan maksimum 512 token. Pelatihan memakai \textit{mixed precision} dan
-akumulasi gradien supaya muat di GPU 4~GB. Bila tetap tidak muat, model diganti
-DistilBERT, dan penggantian itu dicatat sebagai deviasi.
+Kedua cabang dilatih dengan SGD (momentum 0,9, laju belajar 0,01, \textit{batch} 40),
+maksimal 100 epoch untuk teks dan 200 epoch untuk citra, dengan \textit{early stopping}
+pada akurasi validasi (\textit{patience} 15). Bobot dengan akurasi validasi terbaik yang
+dipakai. Supaya muat di GPU 4~GB, satu \textit{batch} 40 dipecah menjadi
+\textit{micro-batch} 8 dengan akumulasi gradien, dan pelatihan memakai \textit{mixed
+precision}. Pembaruan bobot tetap dihitung dari 40 sampel, tetapi BatchNorm menormalkan
+per 8 sampel; ini dicatat sebagai deviasi.
 
-Teks masuk ke kedua representasi \textbf{tanpa} praproses gaya Kashyap, yaitu tanpa
-membuang angka dan \textit{stopword}. Tujuannya agar efek embedding tidak tercampur efek
-praproses.
+\subsection{Aturan Fusion yang Dibandingkan}\label{sec:fusion}
 
-Cabang citra memakai MobileNetV2 berbobot awal ImageNet, dengan masukan $384\times384$
-dan rasio aspek di-\textit{warp}, mengikuti \textcite{audebert2020}. Cabang ini sama di
-semua kondisi.
+Kedua aturan duduk di atas \textbf{model unimodal yang sama}, sehingga selisih keduanya
+murni selisih aturan fusion.
 
-\subsection{Strategi Fusion yang Diuji}\label{sec:fusion}
+\textbf{LATE} adalah rata-rata logit tanpa bobot (Persamaan~\ref{eq:logit}), aturan
+\textcite{kashyap2026}. Aturan ini tidak memerlukan pelatihan.
 
-Dua strategi fusion diuji.
+\textbf{CONCAT} adalah fusion tingkat fitur (Persamaan~\ref{eq:concat}) di atas fitur
+\emph{beku}. Vektor citra 1.280 dimensi diproyeksikan ke 128 dimensi, dikonkatenasi dengan
+vektor teks 128 dimensi, lalu diklasifikasikan oleh MLP satu lapis tersembunyi (256
+neuron, BatchNorm, ReLU, \textit{dropout} 0,5). Hanya \textit{head} ini yang dilatih, pada
+fitur bagian latih, dengan \textit{early stopping} pada bagian validasi (maksimal 200
+epoch, CPU).
 
-\textbf{Rata-rata logit} (Persamaan~\ref{eq:logit}), yaitu aturan
-\textcite{kashyap2026}. Strategi ini tidak memerlukan pelatihan ulang, sehingga dapat
-diterapkan pada \emph{semua} kondisi.
+CONCAT menyimpang dari dua hal secara sengaja. Pertama, \textcite{audebert2020} melatih
+fusion \textit{end-to-end}. Kedua, rencana awal kami adalah fusion \textit{end-to-end}
+dengan Layer Normalization per cabang. Pada replikasi Fase~1, fusion \textit{end-to-end}
+membuat cabang teks kolaps (Subbagian~\ref{sec:riwayat}). Dengan cabang yang datang sudah
+terlatih, kolaps itu tidak dapat terjadi, dan perbandingan dengan LATE menjadi setara.
+Konsekuensinya: \textit{head} dilatih pada fitur dokumen yang juga dipakai melatih model
+unimodal, sehingga ia menilai setiap cabang dari perilaku latihnya yang optimistis.
 
-\textbf{Fusion tingkat fitur dengan normalisasi per cabang}:
-\begin{equation}\label{eq:fusionfix}
-  \hat{y} = \arg\max_c \; \mathrm{MLP}\!\left([\,\mathrm{LN}(\mathbf{v}_t) \,;\,
-  \mathrm{LN}(\mathbf{v}_v)\,]\right)_c
-\end{equation}
-Layer Normalization (Persamaan~\ref{eq:layernorm}) menyamakan skala kedua vektor fitur
-sebelum digabung, supaya head klasifikasi tidak otomatis didominasi cabang yang skala
-fiturnya lebih besar. Cabang teks diinisialisasi dari model teks yang sudah dilatih
-sendiri, supaya kedua cabang mulai dari titik yang sama-sama terlatih.
+\textbf{ORACLE} dihitung dari prediksi cabang citra dan cabang teks pada data uji yang
+sama: sebuah dokumen benar bila salah satu cabang benar.
 
-Fusion tingkat fitur memerlukan pelatihan \textit{end-to-end} yang relatif mahal, sehingga
-hanya diterapkan pada kondisi OCR terbaik dan terburuk.
+\subsection{Uji \textit{Missing Modality}}\label{sec:metode-missing}
+
+Modalitas yang hilang diganti salah satu dari dua pengganti (Persamaan~\ref{eq:delta}).
+
+\begin{enumerate}
+  \item \textbf{Pengganti kosong} (dirancang sebelum eksekusi). Modalitas diganti keluaran
+  model untuk masukan kosong: teks kosong adalah sekuens nol, dan citra kosong adalah
+  tensor nol setelah normalisasi, yaitu citra rata-rata ImageNet. Untuk LATE yang diganti
+  adalah logitnya, untuk CONCAT fiturnya.
+  \item \textbf{Pengganti rerata} (uji lanjutan). Modalitas diganti rata-rata fiturnya
+  (CONCAT) atau rata-rata logitnya (LATE) atas dokumen latih. Pengganti ini berada di
+  dalam distribusi data latih. Untuk LATE, ia setara dengan menambahkan bias kelas tetap
+  dari modalitas yang hilang.
+\end{enumerate}
+
+Uji lanjutan juga melatih \textit{head} CONCAT kedua, \textbf{CONCAT\_nonkosong}, dengan
+dokumen berteks kosong dibuang dari bagian latih dan validasi \textit{head}. Data uji
+tidak berubah. \enquote{Teks kosong} didefinisikan menurut model: fitur teks dokumen sama
+dengan fitur masukan kosong (toleransi relatif $10^{-3}$). Definisi ini mencakup halaman
+tanpa kata maupun halaman yang semua tokennya terbuang saat tokenisasi.
 
 \subsection{Desain Eksperimen dan Hipotesis}\label{sec:desain}
 
@@ -161,46 +205,93 @@ Matriks eksperimen disajikan pada Tabel~\ref{tab:desain}.
   \fontsize{10}{12}\selectfont
   \begin{tabularx}{\textwidth}{|l|>{\raggedright\arraybackslash}X|c|}
     \hline
-    \textbf{Kelompok} & \textbf{Kondisi} & \textbf{Jumlah run} \\ \hline
-    Cabang teks & 4 kondisi OCR $\times$ 2 embedding $\times$ 3 seed & 24 \\ \hline
-    Cabang citra & MobileNetV2 $\times$ 3 seed & 3 \\ \hline
-    Rata-rata logit & setiap model teks + cabang citra dengan seed yang sama &
-    24 (tanpa pelatihan) \\ \hline
-    Fusion fitur & kondisi OCR terbaik dan terburuk, FastText, seed 42 &
-    2 (+4 bila waktu cukup) \\ \hline
-    Uji \textit{missing modality} & setiap model fusion & tanpa pelatihan \\ \hline
+    \textbf{Kelompok} & \textbf{Kondisi} & \textbf{Jumlah} \\ \hline
+    Cabang teks & 4 kondisi OCR $\times$ 3 seed & 12 model \\ \hline
+    Cabang citra & MobileNetV2 $\times$ 3 seed & 3 model \\ \hline
+    LATE & setiap cabang teks + cabang citra dengan seed yang sama & 12 sel, tanpa
+    pelatihan \\ \hline
+    CONCAT & idem & 12 \textit{head} \\ \hline
+    \textit{Missing modality} & pengganti kosong, untuk setiap sel LATE dan CONCAT &
+    tanpa pelatihan \\ \hline
+    Uji lanjutan & pengganti rerata; CONCAT\_nonkosong & 12 \textit{head} \\ \hline
   \end{tabularx}
 \end{table}
 
-\textbf{Pemeriksaan kewarasan.} Kondisi QS-OCR $\times$ FastText harus menghasilkan
-akurasi cabang teks yang dekat dengan angka \textcite{audebert2020} (0,738). Bila jauh
-berbeda, ada yang salah dalam pipeline, dan eksperimen dihentikan sampai penyebabnya
-ditemukan.
+\textbf{Pemeriksaan kewarasan.} Kondisi QS-OCR memakai setelan yang sama dengan replikasi
+Fase~1, sehingga cabang teksnya harus mendekati Fase~1 (OA $0{,}7266 \pm 0{,}0059$), dan
+cabang citranya harus mendekati $0{,}8086 \pm 0{,}0210$. Selisih lebih dari
+$\max(0{,}02;\ 2\sigma)$ dianggap tanda ada yang rusak.
 
-Hipotesis dirumuskan \emph{sebelum} eksekusi, dan akan dilaporkan apa adanya, termasuk
-bila keliru.
+Hipotesis berikut ditulis \emph{sebelum} eksekusi masing-masing dan dilaporkan apa
+adanya, termasuk bila keliru. Hipotesis rencana awal untuk RM3 disempurnakan menjadi H3a
+dan H3b ketika aturan fusion ditetapkan; H4a dan H4b ditambahkan setelah hasil uji
+\textit{missing modality} pertama menunjukkan anomali, tetapi sebelum uji lanjutannya
+dijalankan.
 
-\begin{enumerate}[label=H\arabic*.,leftmargin=1.2cm,labelwidth=1.2cm]
-  \item \textbf{(RM1)} Perbedaan akurasi cabang teks antar-mesin OCR bersifat nyata,
-  yaitu melampaui variasi antar-seed. Mesin modern belum tentu unggul. Tobacco3482 berisi
-  pindaian cetak hitam putih, yaitu kondisi tempat Tesseract paling kuat. Selain itu,
-  CNN~1D peka urutan baca, yang berbeda antar-mesin.
-  \item \textbf{(RM2)} BERT memperkecil selisih antar-mesin dibandingkan FastText.
-  Argumen tandingannya: model bahasa standar juga melemah pada teks OCR
-  \parencite{michail2025}, dan batas 512 token memotong dokumen panjang.
-  \item \textbf{(RM3)} Pada fusion fitur, $\Delta_\text{teks}$ membesar seiring akurasi
-  cabang teks. Rata-rata logit menjamin $\Delta_\text{teks} > 0$ secara konstruksi,
-  tetapi akurasinya dapat turun bila cabang teks lemah.
+\begin{enumerate}[label=\textbf{H\arabic*},leftmargin=1.4cm,labelwidth=1.2cm]
+  \item[\textbf{H1}] \textbf{(RM1)} Setidaknya satu pasangan mesin OCR menghasilkan cabang
+  teks yang berbeda nyata (McNemar, Holm per seed, $\alpha = 0{,}05$) secara konsisten di
+  ketiga seed. Dugaan arah: QS-OCR $\geq$ Tesseract-JPG, karena dibaca dari TIF asli.
+  \item[\textbf{H2}] \textbf{(RM2)} BERT memperkecil selisih antar-mesin dibandingkan
+  FastText. \emph{Tidak diuji} (Subbagian~\ref{sec:batasan}).
+  \item[\textbf{H3a}] \textbf{(RM3)} Penurunan akurasi fusion saat teks diganti
+  ($\Delta_\text{teks}$) naik seiring akurasi cabang teks (Spearman positif atas
+  $4 \times 3$ sel), untuk kedua aturan.
+  \item[\textbf{H3b}] \textbf{(RM3)} LATE kehilangan lebih sedikit daripada CONCAT saat
+  cabangnya timpang, karena rata-rata logit memaksa kedua modalitas berkontribusi,
+  sedangkan \textit{head} dapat belajar mengabaikan cabang yang lemah. Diuji juga langsung
+  dengan McNemar LATE vs CONCAT per kondisi.
+  \item[\textbf{H4a}] Kejatuhan uji \textit{missing modality} dengan pengganti kosong adalah
+  artefak pengganti yang keluar distribusi. Didukung bila, dengan pengganti rerata dan
+  pada rerata seed di keempat kondisi,
+  $|\text{CONCAT}_\text{tanpa teks} - \text{IMAGE}| \leq 0{,}05$ dan kedua aturan tanpa
+  citra $\geq \text{TEXT} - 0{,}05$. Ambang 5 poin setara dua kali simpangan baku
+  antar-seed cabang citra.
+  \item[\textbf{H4b}] \textit{Head} CONCAT belajar \enquote{teks kosong $\Rightarrow$
+  Note}. Prasyarat: $|\text{CONCAT\_nonkosong} - \text{CONCAT}| \leq 0{,}01$. Didukung
+  bila (i) dengan teks kosong porsi prediksi Note pada \textit{head} asli $\geq$ porsi
+  sebenarnya $+\,0{,}10$, (ii) pada CONCAT\_nonkosong porsi itu turun ke $\leq$ porsi
+  sebenarnya $+\,0{,}05$, dan (iii) jarak CONCAT\_nonkosong tanpa teks ke IMAGE menyusut
+  paling sedikit separuh.
 \end{enumerate}
 
 \subsection{Evaluasi dan Uji Statistik}\label{sec:evaluasi}
 
-Setiap model dievaluasi dengan empat ukuran: OA, macro F1
-(Persamaan~\ref{eq:macrof1}), F1 per kelas, dan oracle. Untuk setiap model fusion
-ditambahkan $\Delta_\text{teks}$ dan $\Delta_\text{citra}$ (Persamaan~\ref{eq:delta}).
+Setiap model dievaluasi dengan OA, macro F1 (Persamaan~\ref{eq:macrof1}), F1 per kelas,
+dan matriks konfusi. Untuk fusion ditambahkan dua ukuran turunan dari oracle:
+\begin{equation}\label{eq:panen}
+  \text{potensi} = \mathrm{OA}_\text{ORACLE} - \mathrm{OA}_\text{IMAGE}, \qquad
+  \text{panen} = \frac{\mathrm{OA}_\text{fusion} - \mathrm{OA}_\text{IMAGE}}{\text{potensi}}
+\end{equation}
+Panen menyatakan bagian dari potensi teks yang benar-benar dimanfaatkan fusion.
 
-Perbandingan dua kondisi memakai uji McNemar (Persamaan~\ref{eq:mcnemar}) pada data uji
-yang sama, per seed. Uji binomial eksak dipakai bila $b + c < 25$. Ada enam pasangan
-kondisi OCR per jenis embedding, sehingga ambang signifikansinya dikoreksi menjadi
-$0{,}05/6$. Sebuah perbedaan dinyatakan konsisten bila signifikan dan arahnya sama di
-ketiga seed. Semua angka dilaporkan sebagai rata-rata $\pm$ simpangan baku tiga seed.
+Perbandingan dua model memakai uji McNemar eksak (Persamaan~\ref{eq:mcnemar}) pada data
+uji yang sama, per seed. Koreksi Holm dilakukan di dalam setiap seed: enam pasangan
+kondisi OCR untuk H1, dan empat kondisi untuk LATE vs CONCAT. Sebuah perbedaan dinyatakan
+konsisten bila signifikan dan searah di ketiga seed. Semua angka dilaporkan sebagai
+rata-rata $\pm$ simpangan baku populasi atas tiga seed. Keterkaitan dua ukuran antar-sel
+diukur dengan korelasi Spearman.
+
+\subsection{Lingkungan dan Waktu Komputasi}\label{sec:komputasi}
+
+Seluruh komputasi dijalankan pada satu laptop dengan GPU RTX 3050 (4~GB VRAM), prosesor
+Intel Core i7 generasi 11, dan RAM 24~GB, di Windows. Waktu terukur disajikan pada
+Tabel~\ref{tab:waktu}.
+
+\begin{table}[H]
+  \centering
+  \caption{Waktu komputasi terukur}
+  \label{tab:waktu}
+  \fontsize{10}{12}\selectfont
+  \begin{tabularx}{\textwidth}{|>{\raggedright\arraybackslash}X|r|}
+    \hline
+    \textbf{Langkah} & \textbf{Waktu} \\ \hline
+    OCR Tesseract (CPU), median per halaman & 1,45 detik \\ \hline
+    OCR EasyOCR (GPU), median per halaman & 32,15 detik \\ \hline
+    OCR PaddleOCR (CPU), seluruh 3.482 halaman & 7,38 jam \\ \hline
+    Fitur FastText untuk empat kondisi OCR & 6,4 menit \\ \hline
+    Pelatihan 15 model unimodal & 3,05 jam \\ \hline
+    Seluruh grid fusion (12 sel, LATE dan CONCAT) & 72 detik \\ \hline
+    Uji lanjutan \textit{missing modality} (12 sel) & 133 detik \\ \hline
+  \end{tabularx}
+\end{table}

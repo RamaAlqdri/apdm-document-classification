@@ -30,7 +30,7 @@ Kode dan rancangan ditulis dulu, lalu dijalankan pengguna di mesin compute pada 
     dan val *head*, lalu uji tanpa teks diulang. Tiap baris juga mencatat kelas yang paling
     banyak diprediksi.
   - `run_grid` menerima argumen `cell`, jadi grid yang sama menjalankan `evaluate_followup`.
-  - Self-check diperluas: kondisi sintetis ketiga dengan sepertiga kelas 3 bertekst kosong;
+  - Self-check diperluas: kondisi sintetis ketiga dengan sepertiga kelas 3 berteks kosong;
     memeriksa mask, jumlah dokumen kosong per bagian, *head* identik dengan grid, dan bahwa
     pengganti rerata mendarat dekat IMAGE.
 - `notebooks/pipeline.ipynb`: empat sel "H3 lanjutan" setelah sel matriks konfusi H3
@@ -74,3 +74,12 @@ Rincian di [[17-missing-modality-lanjutan]]; semua angka dari CSV di atas.
 [[17-missing-modality-lanjutan]] (status → selesai), [[16-fusi-per-ocr]] temuan 2,
 [[limitasi-dan-lanjutan]] H.5, [[sintesis-fase-2]] bagian koreksi metodologis dan yang tetap
 terbuka.
+
+## Laporan LaTeX diperbarui
+
+`proposal/naskah` diubah dari rencana penelitian menjadi laporan hasil: Metode ditulis ulang
+sesuai yang dijalankan (empat kondisi OCR, FastText saja, LATE vs CONCAT beku, Holm,
+pengganti kosong dan rerata), bagian baru Hasil dan Pembahasan (angka dari
+[[13-ocr-multi-mesin]], [[15-grid-teks-ocr]], [[16-fusi-per-ocr]],
+[[17-missing-modality-lanjutan]]) dan Kesimpulan. Judul tidak lagi menyebut embedding
+karena BERT ditunda. Kompilasi `latexmk main.tex` bersih, 27 halaman.
