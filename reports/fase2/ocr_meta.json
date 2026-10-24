@@ -1,0 +1,43 @@
+{
+ "tesseract": {
+  "engine": "tesseract",
+  "python": "3.12.10",
+  "opsi": {
+   "gpu": false,
+   "tesseract_cmd": "C:\\Program Files\\Tesseract-OCR\\tesseract.EXE",
+   "device": null,
+   "paddle_models": "mobile"
+  },
+  "pytesseract": "0.3.13",
+  "tesseract_binary": "5.4.0.20240606",
+  "config": "--oem 1 --psm 3"
+ },
+ "easyocr": {
+  "engine": "easyocr",
+  "python": "3.12.10",
+  "opsi": {
+   "gpu": true,
+   "tesseract_cmd": null,
+   "device": null,
+   "paddle_models": "mobile"
+  },
+  "easyocr": "1.7.2",
+  "torch": "2.5.1+cu121"
+ },
+ "paddleocr": {
+  "engine": "paddleocr",
+  "python": "3.12.10",
+  "opsi": {
+   "gpu": false,
+   "tesseract_cmd": null,
+   "device": "cpu",
+   "paddle_models": "mobile"
+  },
+  "paddleocr": "3.7.0",
+  "paddlepaddle": "3.2.2",
+  "models": [
+   "PP-OCRv5_mobile_det",
+   "en_PP-OCRv5_mobile_rec"
+  ]
+ }
+}

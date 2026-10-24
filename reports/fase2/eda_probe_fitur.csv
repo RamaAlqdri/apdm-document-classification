@@ -1,0 +1,6 @@
+fitur,oa_probe,macro_f1_probe,kelas_mayoritas
+citra (MobileNetV2 pretrained),0.7293,0.7099,0.1782
+teks qs-ocr (rata-rata FastText),0.6685,0.6491,0.1782
+teks tesseract (rata-rata FastText),0.6499,0.6231,0.1782
+teks easyocr (rata-rata FastText),0.6521,0.6212,0.1782
+teks paddleocr (rata-rata FastText),0.6864,0.6653,0.1782

@@ -228,6 +228,9 @@ def run_engine(engine: Engine, name: str, docs: Iterable[tuple[str, Path]],
             errors += 1
             with open(out_dir / "_errors.txt", "a", encoding="utf-8") as f:
                 f.write(f"{doc_id}\t{type(e).__name__}: {e}\n")
+            if done == 0 and errors >= 10:  # a broken engine, not a bad page
+                raise RuntimeError(f"[{name}] {errors} halaman pertama gagal semua: "
+                                   f"{type(e).__name__}: {e}") from e
             continue
         sec = time.perf_counter() - t0
         spent += sec
@@ -272,6 +275,12 @@ def find_tesseract(install: bool = True) -> str | None:
     return None
 
 
+# paddlepaddle 3.3.x on Windows CPU fails every page under oneDNN
+# ("ConvertPirAttribute2RuntimeAttribute not support"); disabling oneDNN works but
+# is ~7x slower. 3.2.2 runs oneDNN fine and gives the same text.
+PADDLE_VERSION = "3.2.2"
+
+
 def paddle_python(root: Path) -> Path:
     venv = Path(root) / ".venv-paddle"
     return venv / ("Scripts/python.exe" if sys.platform == "win32" else "bin/python")
@@ -286,10 +295,12 @@ def ensure_paddle_venv(root: Path) -> Path:
     if not py.exists():
         print("Membuat .venv-paddle ...")
         subprocess.run([sys.executable, "-m", "venv", str(py.parent.parent)], check=True)
-    if subprocess.run([str(py), "-c", "import paddleocr"], capture_output=True).returncode:
-        print("Memasang paddlepaddle + paddleocr (± 1 GB, beberapa menit)...")
+    check = ("import paddleocr, paddle; "
+             f"assert paddle.__version__ == {PADDLE_VERSION!r}")
+    if subprocess.run([str(py), "-c", check], capture_output=True).returncode:
+        print(f"Memasang paddlepaddle {PADDLE_VERSION} + paddleocr (± 1 GB, beberapa menit)...")
         subprocess.run([str(py), "-m", "pip", "install", "-q",
-                        "paddlepaddle==3.3.1", "paddleocr==3.7.0"], check=True)
+                        f"paddlepaddle=={PADDLE_VERSION}", "paddleocr==3.7.0"], check=True)
     return py
 
 

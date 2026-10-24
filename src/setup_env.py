@@ -23,6 +23,7 @@ SELF_CHECKS = ["config", "data", "splits", "text_features", "datasets",
                "ocr", "eda", "experiment", "plots", "setup_env"]
 
 KAGGLE_JSON = Path.home() / ".kaggle" / "kaggle.json"
+KAGGLE_TOKEN = Path.home() / ".kaggle" / "access_token"
 
 
 def torch_info() -> dict | None:
@@ -50,7 +51,8 @@ def _lock(path: Path) -> None:
 
 
 def kaggle_ready() -> bool:
-    return KAGGLE_JSON.exists() or bool(os.environ.get("KAGGLE_KEY"))
+    return (KAGGLE_JSON.exists() or KAGGLE_TOKEN.exists()
+            or bool(os.environ.get("KAGGLE_KEY") or os.environ.get("KAGGLE_API_TOKEN")))
 
 
 def adopt_kaggle_json(search=(Path.home() / "Downloads", Path.home() / "Unduhan",
@@ -70,14 +72,38 @@ def adopt_kaggle_json(search=(Path.home() / "Downloads", Path.home() / "Unduhan"
 
 
 def write_kaggle_token(username: str, key: str) -> Path:
+    """New-style API tokens (KGAT_...) only work from ~/.kaggle/access_token;
+    a legacy 32-hex key goes into kaggle.json with the username."""
+    key = key.strip()
     KAGGLE_JSON.parent.mkdir(parents=True, exist_ok=True)
-    KAGGLE_JSON.write_text(json.dumps({"username": username, "key": key}),
-                           encoding="utf-8")
-    _lock(KAGGLE_JSON)
-    return KAGGLE_JSON
+    if key.startswith("KGAT_"):
+        path = KAGGLE_TOKEN
+        path.write_text(key, encoding="utf-8")
+    else:
+        path = KAGGLE_JSON
+        path.write_text(json.dumps({"username": username.strip(), "key": key}),
+                        encoding="utf-8")
+    _lock(path)
+    return path
+
+
+def migrate_kaggle_json() -> bool:
+    """Move a KGAT_ token saved inside kaggle.json (where kagglehub rejects it)
+    to ~/.kaggle/access_token. Returns True if it moved one."""
+    try:
+        d = json.loads(KAGGLE_JSON.read_text(encoding="utf-8-sig"))
+    except (OSError, ValueError):
+        return False
+    key = str(d.get("key", "")).strip()
+    if not key.startswith("KGAT_"):
+        return False
+    write_kaggle_token("", key)
+    KAGGLE_JSON.unlink()
+    return True
 
 
 def verify_kaggle() -> tuple[bool, str]:
+    migrate_kaggle_json()
     r = subprocess.run([sys.executable, "-c",
                         "from kagglehub.auth import whoami;print(whoami().get('username'))"],
                        capture_output=True, text=True)
@@ -114,7 +140,7 @@ if __name__ == "__main__":
         p = pin_file(Path(tmp) / "c.txt", packages=("numpy",))
         assert p.read_text().startswith("numpy=="), p.read_text()
     assert set(SELF_CHECKS) - {"setup_env"} <= {
-        str(f.relative_to(ROOT / "src").with_suffix("")).replace("/", ".")
+        f.relative_to(ROOT / "src").with_suffix("").as_posix().replace("/", ".")
         for f in (ROOT / "src").rglob("*.py")}, "SELF_CHECKS menyebut modul yang tidak ada"
     assert isinstance(kaggle_ready(), bool)
     print("setup_env self-check ok")
