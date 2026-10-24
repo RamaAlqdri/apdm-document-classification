@@ -205,17 +205,86 @@ def evaluate_cell(img: dict, txt: dict, y: np.ndarray, split: dict, seed: int,
 
 
 def run_grid(y: np.ndarray, splits: dict, conditions: list[str], seeds: list[int],
-             **kwargs) -> tuple[pd.DataFrame, dict]:
-    """evaluate_cell over every condition x seed. Returns (scores, preds[(cond, seed)])."""
+             cell: Callable = evaluate_cell, **kwargs) -> tuple[pd.DataFrame, dict]:
+    """`cell` over every condition x seed. Returns (scores, preds[(cond, seed)])."""
     rows, preds = [], {}
     for seed in seeds:
         img = load_outputs(IMAGE, seed)
         for cond in conditions:
-            r, p = evaluate_cell(img, load_outputs(text_name(cond), seed), y,
-                                 splits[seed], seed, **kwargs)
+            r, p = cell(img, load_outputs(text_name(cond), seed), y, splits[seed], seed,
+                        **kwargs)
             rows += [{"ocr": cond, "seed": seed, **x} for x in r]
             preds[(cond, seed)] = p
     return pd.DataFrame(rows), preds
+
+
+# --------------------------------------------------------------------------- #
+# follow-up to 16-fusi-per-ocr finding 2: is the missing-modality collapse an
+# out-of-distribution artefact, and did the head learn "empty text => Note"?
+
+def empty_text_mask(txt: dict, tol: float = 1e-3) -> np.ndarray:
+    """Documents whose text features equal the blank-input features.
+
+    An empty page and a page whose tokens were all dropped both become the all-zero
+    sequence, i.e. exactly the blank input, so this is "empty" as the model sees it.
+    `tol` absorbs batch-vs-single numeric noise on GPU.
+    """
+    scale = max(1.0, float(np.abs(txt["blank_feat"]).max()))
+    return np.abs(txt["feat"] - txt["blank_feat"]).max(1) <= tol * scale
+
+
+def evaluate_followup(img: dict, txt: dict, y: np.ndarray, split: dict, seed: int,
+                      head_epochs: int | None = None, **head_kwargs) -> tuple[list, dict]:
+    """Missing modality with an in-distribution substitute, and a head without empties.
+
+    "_rerata": the missing modality is replaced by its mean feature (CONCAT) or mean
+    logit (LATE) over the documents the head was trained on, instead of the blank
+    input's output. "CONCAT_nonkosong*": a second head trained with the empty-text
+    documents (empty_text_mask) left out of its train and val; test is unchanged.
+    Rows also carry which class takes the largest share of the predictions.
+    """
+    te = np.asarray(split["test"])
+    yt = np.asarray(y)[te]
+    li, lt = img["logit"][te], txt["logit"][te]
+    fi, ft = img["feat"][te], txt["feat"][te]
+    empty = empty_text_mask(txt)
+    keep = {p: [i for i in split[p] if not empty[i]] for p in ("train", "val")}
+
+    def fill(out, key, idx):
+        return np.repeat(out[key][np.asarray(idx)].mean(0)[None], len(te), axis=0)
+
+    def blank(v):
+        return np.repeat(v[None], len(te), axis=0)
+
+    tr = split["train"]
+    head = train_concat_head(img, txt, y, split, seed, epochs=head_epochs, **head_kwargs)
+    head_ne = train_concat_head(img, txt, y, {**split, **keep}, seed, epochs=head_epochs,
+                                **head_kwargs)
+    preds = {
+        "IMAGE": li.argmax(1),
+        "TEXT": lt.argmax(1),
+        "LATE_tanpa_teks_rerata": late_fusion(li, fill(txt, "logit", tr)).argmax(1),
+        "LATE_tanpa_citra_rerata": late_fusion(fill(img, "logit", tr), lt).argmax(1),
+        "CONCAT": head_predict(head, fi, ft),
+        "CONCAT_tanpa_teks": head_predict(head, fi, blank(txt["blank_feat"])),
+        "CONCAT_tanpa_teks_rerata": head_predict(head, fi, fill(txt, "feat", tr)),
+        "CONCAT_tanpa_citra_rerata": head_predict(head, fill(img, "feat", tr), ft),
+        "CONCAT_nonkosong": head_predict(head_ne, fi, ft),
+        "CONCAT_nonkosong_tanpa_teks": head_predict(head_ne, fi, blank(txt["blank_feat"])),
+        "CONCAT_nonkosong_tanpa_teks_rerata": head_predict(
+            head_ne, fi, fill(txt, "feat", keep["train"])),
+    }
+    n_cls = img["logit"].shape[1]
+    rows = []
+    for k, p in preds.items():
+        share = np.bincount(p, minlength=n_cls) / len(p)
+        rows.append({"model": k, **scores(yt, p), "kelas_terbanyak": int(share.argmax()),
+                     "porsi_kelas_terbanyak": float(share.max())})
+    info = {"n_kosong_latih": len(split["train"]) - len(keep["train"]),
+            "n_kosong_val": len(split["val"]) - len(keep["val"]),
+            "n_kosong_uji": int(empty[te].sum())}
+    rows = [{**r, **info} for r in rows]
+    return rows, {**preds, "y_true": yt}
 
 
 # --------------------------------------------------------------------------- #
@@ -351,6 +420,9 @@ def _self_check() -> None:
     for c in range(k):
         x_img[y == c, min(c, 2)] += 1.0          # 2 and 3 collapse onto one axis
         x_txt[y == c, max(c, 1) + 2] += 1.0      # 0 and 1 collapse onto one axis
+    # condition "c": a third of class 3 has empty text, i.e. exactly the blank input
+    is_empty = (y == 3) & (np.arange(n) % 3 == 0)
+    x_txt_empty = np.where(is_empty[:, None], 0, x_txt).astype(np.float32)
     labels = [str(c) for c in y]
     splits = {s: S.make_split(labels, s, n_train=240, val_fraction=0.25) for s in (1, 2)}
 
@@ -362,7 +434,8 @@ def _self_check() -> None:
         try:
             for seed in (1, 2):
                 for name, x in ((IMAGE, x_img), (text_name("a"), x_txt),
-                                (text_name("b"), x_txt[:, ::-1].copy())):
+                                (text_name("b"), x_txt[:, ::-1].copy()),
+                                (text_name("c"), x_txt_empty)):
                     meta = train_unimodal(
                         name, seed, splits[seed], lambda: Tiny(6, k),
                         lambda idx, x=x: Rows(torch.from_numpy(x), y, idx),
@@ -395,6 +468,28 @@ def _self_check() -> None:
             assert len(h1) == 2 and {"p", "p_holm", "signifikan"} <= set(h1.columns)
             h3 = mcnemar_models(preds, "LATE", "CONCAT", ["a", "b"], [1, 2])
             assert len(h3) == 4
+
+            fu, fpreds = run_grid(y, splits, ["a", "c"], [1, 2], cell=evaluate_followup,
+                                  head_epochs=80, lr=0.1, patience=0)
+            for seed in (1, 2):
+                txt_c = load_outputs(text_name("c"), seed)
+                assert np.array_equal(empty_text_mask(txt_c), is_empty), "mask kosong salah"
+                assert not empty_text_mask(load_outputs(text_name("a"), seed)).any()
+                r = fu[(fu.seed == seed) & (fu.ocr == "c")].iloc[0]
+                sp_ = splits[seed]
+                assert (r.n_kosong_latih, r.n_kosong_val, r.n_kosong_uji) == tuple(
+                    int(is_empty[sp_[p]].sum()) for p in ("train", "val", "test")), r
+                assert r.n_kosong_latih > 0
+                # same seed, same data, same head as the grid; and with nothing to drop
+                # the "non-empty" head is that same head again
+                assert np.array_equal(fpreds[("a", seed)]["CONCAT"], preds[("a", seed)]["CONCAT"])
+                fa = fpreds[("a", seed)]
+                assert np.array_equal(fa["CONCAT_nonkosong"], fa["CONCAT"])
+            w = fu.pivot_table(index=["ocr", "seed"], columns="model", values="oa")
+            # the mean substitute is in distribution: losing text leaves roughly IMAGE
+            assert ((w["LATE_tanpa_teks_rerata"] - w["IMAGE"]).abs() < 0.1).all(), w
+            assert (w["CONCAT_tanpa_teks_rerata"] > w["IMAGE"] - 0.15).all(), w
+            assert fu["porsi_kelas_terbanyak"].between(1 / k, 1).all()
         finally:
             CONFIG.update(saved)
 

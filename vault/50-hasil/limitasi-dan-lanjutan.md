@@ -230,7 +230,8 @@ bersih, tetapi tidak dilakukan.
 **H.5 Uji missing modality dengan masukan kosong hanya sah untuk LATE tanpa teks.**
 Pada CONCAT dan pada semua versi tanpa citra, masukan pengganti keluar distribusi
 ([[16-fusi-per-ocr]] temuan 2). Ini kekeliruan rancangan kami sendiri; ukuran pengganti
-yang dipakai adalah gain di atas IMAGE dan panen potensi oracle.
+yang dipakai adalah gain di atas IMAGE dan panen potensi oracle. Uji ulang dengan pengganti
+rerata latih dan *head* tanpa teks kosong: [[17-missing-modality-lanjutan]] (belum dijalankan).
 
 **H.6 Satu embedding.** Hanya FastText + CNN1D. Hipotesis H2 (apakah BERT memperkecil
 selisih antar-OCR) belum diuji, jadi kesimpulan Q1 berlaku untuk embedding statis subword.

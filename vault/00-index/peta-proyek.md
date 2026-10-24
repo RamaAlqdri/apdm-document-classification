@@ -110,6 +110,8 @@ setiap sel Fase 2. Prompt lengkap per tahap ada di [[rencana-prompt]].
 - [x] **11** — Grid teks OCR × FastText → [[15-grid-teks-ocr]] (BERT ditunda, *future work*)
 - [x] **12** — Fusion per kondisi OCR: LATE (rata-rata logit) vs CONCAT (fitur beku) →
       [[16-fusi-per-ocr]]
+- [ ] **12b** — Missing modality lanjutan (pengganti rerata, *head* tanpa teks kosong) →
+      [[17-missing-modality-lanjutan]], kode siap ([[2026-10-24-missing-modality-lanjutan]]), belum dijalankan
 
 Sejak 2026-10-22 tahap 10-12 dijalankan oleh satu notebook, `notebooks/pipeline.ipynb`
 ([[2026-10-22-pipeline-end-to-end]]). Notebook per tahap lama ada di `notebooks/arsip/`.
