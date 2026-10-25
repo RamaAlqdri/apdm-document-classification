@@ -19,8 +19,8 @@ Seed 44 jelas lebih lemah (0,7808, epoch terbaik 11), sedangkan seed 42 dan 43 m
 Analisis ini dijalankan sebelum pelatihan apa pun, pada seluruh 3.482 dokumen. Analisis
 yang memakai label (kata khas, \textit{probe}, jalan pintas kode ID) hanya dipasang pada
 bagian latih seed 42, sedangkan data uji hanya dipakai untuk mengukur akurasi
-\textit{probe}. Untuk teks, yang dianalisis di sini adalah kondisi acuan QS-OCR;
-perbandingan antar-mesin ada pada Subbagian~\ref{sec:hasil-ocr}.
+\textit{probe}. Modalitas teks dianalisis untuk keempat kondisi OCR secara terpisah, pada
+dokumen yang sama, kecuali kata khas TF-IDF dan t-SNE yang hanya dihitung untuk QS-OCR.
 
 \subsubsection{Distribusi Kelas dan Pembagian Data}
 
@@ -67,41 +67,100 @@ Advertisement, Form, News, Resume, dan Scientific membentuk kelompok yang jelas,
 Letter, Memo, dan Report bercampur di tengah. Ketiganya adalah dokumen ketikan
 berparagraf dengan tata letak yang mirip.
 
-\subsubsection{Modalitas Teks}
+\subsubsection{Modalitas Teks per Mesin OCR}
 
-Teks QS-OCR berpanjang median 174 kata per dokumen (rata-rata 224, maksimum 1.579).
-Sebanyak 1,1\% dokumen tidak berisi satu pun kata, dan 7,8\% lebih panjang dari 500 kata
-sehingga terpotong saat masuk CNN~1D. Laju OOV (Persamaan~\ref{eq:oov}) bermedian 5,5\%
-dan rata-rata 9,8\%. Angka ini batas bawah galat OCR, dan tidak dapat dibandingkan dengan
-$\pm$26\% yang dilaporkan \textcite{audebert2020}, yang memakai kamus lebih ketat.
-
-Masalah teks terpusat di dua kelas (Tabel~\ref{tab:eda-penanda}). Ambang penanda diambil
-dari ekor distribusi data (persentil 5 atau 95): teks pendek $\leq 23$ kata dan OOV tinggi
-$\geq 0{,}369$.
+Keempat kondisi OCR dibandingkan pada dokumen yang sama. Panjang teks hampir tidak
+berbeda antar-mesin (Tabel~\ref{tab:eda-panjang}): median 157 sampai 162 kata alfabetik
+per halaman, dan sekitar 7,4 sampai 8,0\% dokumen lebih panjang dari 500 token sehingga
+terpotong saat masuk CNN~1D. Perbedaan antar-mesin justru terletak pada kualitas kata dan
+pada halaman yang sulit.
 
 \begin{table}[H]
   \centering
-  \caption{Persentase dokumen bertanda masalah teks per kelas (QS-OCR)}
-  \label{tab:eda-penanda}
+  \caption{Statistik teks per mesin OCR (seluruh 3.482 dokumen)}
+  \label{tab:eda-panjang}
   \fontsize{10}{12}\selectfont
-  \begin{tabular}{|l|r|r|r|}
+  \begin{tabular}{|l|c|c|c|c|}
     \hline
-    \textbf{Kelas} & \textbf{Teks kosong} & \textbf{Teks pendek} & \textbf{OOV tinggi} \\ \hline
-    Note & 14,4\% & 41,3\% & 30,8\% \\ \hline
-    Advertisement & 3,5\% & 17,4\% & 13,0\% \\ \hline
-    Form & 0\% & 1,4\% & 10,7\% \\ \hline
-    News & 0\% & 2,1\% & 8,0\% \\ \hline
-    Kelas lain & 0\% & $\leq 4{,}2$\% & $\leq 3{,}4$\% \\ \hline
-    \textbf{Semua} & 1,1\% & 4,7\% & 4,9\% \\ \hline
+    \textbf{Ukuran} & \textbf{QS-OCR} & \textbf{Tesseract} & \textbf{EasyOCR} &
+    \textbf{PaddleOCR} \\ \hline
+    Kata alfabetik per halaman (median) & 160 & 161 & 157 & 162 \\ \hline
+    Kata alfabetik per halaman (rata-rata) & 212,0 & 212,6 & 203,7 & 213,5 \\ \hline
+    Token setelah tokenisasi (median) & 175 & 177 & 176 & 179 \\ \hline
+    Dokumen $> 500$ token & 7,96\% & 7,87\% & 7,35\% & 7,96\% \\ \hline
+    Halaman tanpa kata alfabetik & 1,06\% & 0,60\% & 0,17\% & 0,06\% \\ \hline
+    Dokumen tanpa token (kosong bagi model) & 0,78\% & 0,32\% & 0\% & 0\% \\ \hline
+    OOV median & 0,055 & 0,057 & 0,136 & 0,054 \\ \hline
+    OOV rata-rata & 0,098 & 0,115 & 0,232 & 0,124 \\ \hline
+    Dokumen OOV tinggi ($\geq 0{,}369$) & 4,9\% & 7,0\% & 20,4\% & 9,4\% \\ \hline
   \end{tabular}
 \end{table}
 
-Note berisi banyak tulisan tangan dan catatan pendek, sedangkan iklan sering berteks
-sedikit atau dipindai terputar $90^\circ$, yang tidak dikenali Tesseract dengan
-\texttt{-{}-psm 3}. Kata dengan bobot TF-IDF tertinggi per kelas
-(Tabel~\ref{tab:eda-tfidf}) menunjukkan bahwa teks OCR tetap membawa penanda kelas yang
-kuat. Kelas Note lagi-lagi berbeda: daftarnya berisi potongan kata rusak seperti
-\texttt{ore} dan \texttt{ous}.
+\textbf{Halaman kosong dan pendek terpusat di Note dan Advertisement}
+(Tabel~\ref{tab:eda-penanda}). Ambang yang sama dipakai untuk semua mesin: teks pendek
+$\leq 23$ kata alfabetik, diambil dari persentil 5 distribusi QS-OCR. Pada QS-OCR, 14,4\%
+halaman Note kosong; mesin lain membaca jauh lebih banyak dari halaman yang sama (Tesseract
+6,5\%, EasyOCR 1,0\%, PaddleOCR 0,5\%). Pada Advertisement, QS-OCR dan Tesseract
+sama-sama menyisakan 3,5\% halaman kosong, EasyOCR 1,7\%, dan PaddleOCR 0,4\%. Halaman
+iklan yang bermasalah sebagian besar dipindai terputar $90^\circ$, dan Tesseract dengan
+\texttt{-{}-psm 3} tidak mendeteksi orientasi.
+
+\begin{table}[H]
+  \centering
+  \caption{Persentase dokumen dengan teks kosong dan teks pendek per kelas dan mesin OCR
+  (kelas lain: 0\% kosong, $\leq 2{,}1$\% pendek)}
+  \label{tab:eda-penanda}
+  \fontsize{9}{11}\selectfont
+  \setlength{\tabcolsep}{4pt}
+  \begin{tabular}{|l|c|c|c|c|c|c|c|c|}
+    \hline
+    & \multicolumn{4}{c|}{\textbf{Teks kosong}} & \multicolumn{4}{c|}{\textbf{Teks pendek}} \\ \cline{2-9}
+    \textbf{Kelas} & \textbf{QS} & \textbf{Tess.} & \textbf{Easy} & \textbf{Paddle} &
+    \textbf{QS} & \textbf{Tess.} & \textbf{Easy} & \textbf{Paddle} \\ \hline
+    Note & 14,4 & 6,5 & 1,0 & 0,5 & 56,2 & 47,3 & 40,3 & 45,3 \\ \hline
+    Advertisement & 3,5 & 3,5 & 1,7 & 0,4 & 21,7 & 21,7 & 30,4 & 15,7 \\ \hline
+    Email & 0 & 0 & 0 & 0 & 5,2 & 5,5 & 7,3 & 5,7 \\ \hline
+    Form & 0 & 0 & 0 & 0 & 1,9 & 1,6 & 7,0 & 0,7 \\ \hline
+    \textbf{Semua} & 1,1 & 0,6 & 0,2 & 0,1 & 6,1 & 5,5 & 6,7 & 4,8 \\ \hline
+  \end{tabular}
+\end{table}
+
+\textbf{EasyOCR menonjol pada OOV di semua kelas} (Tabel~\ref{tab:eda-oov}). OOV
+mediannya 1,5 sampai 5 kali mesin lain, dan seperlima dokumennya tergolong OOV tinggi.
+QS-OCR, Tesseract, dan PaddleOCR hampir setara, dengan PaddleOCR sedikit lebih tinggi
+pada kelas yang sulit (Advertisement, News, Note). Pola antar-kelas sama di keempat
+mesin: Note paling tinggi, disusul Advertisement, News, dan Form, sedangkan Report,
+Letter, dan Memo paling rendah.
+
+\begin{table}[H]
+  \centering
+  \caption{OOV median per kelas dan mesin OCR}
+  \label{tab:eda-oov}
+  \fontsize{10}{12}\selectfont
+  \begin{tabular}{|l|c|c|c|c|}
+    \hline
+    \textbf{Kelas} & \textbf{QS-OCR} & \textbf{Tesseract} & \textbf{EasyOCR} &
+    \textbf{PaddleOCR} \\ \hline
+    Note & 0,250 & 0,293 & 0,636 & 0,345 \\ \hline
+    Advertisement & 0,119 & 0,167 & 0,373 & 0,191 \\ \hline
+    Form & 0,102 & 0,125 & 0,262 & 0,116 \\ \hline
+    News & 0,075 & 0,080 & 0,394 & 0,102 \\ \hline
+    Email & 0,063 & 0,063 & 0,096 & 0,053 \\ \hline
+    Scientific & 0,060 & 0,061 & 0,166 & 0,060 \\ \hline
+    Resume & 0,044 & 0,043 & 0,109 & 0,047 \\ \hline
+    Memo & 0,040 & 0,041 & 0,085 & 0,032 \\ \hline
+    Letter & 0,036 & 0,036 & 0,107 & 0,036 \\ \hline
+    Report & 0,021 & 0,023 & 0,086 & 0,019 \\ \hline
+  \end{tabular}
+\end{table}
+
+Angka OOV ini batas bawah galat OCR, dan tidak dapat dibandingkan dengan $\pm$26\% yang
+dilaporkan \textcite{audebert2020}, yang memakai kamus lebih ketat.
+
+\textbf{Kata khas dan sebaran fitur (QS-OCR).} Kata TF-IDF tertinggi dan t-SNE hanya
+dihitung untuk kondisi acuan QS-OCR. Kata khas per kelas (Tabel~\ref{tab:eda-tfidf})
+menunjukkan bahwa teks OCR membawa penanda kelas yang kuat. Kelas Note berbeda: daftarnya
+berisi potongan kata rusak seperti \texttt{ore} dan \texttt{ous}.
 
 \begin{table}[H]
   \centering
@@ -124,8 +183,9 @@ kuat. Kelas Note lagi-lagi berbeda: daftarnya berisi potongan kata rusak seperti
   \end{tabularx}
 \end{table}
 
-\textit{Linear probe} di atas rata-rata vektor FastText mencapai \textbf{OA 0,6685} (macro
-F1 0,6491), di bawah citra tetapi jauh di atas kelas mayoritas. Pada t-SNE
+\textit{Linear probe} di atas rata-rata vektor FastText QS-OCR mencapai \textbf{OA 0,6685}
+(macro F1 0,6491), di bawah citra tetapi jauh di atas kelas mayoritas; hasil untuk mesin
+lain ada pada Tabel~\ref{tab:eda-komplementer}. Pada t-SNE
 (Gambar~\ref{fig:eda-tsne}, kanan), Resume dan Email membentuk kelompok yang sangat jelas,
 Scientific mengelompok di bagian atas, dan Form di sisi kanan. Pola pengelompokannya
 berbeda dari citra.
@@ -140,34 +200,49 @@ berbeda dari citra.
 
 \subsubsection{Komplementaritas dan Kurasi}
 
-F1 \textit{probe} per kelas memperlihatkan di mana tiap modalitas unggul
-(Tabel~\ref{tab:eda-komplementer}).
+F1 \textit{probe} per kelas memperlihatkan di mana tiap modalitas unggul, dan bagaimana
+gambaran itu bergeser menurut mesin OCR (Tabel~\ref{tab:eda-komplementer}).
 
 \begin{table}[H]
   \centering
-  \caption{F1 \textit{probe} per kelas: citra vs teks QS-OCR}
+  \caption{F1 \textit{probe} per kelas: citra vs teks dari setiap mesin OCR (fitur beku,
+  tanpa pelatihan model)}
   \label{tab:eda-komplementer}
   \fontsize{10}{12}\selectfont
-  \begin{tabular}{|l|c|c|c|}
+  \begin{tabular}{|l|c|c|c|c|c|}
     \hline
-    \textbf{Kelas} & \textbf{Citra} & \textbf{Teks} & \textbf{Teks $-$ citra} \\ \hline
-    Resume & 0,710 & 0,947 & $+0{,}237$ \\ \hline
-    Scientific & 0,446 & 0,523 & $+0{,}077$ \\ \hline
-    Email & 0,899 & 0,918 & $+0{,}019$ \\ \hline
-    Memo & 0,674 & 0,627 & $-0{,}047$ \\ \hline
-    Report & 0,421 & 0,366 & $-0{,}055$ \\ \hline
-    News & 0,837 & 0,764 & $-0{,}073$ \\ \hline
-    Form & 0,813 & 0,737 & $-0{,}076$ \\ \hline
-    Letter & 0,727 & 0,624 & $-0{,}103$ \\ \hline
-    Note & 0,686 & 0,397 & $-0{,}289$ \\ \hline
-    Advertisement & 0,886 & 0,589 & $-0{,}297$ \\ \hline
+    \textbf{Kelas} & \textbf{Citra} & \textbf{QS-OCR} & \textbf{Tesseract} &
+    \textbf{EasyOCR} & \textbf{PaddleOCR} \\ \hline
+    Resume & 0,710 & 0,947 & \textbf{0,983} & 0,952 & 0,952 \\ \hline
+    Email & 0,899 & 0,918 & 0,918 & 0,913 & \textbf{0,921} \\ \hline
+    Scientific & 0,446 & 0,523 & 0,525 & 0,492 & \textbf{0,526} \\ \hline
+    Memo & \textbf{0,674} & 0,627 & 0,624 & 0,650 & 0,659 \\ \hline
+    Report & \textbf{0,421} & 0,366 & 0,377 & 0,369 & 0,393 \\ \hline
+    News & \textbf{0,837} & 0,764 & 0,687 & 0,689 & 0,799 \\ \hline
+    Form & \textbf{0,813} & 0,737 & 0,699 & 0,658 & 0,725 \\ \hline
+    Letter & \textbf{0,727} & 0,624 & 0,622 & 0,621 & 0,647 \\ \hline
+    Note & \textbf{0,686} & 0,397 & 0,280 & 0,261 & 0,364 \\ \hline
+    Advertisement & \textbf{0,886} & 0,589 & 0,517 & 0,607 & 0,669 \\ \hline
+    \textbf{OA} & \textbf{0,7293} & 0,6685 & 0,6499 & 0,6521 & 0,6864 \\ \hline
   \end{tabular}
 \end{table}
 
-Teks unggul pada Resume, Scientific, dan Email; citra unggul jauh pada Advertisement dan
-Note, tepat kelas yang teksnya paling sering kosong atau rusak. Komplementaritas ini sudah
-terlihat sebelum pelatihan apa pun, dan menjadi dasar harapan bahwa fusion menolong.
-Kurasi menemukan 101 dokumen Note dan 62 Advertisement yang teksnya bermasalah tetapi
+Di keempat mesin, teks unggul atas citra pada Resume, Email, dan Scientific, sedangkan citra
+unggul jauh pada Advertisement dan Note, tepat kelas yang teksnya paling sering kosong,
+pendek, atau ber-OOV tinggi. Arah komplementaritas ini sama untuk semua mesin; yang
+berubah adalah besarnya. Pada Note, F1 teks berkisar dari 0,261 (EasyOCR) sampai 0,397
+(QS-OCR); pada Advertisement dari 0,517 (Tesseract) sampai 0,669 (PaddleOCR); pada News
+dari 0,687 (Tesseract) sampai 0,799 (PaddleOCR). PaddleOCR memberi teks terbaik pada
+tujuh dari sepuluh kelas; pengecualiannya Resume (Tesseract), Form, dan Note (keduanya
+QS-OCR). Komplementaritas ini sudah terlihat sebelum pelatihan
+apa pun, dan menjadi dasar harapan bahwa fusion menolong.
+
+Secara keseluruhan, urutan OA \textit{probe} teks adalah PaddleOCR 0,6864 $>$ QS-OCR
+0,6685 $>$ EasyOCR 0,6521 $\approx$ Tesseract 0,6499. Urutan ini nantinya cocok dengan
+urutan akurasi cabang teks yang dilatih (Subbagian~\ref{sec:hasil-teks}). Sebaliknya,
+urutan OOV tidak cocok: EasyOCR, dengan OOV terburuk, berada sejajar dengan Tesseract.
+
+Kurasi pada QS-OCR menemukan 101 dokumen Note dan 62 Advertisement yang teksnya bermasalah tetapi
 citranya baik: di situlah fusion seharusnya paling berguna.
 
 Kurasi \textbf{menandai, tidak membuang}, karena derau OCR adalah objek penelitian.
@@ -179,9 +254,6 @@ akurasi atas 2.682 dokumen uji secara berarti. Jalan pintas kode ID arsip
 dalam teks OCR mencapai OA 0,2782, sepuluh poin di atas kelas mayoritas tetapi jauh di
 bawah \textit{probe} teks.
 
-Probe yang sama pada keempat kondisi OCR menghasilkan PaddleOCR 0,6864, QS-OCR 0,6685,
-EasyOCR 0,6521, dan Tesseract 0,6499. Urutan ini nantinya cocok dengan urutan akurasi
-cabang teks yang dilatih (Subbagian~\ref{sec:hasil-teks}).
 
 \subsection{Kualitas Keluaran OCR}\label{sec:hasil-ocr}
 
@@ -208,8 +280,7 @@ PaddleOCR menghasilkan teks paling lengkap: halaman kosongnya hampir nol dan OOV
 mediannya terendah, walaupun dibaca dari JPG. EasyOCR menonjol ke arah sebaliknya, dengan
 OOV median 2,5 kali mesin lain dan kesepakatan terendah dengan semua mesin (Jaccard 0,69
 sampai 0,73). Tesseract-JPG paling dekat dengan QS-OCR, wajar karena mesinnya sekeluarga.
-Untuk semua mesin, kelas dengan OOV tertinggi adalah Note (median 0,25 sampai 0,64),
-disusul Advertisement dan News.
+OOV per kelas untuk setiap mesin disajikan pada Tabel~\ref{tab:eda-oov}.
 
 Biayanya sangat berbeda: EasyOCR di GPU 4~GB sekitar 22 kali lebih lambat daripada
 Tesseract di CPU (Tabel~\ref{tab:waktu}).
