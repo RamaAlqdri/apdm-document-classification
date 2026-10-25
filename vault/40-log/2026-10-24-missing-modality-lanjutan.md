@@ -83,3 +83,11 @@ pengganti kosong dan rerata), bagian baru Hasil dan Pembahasan (angka dari
 [[13-ocr-multi-mesin]], [[15-grid-teks-ocr]], [[16-fusi-per-ocr]],
 [[17-missing-modality-lanjutan]]) dan Kesimpulan. Judul tidak lagi menyebut embedding
 karena BERT ditunda. Kompilasi `latexmk main.tex` bersih, 27 halaman.
+
+## Tambahan 2026-10-26: EDA per modalitas di laporan
+
+Subbagian 4.2 baru di `proposal/naskah`: distribusi kelas dan split, modalitas citra
+(resolusi, statistik per kelas, probe 0,7293, t-SNE), modalitas teks (panjang, OOV, penanda
+per kelas, TF-IDF, probe 0,6685), komplementaritas F1 probe per kelas, kurasi dan jalan
+pintas kode ID. Angka dari output sel bagian 4 dan 6.1 `pipeline.ipynb` dan
+`reports/fase2/eda_*.csv` ([[14-kurasi-dan-eda]]). Laporan kini 30 halaman.
