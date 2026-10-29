@@ -20,7 +20,7 @@ Analisis ini dijalankan sebelum pelatihan apa pun, pada seluruh 3.482 dokumen. A
 yang memakai label (kata khas, \textit{probe}, jalan pintas kode ID) hanya dipasang pada
 bagian latih seed 42, sedangkan data uji hanya dipakai untuk mengukur akurasi
 \textit{probe}. Modalitas teks dianalisis untuk keempat kondisi OCR secara terpisah, pada
-dokumen yang sama, kecuali kata khas TF-IDF dan t-SNE yang hanya dihitung untuk QS-OCR.
+dokumen yang sama.
 
 \subsubsection{Distribusi Kelas dan Pembagian Data}
 
@@ -157,35 +157,80 @@ Letter, dan Memo paling rendah.
 Angka OOV ini batas bawah galat OCR, dan tidak dapat dibandingkan dengan $\pm$26\% yang
 dilaporkan \textcite{audebert2020}, yang memakai kamus lebih ketat.
 
-\textbf{Kata khas dan sebaran fitur (QS-OCR).} Kata TF-IDF tertinggi dan t-SNE hanya
-dihitung untuk kondisi acuan QS-OCR. Kata khas per kelas (Tabel~\ref{tab:eda-tfidf})
-menunjukkan bahwa teks OCR membawa penanda kelas yang kuat. Kelas Note berbeda: daftarnya
-berisi potongan kata rusak seperti \texttt{ore} dan \texttt{ous}.
+\textbf{Kata khas per mesin.} Kata dengan bobot TF-IDF tertinggi per kelas, dipasang pada
+bagian latih seed 42 untuk setiap mesin secara terpisah, disajikan pada
+Tabel~\ref{tab:eda-tfidf}.
 
 \begin{table}[H]
   \centering
-  \caption{Kata TF-IDF tertinggi per kelas (bagian latih seed 42, QS-OCR)}
+  \caption{Enam kata TF-IDF tertinggi per kelas dan mesin OCR (bagian latih seed 42)}
   \label{tab:eda-tfidf}
-  \fontsize{10}{12}\selectfont
-  \begin{tabularx}{\textwidth}{|l|>{\raggedright\arraybackslash}X|}
+  \fontsize{8}{9.5}\selectfont
+  \setlength{\tabcolsep}{3pt}
+  \begin{tabularx}{\textwidth}{|l|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|}
     \hline
-    \textbf{Kelas} & \textbf{Kata khas} \\ \hline
-    Advertisement & warning, surgeon, cigarette, general, advertisement, smoking, tar, nicotine \\ \hline
-    Email & sent, subject, message, original, wednesday, date, thanks, meeting \\ \hline
-    Form & date, fax, number, pages, form, total, morris \\ \hline
-    Letter & tobacco, dear, research, new, sincerely, york \\ \hline
-    Memo & correspondence, attached, philip, morris, memorandum \\ \hline
-    News & said, smoking, health, smoke, tobacco, smokers \\ \hline
-    Note & desk, information, james, ore, web, ous \\ \hline
-    Report & tobacco, smoking, cigarette, products \\ \hline
-    Resume & university, research, biology, assistant, professor \\ \hline
-    Scientific & cell, cells, research, results, study, induced \\ \hline
+    \textbf{Kelas} & \textbf{QS-OCR} & \textbf{Tesseract} & \textbf{EasyOCR} & \textbf{PaddleOCR} \\ \hline
+    Advertisement & warning, surgeon, cigarette, general, advertisement, smoking &
+    warning, surgeon, cigarette, advertisement, smoking, \texttt{hie} &
+    warning, surgeon, tar, smoking, cigarette, filter &
+    warning, tar, cigarette, surgeon, smoking, flavor \\ \hline
+    Email & sent, subject, message, original, wednesday, date &
+    sent, subject, message, original, wednesday, date &
+    sent, subject, message, original, wednesday, date &
+    sent, subject, message, original, wednesday, thanks \\ \hline
+    Form & date, fax, number, pages, form, total &
+    date, fax, pages, number, form, morris &
+    date, fax, pages, number, form, philip &
+    date, fax, pages, number, form, morris \\ \hline
+    Letter & tobacco, dear, research, new, sincerely, york &
+    tobacco, dear, research, new, sincerely, york &
+    tobacco, dear, york, new, product, research &
+    tobacco, dear, research, new, sincerely, york \\ \hline
+    Memo & correspondence, attached, philip, morris, memorandum, inter &
+    correspondence, philip, attached, morris, memorandum, inter &
+    philip, morris, date, subject, attached, memorandum &
+    correspondence, morris, philip, memorandum, inter, subject \\ \hline
+    News & said, smoking, health, smoke, tobacco, smokers &
+    said, smoking, health, tobacco, \texttt{ing}, smokers &
+    smoking, said, \texttt{tbe}, tobacco, \texttt{thc}, \texttt{ilii} &
+    said, smoking, \texttt{ing}, smoke, tobacco, industry \\ \hline
+    Note & desk, information, james, \texttt{ore}, web, \texttt{ous} &
+    \texttt{eee}, desk, information, \texttt{fle}, ran, christine &
+    desk, james, information, \texttt{tle}, date, stevens &
+    information, desk, james, data, stevens, web \\ \hline
+    Report & tobacco, smoking, cigarette, products, product, smokers &
+    tobacco, smoking, cigarette, products, product, smokers &
+    tobacco, smoking, products, cigarette, \texttt{ana}, product &
+    tobacco, smoking, cigarette, products, product, smokers \\ \hline
+    Resume & university, research, biology, assistant, professor, medicine &
+    university, research, biology, assistant, professor, medicine &
+    university, assistant, research, professor, medicine, biology &
+    university, biology, assistant, research, professor, publications \\ \hline
+    Scientific & cell, cells, research, results, study, induced &
+    cells, cell, results, research, study, university &
+    cells, cell, results, research, study, \texttt{thc} &
+    cells, cell, research, results, study, induced \\ \hline
   \end{tabularx}
 \end{table}
 
-\textit{Linear probe} di atas rata-rata vektor FastText QS-OCR mencapai \textbf{OA 0,6685}
-(macro F1 0,6491), di bawah citra tetapi jauh di atas kelas mayoritas; hasil untuk mesin
-lain ada pada Tabel~\ref{tab:eda-komplementer}. Pada t-SNE
+Tiga pola terlihat. \textbf{Pertama}, pada kelas yang teksnya bersih (Email, Letter,
+Form, Resume, Report, Memo), keempat mesin menghasilkan kata khas yang hampir sama:
+penanda kelas yang kuat seperti \textit{subject}, \textit{dear}, dan \textit{university}
+terbaca oleh semua mesin. \textbf{Kedua}, potongan kata rusak muncul tepat pada kelas dan mesin yang OOV-nya tinggi.
+EasyOCR memasukkan \texttt{tbe} dan \texttt{thc}, yang kemungkinan besar salah baca
+\textit{the}, ke kata khas News dan Scientific, dan \texttt{ana} ke Report. Pada Note, semua mesin menghasilkan potongan
+kata rusak di sepuluh kata teratasnya (misalnya \texttt{eee}, \texttt{fle},
+\texttt{tle}, \texttt{sot}), sesuai dengan tulisan tangan yang dominan di kelas itu.
+\textbf{Ketiga}, pada Advertisement, kata dari kemasan produk (\textit{flavor},
+\textit{filter}, \textit{box}, \textit{slims}) masuk sepuluh kata teratas ketiga mesin
+yang membaca JPG, tetapi tidak pada QS-OCR. PaddleOCR juga memunculkan nama perusahaan
+(\textit{lorillard} pada Memo, \textit{rjr} pada Letter) di antara sepuluh kata
+teratasnya. Daftar lengkap
+sepuluh kata ada di \texttt{reports/fase2/eda\_kata\_khas\_per\_ocr.csv}.
+
+\textbf{Sebaran fitur.} \textit{Linear probe} di atas rata-rata vektor FastText QS-OCR
+mencapai \textbf{OA 0,6685} (macro F1 0,6491), di bawah citra tetapi jauh di atas kelas
+mayoritas; hasil untuk mesin lain ada pada Tabel~\ref{tab:eda-komplementer}. Pada t-SNE
 (Gambar~\ref{fig:eda-tsne}, kanan), Resume dan Email membentuk kelompok yang sangat jelas,
 Scientific mengelompok di bagian atas, dan Form di sisi kanan. Pola pengelompokannya
 berbeda dari citra.
@@ -196,6 +241,22 @@ berbeda dari citra.
   \caption{Proyeksi t-SNE fitur citra (kiri, MobileNetV2 ImageNet) dan fitur teks
   (kanan, rata-rata FastText QS-OCR), diwarnai menurut kelas}
   \label{fig:eda-tsne}
+\end{figure}
+
+t-SNE teks untuk keempat mesin ditunjukkan Gambar~\ref{fig:eda-tsne-ocr}. Pada semua mesin,
+Resume dan Email membentuk kelompok yang terpisah jelas, dan Scientific mengelompok di satu
+sisi. Letter, Memo, Form, dan Report bercampur di tengah pada semua mesin. Pada EasyOCR,
+sebagian dokumen Advertisement, Form, dan News memisah menjadi satu gugus kecil di luar
+sebaran utama, yang tidak terlihat pada mesin lain. t-SNE hanya alat visual: jarak
+antar-gugus tidak bermakna kuantitatif, dan perbandingan keterpisahan antar-mesin yang
+dapat diukur adalah OA \textit{probe} pada Tabel~\ref{tab:eda-komplementer}.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{../../reports/figures/fase2_eda_tsne_per_ocr.png}
+  \caption{Proyeksi t-SNE rata-rata vektor FastText untuk setiap mesin OCR (seed dan
+  perplexity sama), diwarnai menurut kelas}
+  \label{fig:eda-tsne-ocr}
 \end{figure}
 
 \subsubsection{Komplementaritas dan Kurasi}

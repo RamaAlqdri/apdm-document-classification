@@ -19,7 +19,7 @@ terkait:
 
 Laporan LaTeX kini membandingkan EDA teks per mesin OCR dari CSV yang sudah ada, kecuali kata
 khas TF-IDF dan t-SNE yang selama ini hanya dihitung untuk QS-OCR ([[14-kurasi-dan-eda]]).
-Kode untuk keduanya ditambahkan; **belum dijalankan pada data asli**.
+Kode untuk keduanya ditambahkan, lalu dijalankan pengguna di laptop compute (`00f1c9e`).
 
 ## Yang dibuat
 
@@ -39,3 +39,20 @@ dan menulis CSV serta gambar. Angka dan gambar sintetis tidak bermakna dan tidak
 `python run_all.py` di laptop compute. Semua cache (OCR, sekuens FastText, fitur citra,
 model) dipakai ulang; yang benar-benar dihitung hanya EDA, bagian 6.2, dan bagian 8-10.
 Setelah hasil di-push, kata khas dan t-SNE per mesin dimasukkan ke laporan Subbagian 4.2.
+
+## Hasil (`00f1c9e`)
+
+Run ulang memakai semua cache; pemeriksaan kewarasan bagian 8 identik dengan run sebelumnya
+(TEXT qs-ocr 0,7266 ± 0,0059, IMAGE 0,8169 ± 0,0257). Dari
+`reports/fase2/eda_kata_khas_per_ocr.csv` dan `fase2_eda_tsne_per_ocr.png`:
+
+- Kelas bertekst bersih (Email, Letter, Form, Resume, Report, Memo): kata khas hampir sama
+  di keempat mesin.
+- Potongan kata rusak muncul di kelas/mesin ber-OOV tinggi: EasyOCR `tbe`, `thc` (News,
+  Scientific), `ana` (Report); Note rusak di semua mesin (`eee`, `fle`, `tle`, `sot`).
+- Advertisement: kata kemasan (flavor, filter, box, slims) masuk sepuluh teratas ketiga mesin
+  JPG, tidak pada QS-OCR.
+- t-SNE: Resume dan Email terpisah jelas di semua mesin; EasyOCR punya satu gugus kecil
+  Advertisement/Form/News di luar sebaran utama. Kualitatif saja.
+
+Dimasukkan ke laporan `proposal/naskah` Subbagian 4.2.3 (Tabel 10, Gambar 4).
