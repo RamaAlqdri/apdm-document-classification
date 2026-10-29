@@ -107,6 +107,7 @@ setiap sel Fase 2. Prompt lengkap per tahap ada di [[rencana-prompt]].
       Kode siap dan diverifikasi ([[2026-10-09-tahap-10-ocr-multi-mesin]]), belum dijalankan
 - [x] **10b** — Kurasi dataset + EDA (permintaan dosen) → [[14-kurasi-dan-eda]], kode siap
       ([[2026-10-11-kurasi-eda]]), belum dijalankan
+      · kata khas dan t-SNE per mesin OCR: kode siap ([[2026-10-29-eda-teks-per-ocr]]), belum dijalankan
 - [x] **11** — Grid teks OCR × FastText → [[15-grid-teks-ocr]] (BERT ditunda, *future work*)
 - [x] **12** — Fusion per kondisi OCR: LATE (rata-rata logit) vs CONCAT (fitur beku) →
       [[16-fusi-per-ocr]]

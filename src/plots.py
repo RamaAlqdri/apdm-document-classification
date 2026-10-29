@@ -42,21 +42,26 @@ def boxes_by_class(df: pd.DataFrame, cols: list[str], classes: list[str],
     return fig
 
 
-def scatter_2d(panels: dict[str, np.ndarray], y: np.ndarray, classes: list[str]):
-    """Side-by-side 2-D embeddings (e.g. t-SNE), coloured by class."""
+def scatter_2d(panels: dict[str, np.ndarray], y: np.ndarray, classes: list[str],
+               ncols: int | None = None):
+    """2-D embeddings (e.g. t-SNE) in a grid of `ncols` columns, coloured by class."""
     plt = _plt()
     colors = plt.cm.tab10(np.arange(len(classes)))
-    fig, axes = plt.subplots(1, len(panels), figsize=(7.5 * len(panels), 6.5),
+    ncols = ncols or len(panels)
+    nrows = -(-len(panels) // ncols)
+    fig, axes = plt.subplots(nrows, ncols, figsize=(7.5 * ncols, 6.5 * nrows),
                              squeeze=False)
-    for ax, (title, z) in zip(axes[0], panels.items()):
+    for ax in axes.flat[len(panels):]:
+        ax.set_visible(False)
+    for ax, (title, z) in zip(axes.flat, panels.items()):
         for k, c in zip(classes, colors):
             m = y == k
             ax.scatter(z[m, 0], z[m, 1], s=5, color=c, label=k, alpha=0.7)
         ax.set_title(title)
         ax.set_xticks([])
         ax.set_yticks([])
-    axes[0, -1].legend(markerscale=3, fontsize=8, loc="center left",
-                       bbox_to_anchor=(1, 0.5))
+    axes[0, ncols - 1].legend(markerscale=3, fontsize=8, loc="center left",
+                              bbox_to_anchor=(1, 0.5))
     fig.tight_layout()
     return fig
 
@@ -163,6 +168,8 @@ def _self_check() -> None:
         boxes_by_class(df, ["v"], classes, log_cols=("v",)),
         scatter_2d({"x": np.random.default_rng(0).normal(size=(10, 2))},
                    df["kelas"].to_numpy(), classes),
+        scatter_2d({t: np.random.default_rng(0).normal(size=(10, 2)) for t in "pqr"},
+                   df["kelas"].to_numpy(), classes, ncols=2),
         heatmap([[1, 0.5], [0.5, np.nan]], classes, classes, "h"),
         signed_bars(pd.Series([0.1, -0.2], index=classes), "s", "x"),
     ]
